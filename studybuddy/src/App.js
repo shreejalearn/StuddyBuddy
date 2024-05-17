@@ -2,26 +2,36 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 const App = () => {
-    const [input, setInput] = useState('');
-    const [result, setResult] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [recognizedText, setRecognizedText] = useState('');
 
-    const handleSubmit = async () => {
-        try {
-            const response = await axios.post('http://localhost:5000/predict', { input_data: input });
-            setResult(response.data.result);
-        } catch (error) {
-            console.error('Error:', error);
+  const handleImageChange = (event) => {
+    setSelectedImage(event.target.files[0]);
+  };
+
+  const handleUploadImage = async () => {
+    const formData = new FormData();
+    formData.append('image', selectedImage);
+
+    try {
+      const response = await axios.post('http://localhost:5000/recognize', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
         }
-    };
-    
+      });
+      setRecognizedText(response.data.text);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
-    return (
-        <div>
-            <input type="text" value={input} onChange={(e) => setInput(e.target.value)} />
-            <button onClick={handleSubmit}>Submit</button>
-            {result && <p>Result: {result}</p>}
-        </div>
-    );
+  return (
+    <div>
+      <input type="file" accept="image/*" onChange={handleImageChange} />
+      <button onClick={handleUploadImage}>Upload Image</button>
+      {recognizedText && <p>Recognized Text: {recognizedText}</p>}
+    </div>
+  );
 };
 
 export default App;

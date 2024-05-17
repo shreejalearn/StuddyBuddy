@@ -1,18 +1,26 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # Import CORS from flask_cors module
+from flask_cors import CORS
+from PIL import Image
+import pytesseract
+import io
 
 app = Flask(__name__)
-CORS(app)  # Apply CORS to your Flask app
+CORS(app)  
 
-# Mock machine learning model function
-def predict(input_data):
-    # Your machine learning model prediction logic here
-    return "Result"
 
-@app.route('/predict', methods=['POST'])
-def handle_prediction():
-    input_data = request.json.get('input_data')
-    return jsonify({'result': input_data})
+
+@app.route('/recognize', methods=['POST'])
+def recognize_handwriting():
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image uploaded'})
+
+    image_file = request.files['image']
+    image_stream = io.BytesIO(image_file.read())
+    image = Image.open(image_stream)
+
+    recognized_text = pytesseract.image_to_string(image)
+
+    return jsonify({'text': recognized_text})
 
 if __name__ == '__main__':
     app.run(host='localhost', port=5000, debug=True)
