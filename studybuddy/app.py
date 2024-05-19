@@ -3,13 +3,22 @@ from flask_cors import CORS
 from PIL import Image
 import pytesseract
 import io
+import os
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 app = Flask(__name__)
-CORS(app)  
+CORS(app)
 
-# pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files (x86)\\Tesseract-OCR'
+# Specify the full path to the Tesseract executable
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate("serviceKey.json")
+firebase_admin.initialize_app(cred)
 
+# Initialize Firestore client
+db = firestore.client()
 
 @app.route('/recognize', methods=['POST'])
 def recognize_handwriting():
@@ -21,6 +30,10 @@ def recognize_handwriting():
     image = Image.open(image_stream)
 
     recognized_text = pytesseract.image_to_string(image)
+
+    # Store recognized_text in Cloud Firestore
+    doc_ref = db.collection('recognized_texts').document()
+    doc_ref.set({'text': recognized_text})
 
     return jsonify({'text': recognized_text})
 
