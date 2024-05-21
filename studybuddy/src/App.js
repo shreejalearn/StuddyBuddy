@@ -4,12 +4,34 @@ import CollectionGallery from './CollectionGallery';
 import ScanNotes from './ScanNotes';
 
 const App = () => {
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [recognizedText, setRecognizedText] = useState('');
+
+  const handleImageChange = (event) => {
+    setSelectedImage(event.target.files[0]);
+  };
+
+  const handleUploadImage = async () => {
+    const formData = new FormData();
+    formData.append('image', selectedImage);
+
+    try {
+      const response = await axios.post('http://localhost:5000/recognize', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      setRecognizedText(response.data.text);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   return (
     <div>
-      <h1>Collection Manager</h1>
-      <ScanNotes />
-      <CreateCollection />
-      <CollectionGallery />
+      <input type="file" accept="image/*" onChange={handleImageChange} />
+      <button onClick={handleUploadImage}>Upload Image</button>
+      {recognizedText && <p>Recognized Text: {recognizedText}</p>}
     </div>
   );
 };
