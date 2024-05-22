@@ -49,6 +49,27 @@ from PIL import Image
 import pytesseract
 import io
 import os
+import asyncio
+import os
+from sydney import SydneyClient
+from dotenv import load_dotenv
+
+import json
+
+load_dotenv()
+
+bing_cookies_key = os.getenv('BING_COOKIES')
+
+if bing_cookies_key is None:
+    print("Error: BING_COOKIES environment variable is not set.")
+    exit(1)
+
+os.environ["BING_COOKIES"] = bing_cookies_key
+
+async def ask_sydney(question):
+    async with SydneyClient() as sydney:
+        response = await sydney.ask(question, citations=True)
+        return response
 
 app = Flask(__name__)
 CORS(app)
@@ -61,6 +82,20 @@ firebase_admin.initialize_app(cred)
 
 # Initialize Firestore client
 db = firestore.client()
+
+@app.route('/ask_sydney', methods=['POST'])
+def ask_sydney_route():
+    data = request.get_json()
+    if 'prompt' not in data:
+        return jsonify({'error': 'Prompt not provided'})
+
+    prompt = data['prompt']
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    response = loop.run_until_complete(ask_sydney(prompt))
+
+    return jsonify({'response': response})
 
 @app.route('/create_collection', methods=['POST'])
 def create_collection():
