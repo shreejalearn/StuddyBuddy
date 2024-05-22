@@ -77,11 +77,11 @@ CORS(app)
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Initialize Firebase Admin SDK
-cred = credentials.Certificate("serviceKey.json")
-firebase_admin.initialize_app(cred)
+# cred = credentials.Certificate("serviceKey.json")
+# firebase_admin.initialize_app(cred)
 
-# Initialize Firestore client
-db = firestore.client()
+# # Initialize Firestore client
+# db = firestore.client()
 
 @app.route('/ask_sydney', methods=['POST'])
 def ask_sydney_route():
