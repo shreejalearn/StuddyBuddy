@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
-import { auth } from './firebaseSetup'; // Import the auth instance
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { initializeApp } from "firebase/app"; 
+import 'firebase/auth'; 
+import serviceAccount from './serviceKey.json';
+
+const firebaseConfig = {
+  apiKey: serviceAccount.private_key_id,
+  authDomain: serviceAccount.auth_uri,
+  projectId: serviceAccount.project_id,
+  storageBucket: serviceAccount.client_x509_cert_url,
+  messagingSenderId: serviceAccount.messagingSenderId,
+  appId: serviceAccount.client_id
+};
+
+initializeApp(firebaseConfig);
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -8,8 +22,9 @@ const Auth = () => {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
+    const auth = getAuth(); 
     try {
-      await auth.createUserWithEmailAndPassword(email, password);
+      await createUserWithEmailAndPassword(auth, email, password);
       setEmail('');
       setPassword('');
     } catch (error) {
@@ -19,8 +34,9 @@ const Auth = () => {
 
   const handleSignIn = async (e) => {
     e.preventDefault();
+    const auth = getAuth(); 
     try {
-      await auth.signInWithEmailAndPassword(email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       setEmail('');
       setPassword('');
     } catch (error) {
