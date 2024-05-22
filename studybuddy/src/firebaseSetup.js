@@ -2,13 +2,15 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore'; 
 
-const serviceAccount = require('./serviceKey.json');
-const firebaseConfig = {
-  credential: firebase.credential.cert(serviceAccount),
-  databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`,
-};
+import serviceAccount from './serviceKey.json';
 
-firebase.initializeApp(firebaseConfig);
+
+
+try {
+  firebase.initializeApp(serviceAccount);
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+}
 
 export const auth = firebase.auth();
 export const firestore = firebase.firestore(); 

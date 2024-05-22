@@ -53,6 +53,7 @@ import asyncio
 import os
 from sydney import SydneyClient
 from dotenv import load_dotenv
+import firebase
 
 import json
 
@@ -78,7 +79,8 @@ pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tessera
 
 # Initialize Firebase Admin SDK
 cred = credentials.Certificate("./serviceKey.json")
-firebase_admin.initialize_app(cred)
+# firebase_admin.initialize_app(cred)
+firebase.initialize_app(cred)
 
 # Initialize Firestore client
 db = firestore.client()
