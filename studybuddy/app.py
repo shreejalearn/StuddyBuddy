@@ -53,7 +53,9 @@ import asyncio
 import os
 from sydney import SydneyClient
 from dotenv import load_dotenv
-import firebase
+import firebase_admin
+from firebase_admin import auth
+
 
 import json
 
@@ -80,11 +82,26 @@ pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tessera
 # Initialize Firebase Admin SDK
 cred = credentials.Certificate("./serviceKey.json")
 # firebase_admin.initialize_app(cred)
-firebase.initialize_app(cred)
+firebase_admin.initialize_app(cred)
 
 # Initialize Firestore client
 db = firestore.client()
 
+@app.route('/protected_resource', methods=['GET'])
+def protected_resource():
+    # Get the ID token from the request headers
+    id_token = request.headers.get('Authorization')
+    if not id_token:
+        return jsonify({'error': 'Authorization token missing'}), 401
+
+    try:
+        # Verify the ID token
+        decoded_token = auth.verify_id_token(id_token)
+        user_id = decoded_token['uid']
+        # User is authenticated, serve the resource
+        return jsonify({'message': 'You are authenticated!'})
+    except auth.InvalidIdTokenError:
+        return jsonify({'error': 'Invalid ID token'}), 401
 @app.route('/ask_sydney', methods=['POST'])
 def ask_sydney_route():
     data = request.get_json()

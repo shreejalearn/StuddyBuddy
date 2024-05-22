@@ -1,32 +1,28 @@
-import React, { useState } from 'react';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { initializeApp } from "firebase/app"; 
-import 'firebase/auth'; 
-import serviceAccount from './serviceKey.json';
+// Auth.js
 
-const firebaseConfig = {
-  apiKey: serviceAccount.private_key_id,
-  authDomain: serviceAccount.auth_uri,
-  projectId: serviceAccount.project_id,
-  storageBucket: serviceAccount.client_x509_cert_url,
-  messagingSenderId: serviceAccount.messagingSenderId,
-  appId: serviceAccount.client_id
-};
-
-initializeApp(firebaseConfig);
+import React, { useState, useEffect } from 'react';
+import firebaseApp from './firebaseSetup';
 
 const Auth = () => {
+  const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const unsubscribe = firebaseApp.auth().onAuthStateChanged((user) => {
+      setUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const handleSignUp = async (e) => {
     e.preventDefault();
-    const auth = getAuth(); 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      await firebaseApp.auth().createUserWithEmailAndPassword(email, password);
       setEmail('');
       setPassword('');
+      setError(null);
     } catch (error) {
       setError(error.message);
     }
@@ -34,11 +30,11 @@ const Auth = () => {
 
   const handleSignIn = async (e) => {
     e.preventDefault();
-    const auth = getAuth(); 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await firebaseApp.auth().signInWithEmailAndPassword(email, password);
       setEmail('');
       setPassword('');
+      setError(null);
     } catch (error) {
       setError(error.message);
     }
@@ -61,10 +57,10 @@ const Auth = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button type="submit" onClick={handleSignUp}>
+        <button type="button" onClick={handleSignUp}>
           Sign Up
         </button>
-        <button type="submit" onClick={handleSignIn}>
+        <button type="button" onClick={handleSignIn}>
           Sign In
         </button>
       </form>
