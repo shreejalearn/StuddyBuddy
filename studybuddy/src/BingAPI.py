@@ -5,18 +5,14 @@ from dotenv import load_dotenv
 
 import json
 
-# Load environment variables from .env file
 load_dotenv()
 
-config_path = os.getenv('CONFIG_PATH')
+bing_cookies = os.environ.get("BING_COOKIES")
 
-# Load the configuration from the JSON file
-with open(config_path, 'r') as config_file:
-    config = json.load(config_file)
-
-# Set the environment variables
-os.environ["BING_COOKIES"] = config["BING_COOKIES"]
-
+if bing_cookies is None:
+    print("Error: BING_COOKIES environment variable not set.")
+else:
+    print("BING_COOKIES:", bing_cookies)
 
 async def main() -> None:
     async with SydneyClient() as sydney:
