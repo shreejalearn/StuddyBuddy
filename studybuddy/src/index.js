@@ -5,6 +5,7 @@ import './index.css';
 import App from './App';
 import Auth from './Auth';
 import AskQuestion from './AskQuestion';
+import Home from './Home';
 
 import reportWebVitals from './reportWebVitals';
 
@@ -16,7 +17,7 @@ ReactDOM.render(
         <Route path="/" element={<Auth />} />
         <Route path="/upload" element={<App />} />
         <Route path="/question" element={<AskQuestion />} />
- 
+        <Route path="/home" element={<Home />} />
       </Routes>
     </Router>
   </React.StrictMode>,
