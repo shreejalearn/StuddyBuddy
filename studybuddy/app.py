@@ -117,6 +117,34 @@ def protected_resource():
         return jsonify({'message': 'You are authenticated!'})
     except auth.InvalidIdTokenError:
         return jsonify({'error': 'Invalid ID token'}), 401
+
+@app.route('/answer_question', methods=['GET','POST'])
+def answer_question():
+    data = request.json  
+    username = data.get('username')
+    user_class = data.get('class')
+    question = data.get('data')
+
+    if not username or not user_class:
+        return jsonify({'error': 'Username or class not provided'})
+
+    user_notes = []
+    notes_docs = db.collection('collections').where('username', '==', username).where('class', '==', user_class).stream()
+    for doc in notes_docs:
+        notes = doc.to_dict().get('data', {}).get('notes', '')
+        user_notes.append(notes)
+
+    # Combine the notes into a single string
+    combined_notes = ' '.join(user_notes)
+
+    # Ask Sydney a question based on the combined notes
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    response = loop.run_until_complete(ask_sydney(question + " based on these notes: "+combined_notes))
+
+    return jsonify({'response': response})
+
+
 @app.route('/ask_sydney', methods=['POST'])
 def ask_sydney_route():
     data = request.get_json()

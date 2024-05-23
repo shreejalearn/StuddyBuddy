@@ -27,6 +27,7 @@ const Collections = () => {
 
     fetchCollections();
   }, []);
+
   const handleCreateCollection = async () => {
     try {
       const username = localStorage.getItem('username');
@@ -50,6 +51,11 @@ const Collections = () => {
     }
   };
 
+  const handleOpenCollection = (collectionName) => {
+    localStorage.setItem('currentCollection', collectionName);
+    window.location.href = "/openedcollection";
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -65,6 +71,7 @@ const Collections = () => {
         {collections.map(collection => (
           <li key={collection.id}>
             <strong>{collection.title || 'Untitled'}</strong>
+            <button onClick={() => handleOpenCollection(collection.title)}>Open Collection</button>
           </li>
         ))}
       </ul>

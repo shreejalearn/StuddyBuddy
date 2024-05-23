@@ -7,6 +7,7 @@ import FillerAuth from './FillerAuth';
 import AskQuestion from './AskQuestion';
 import CollectionGallery from './CollectionGallery';
 import CollectionsPage from './CollectionsPage';
+import OpenedCollection from './OpenedCollection';
 
 
 import reportWebVitals from './reportWebVitals';
@@ -21,6 +22,7 @@ ReactDOM.render(
         <Route path="/question" element={<AskQuestion />} />
         <Route path="/gallery" element={<CollectionGallery />} />
         <Route path="/mygallery" element={<CollectionsPage />} />
+        <Route path="/openedcollection" element={<OpenedCollection />} />
 
       </Routes>
     </Router>
