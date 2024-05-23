@@ -53,6 +53,9 @@ import asyncio
 import os
 from sydney import SydneyClient
 from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import auth
+
 
 import json
 
@@ -77,11 +80,70 @@ CORS(app)
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Initialize Firebase Admin SDK
-# cred = credentials.Certificate("serviceKey.json")
+cred = credentials.Certificate("./serviceKey.json")
 # firebase_admin.initialize_app(cred)
+firebase_admin.initialize_app(cred)
 
-# # Initialize Firestore client
-# db = firestore.client()
+# Initialize Firestore client
+db = firestore.client()
+
+@app.route('/get_my_collections', methods=['GET'])
+def get_my_collections():
+    username = request.args.get('username')
+    if not username:
+        return jsonify({'error': 'Username not provided'})
+
+    collections = []
+    collection_docs = db.collection('collections').where('username', '==', username).stream()
+    for doc in collection_docs:
+        # Access the 'data' field and then retrieve the 'title' from it
+        title = doc.to_dict().get('data', {}).get('title', '')
+        collections.append({'id': doc.id, 'title': title})
+
+    return jsonify({'collections': collections})
+
+@app.route('/protected_resource', methods=['GET'])
+def protected_resource():
+    # Get the ID token from the request headers
+    id_token = request.headers.get('Authorization')
+    if not id_token:
+        return jsonify({'error': 'Authorization token missing'}), 401
+
+    try:
+        # Verify the ID token
+        decoded_token = auth.verify_id_token(id_token)
+        user_id = decoded_token['uid']
+        # User is authenticated, serve the resource
+        return jsonify({'message': 'You are authenticated!'})
+    except auth.InvalidIdTokenError:
+        return jsonify({'error': 'Invalid ID token'}), 401
+
+@app.route('/answer_question', methods=['GET','POST'])
+def answer_question():
+    data = request.json  
+    username = data.get('username')
+    user_class = data.get('class')
+    question = data.get('data')
+
+    if not username or not user_class:
+        return jsonify({'error': 'Username or class not provided'})
+
+    user_notes = []
+    notes_docs = db.collection('collections').where('username', '==', username).where('class', '==', user_class).stream()
+    for doc in notes_docs:
+        notes = doc.to_dict().get('data', {}).get('notes', '')
+        user_notes.append(notes)
+
+    # Combine the notes into a single string
+    combined_notes = ' '.join(user_notes)
+
+    # Ask Sydney a question based on the combined notes
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    response = loop.run_until_complete(ask_sydney(question + " based on these notes: "+combined_notes))
+
+    return jsonify({'response': response})
+
 
 @app.route('/ask_sydney', methods=['POST'])
 def ask_sydney_route():
@@ -100,28 +162,31 @@ def ask_sydney_route():
 @app.route('/create_collection', methods=['POST'])
 def create_collection():
     data = request.get_json()
-    if 'collection_name' not in data:
+    if not data:
+        return jsonify({'error': 'No data provided'})
+
+    collection_name = data.get('collection_name')
+    notes = data.get('notes', '')
+    username = data.get('username')
+
+    if not collection_name:
         return jsonify({'error': 'Collection name not provided'})
 
-    collection_name = data['collection_name']
-    notes = data.get('notes', '')
+    if not username:
+        return jsonify({'error': 'Username not provided'})
 
-    # Check if the collection name is "math" and set notes accordingly
-    if collection_name == 'math':
-        image_file = request.files['image']
-        image_stream = io.BytesIO(image_file.read())
-        image = Image.open(image_stream)
+    # Store the collection in Firestore
+    doc_ref = db.collection('collections').document()
+    doc_ref.set({
+        'username': username,
+        'collectionIdentification': doc_ref.id,  # Using Firestore auto-generated ID
+        'data': {
+            'title': collection_name,
+            'text': notes
+        }
+    })
 
-        recognized_text = pytesseract.image_to_string(image)
-        doc_ref = db.collection('collections').document(collection_name)
-        doc_ref.set({'name': collection_name, 'notes': recognized_text})
-        return jsonify({'message': f'Collection {collection_name} created successfully with notes: {notes}'})
-
-    # For other collections, just store the collection name
-    else:
-        doc_ref = db.collection('collections').document(collection_name)
-        doc_ref.set({'name': collection_name})
-        return jsonify({'message': f'Collection {collection_name} created successfully'})
+    return jsonify({'message': 'Collection created successfully'})
 
 @app.route('/get_collections', methods=['GET'])
 def get_collections():

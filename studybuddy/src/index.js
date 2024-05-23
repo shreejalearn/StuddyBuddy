@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './index.css';
 import App from './App';
-import Auth from './Auth';
+import FillerAuth from './FillerAuth';
 import AskQuestion from './AskQuestion';
 import Home from './Home';
 
@@ -14,7 +14,7 @@ ReactDOM.render(
   <React.StrictMode>
     <Router>
       <Routes>
-        <Route path="/" element={<Auth />} />
+        <Route path="/" element={<FillerAuth />} />
         <Route path="/upload" element={<App />} />
         <Route path="/question" element={<AskQuestion />} />
         <Route path="/home" element={<Home />} />

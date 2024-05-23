@@ -1,17 +1,28 @@
-import React, { useState } from 'react';
-import { auth } from './firebaseSetup'; // Import the auth instance
+// Auth.js
+
+import React, { useState, useEffect } from 'react';
+import firebaseApp from './firebaseSetup';
 
 const Auth = () => {
+  const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const unsubscribe = firebaseApp.auth().onAuthStateChanged((user) => {
+      setUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const handleSignUp = async (e) => {
     e.preventDefault();
     try {
-      await auth.createUserWithEmailAndPassword(email, password);
+      await firebaseApp.auth().createUserWithEmailAndPassword(email, password);
       setEmail('');
       setPassword('');
+      setError(null);
     } catch (error) {
       setError(error.message);
     }
@@ -20,9 +31,10 @@ const Auth = () => {
   const handleSignIn = async (e) => {
     e.preventDefault();
     try {
-      await auth.signInWithEmailAndPassword(email, password);
+      await firebaseApp.auth().signInWithEmailAndPassword(email, password);
       setEmail('');
       setPassword('');
+      setError(null);
     } catch (error) {
       setError(error.message);
     }
@@ -45,10 +57,10 @@ const Auth = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button type="submit" onClick={handleSignUp}>
+        <button type="button" onClick={handleSignUp}>
           Sign Up
         </button>
-        <button type="submit" onClick={handleSignIn}>
+        <button type="button" onClick={handleSignIn}>
           Sign In
         </button>
       </form>
