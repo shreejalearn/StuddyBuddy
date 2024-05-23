@@ -87,6 +87,21 @@ firebase_admin.initialize_app(cred)
 # Initialize Firestore client
 db = firestore.client()
 
+@app.route('/get_my_collections', methods=['GET'])
+def get_my_collections():
+    username = request.args.get('username')
+    if not username:
+        return jsonify({'error': 'Username not provided'})
+
+    collections = []
+    collection_docs = db.collection('collections').where('username', '==', username).stream()
+    for doc in collection_docs:
+        # Access the 'data' field and then retrieve the 'title' from it
+        title = doc.to_dict().get('data', {}).get('title', '')
+        collections.append({'id': doc.id, 'title': title})
+
+    return jsonify({'collections': collections})
+
 @app.route('/protected_resource', methods=['GET'])
 def protected_resource():
     # Get the ID token from the request headers
@@ -119,28 +134,31 @@ def ask_sydney_route():
 @app.route('/create_collection', methods=['POST'])
 def create_collection():
     data = request.get_json()
-    if 'collection_name' not in data:
+    if not data:
+        return jsonify({'error': 'No data provided'})
+
+    collection_name = data.get('collection_name')
+    notes = data.get('notes', '')
+    username = data.get('username')
+
+    if not collection_name:
         return jsonify({'error': 'Collection name not provided'})
 
-    collection_name = data['collection_name']
-    notes = data.get('notes', '')
+    if not username:
+        return jsonify({'error': 'Username not provided'})
 
-    # Check if the collection name is "math" and set notes accordingly
-    if collection_name == 'math':
-        image_file = request.files['image']
-        image_stream = io.BytesIO(image_file.read())
-        image = Image.open(image_stream)
+    # Store the collection in Firestore
+    doc_ref = db.collection('collections').document()
+    doc_ref.set({
+        'username': username,
+        'collectionIdentification': doc_ref.id,  # Using Firestore auto-generated ID
+        'data': {
+            'title': collection_name,
+            'text': notes
+        }
+    })
 
-        recognized_text = pytesseract.image_to_string(image)
-        doc_ref = db.collection('collections').document(collection_name)
-        doc_ref.set({'name': collection_name, 'notes': recognized_text})
-        return jsonify({'message': f'Collection {collection_name} created successfully with notes: {notes}'})
-
-    # For other collections, just store the collection name
-    else:
-        doc_ref = db.collection('collections').document(collection_name)
-        doc_ref.set({'name': collection_name})
-        return jsonify({'message': f'Collection {collection_name} created successfully'})
+    return jsonify({'message': 'Collection created successfully'})
 
 @app.route('/get_collections', methods=['GET'])
 def get_collections():
