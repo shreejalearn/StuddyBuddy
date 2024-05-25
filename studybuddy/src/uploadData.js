@@ -15,8 +15,9 @@ const Upload = () => {
     setSelectedImage(event.target.files[0]);
   };
   const handleURLChange = (event) => {
-    setSelectedURL(event.target.files[0]);
+    setSelectedURL(event.target.value);
   };
+  
 
 
   const handleUploadImage = async () => {
@@ -35,18 +36,17 @@ const Upload = () => {
     }
   };
   const handleUploadVideo = async () => {
-    const url = selectedURL;
+    const formData = new FormData();
+    formData.append('url', selectedURL);
+  
     try {
-        const response = await axios.post('http://localhost:5000/get_transcript', url, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-        setRecognizedVid(response.data.text);
-      } catch (error) {
-        console.error('Error:', error);
-      }
-  }
+      const response = await axios.post('http://localhost:5000/get_transcript', formData);
+      setRecognizedVid(response.data.response);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+  
 
   return (
     <div>

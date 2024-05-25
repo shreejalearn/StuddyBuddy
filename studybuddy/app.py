@@ -58,6 +58,7 @@ from firebase_admin import auth
 import googleapiclient.discovery
 from googleapiclient.discovery import build
 from youtube_transcript_api import YouTubeTranscriptApi
+from urllib.parse import urlparse, parse_qs
 
 
 import json
@@ -65,6 +66,7 @@ import json
 load_dotenv()
 
 bing_cookies_key = os.getenv('BING_COOKIES')
+transcript_key = os.getenv('TRANSCRIPT_API')
 
 if bing_cookies_key is None:
     print("Error: BING_COOKIES environment variable is not set.")
@@ -149,17 +151,22 @@ def answer_question():
 
 
 
-@app.route('/get_transcript', methods=['GET','POST'])
+@app.route('/get_transcript', methods=['POST'])
 def get_transcript():
-    data = request.json  
-    video_url = data.get('url')
+    video_url = request.form.get('url')
+    print(video_url)
+    url_parts = urlparse(video_url)
 
-    if not video_url :
-        return jsonify({'error': 'url not provided'})
+    query_params = parse_qs(url_parts.query)
 
-    video_id = video_url.split('v=')[1]
-    
-    youtube=build('youtube','v3', developerKey="your_api_key_here")
+    video_id = query_params.get('v')
+
+    if not video_id:
+        return jsonify({'error': 'Invalid video URL format'+video_url})
+    else:
+        video_id = video_id[0]
+        print("Video ID:", video_id)
+    youtube=build('youtube','v3', developerKey=transcript_key)
     captions = youtube.captions().list(part='snippet', videoId=video_id).execute()
     caption = captions['items'][0]['id']
     transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
@@ -171,6 +178,58 @@ def get_transcript():
 
 
     return jsonify({'response': transcript_txt})
+
+
+@app.route('/get_sections', methods=['GET'])
+def get_sections():
+    collection_id = request.args.get('collection_id')
+    if not collection_id:
+        return jsonify({'error': 'Collection ID not provided'})
+
+    sections = []
+    sections_docs = db.collection('collections').document(collection_id).collection('sections').stream()
+    for doc in sections_docs:
+        sections.append({'id': doc.id, 'section_name': doc.to_dict().get('section_name', '')})
+
+    return jsonify({'sections': sections})
+
+
+
+
+@app.route('/get_chapters', methods=['GET'])
+def get_chapters():
+    collection_id = request.args.get('collection_id')
+    if not collection_id:
+        return jsonify({'error': 'Collection ID not provided'})
+
+    sections = []
+    sections_docs = db.collection('chapters').document(collection_id).collection('colection_id').stream()
+    for doc in sections_docs:
+        sections.append({'id': doc.id, 'section_name': doc.to_dict().get('collection_id', '')})
+
+    return jsonify({'chapters': sections})
+
+@app.route('/create_section', methods=['POST'])
+def create_section():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'})
+
+    collection_id = data.get('collection_id')
+    section_name = data.get('section_name')
+    notes = data.get('notes', '')
+
+    if not collection_id or not section_name:
+        return jsonify({'error': 'Collection ID or Section name not provided'})
+
+    collection_ref = db.collection('collections').document(collection_id)
+    sections_ref = collection_ref.collection('sections').document()
+    sections_ref.set({
+        'section_name': section_name,
+        'notes': notes
+    })
+
+    return jsonify({'message': 'Section created successfully'})
 
 
 @app.route('/ask_sydney', methods=['POST'])

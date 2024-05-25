@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 const OpenedCollection = () => {
-  const collectionName = localStorage.getItem('currentCollection');
+  const collectionName = localStorage.getItem('collectionName');
+
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
 

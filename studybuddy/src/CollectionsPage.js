@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './styles/home.css';
+
 const Collections = () => {
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -8,7 +9,6 @@ const Collections = () => {
   const [newCollectionName, setNewCollectionName] = useState('');
   const [newCollectionNotes, setNewCollectionNotes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-
   useEffect(() => {
     const fetchCollections = async () => {
       try {
@@ -52,8 +52,10 @@ const Collections = () => {
     }
   };
 
-  const handleOpenCollection = (collectionName) => {
-    localStorage.setItem('currentCollection', collectionName);
+  const handleOpenCollection = (collectionId, collectionName) => {
+    localStorage.setItem('currentCollection', collectionId);
+    localStorage.setItem('collectionName', collectionName);
+
     window.location.href = "/openedcollection";
   };
 
@@ -82,11 +84,11 @@ const Collections = () => {
         </button>
       
         {collections.map(collection => (
-          <button className="category-btn" key={collection.id} onClick={() => handleOpenCollection(collection.title)}>
+          <button className="category-btn" key={collection.id} onClick={() => handleOpenCollection(collection.id, collection.title)}>
             {collection.title || 'Untitled'}
           </button>
         ))}
-        </div>
+      </div>
       
       <h2>Create New Collection</h2>
       <input
@@ -94,11 +96,6 @@ const Collections = () => {
         placeholder="Collection Name"
         value={newCollectionName}
         onChange={(e) => setNewCollectionName(e.target.value)}
-      />
-      <textarea
-        placeholder="Notes"
-        value={newCollectionNotes}
-        onChange={(e) => setNewCollectionNotes(e.target.value)}
       />
       <button onClick={handleCreateCollection}>Create Collection</button>
     </div>
