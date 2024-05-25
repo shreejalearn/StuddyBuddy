@@ -13,11 +13,15 @@ const OpenedCollection = () => {
       console.error('Error:', error);
     }
   };
+  const handleUploadDataPage = () => {
+    window.location.href = "/uploaddata";
+  };
 
   return (
     <div>
       <h2>{collectionName}</h2>
       <div>
+      <button onClick={() => handleUploadDataPage()}>Upload Data</button>
       <h1>Ask A Question (this is based on user notes from the collection)</h1>
       <div>
         <textarea

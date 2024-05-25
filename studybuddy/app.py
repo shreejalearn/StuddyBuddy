@@ -55,6 +55,9 @@ from sydney import SydneyClient
 from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import auth
+import googleapiclient.discovery
+from googleapiclient.discovery import build
+from youtube_transcript_api import YouTubeTranscriptApi
 
 
 import json
@@ -143,6 +146,31 @@ def answer_question():
     response = loop.run_until_complete(ask_sydney(question + " based on these notes: "+combined_notes))
 
     return jsonify({'response': response})
+
+
+
+@app.route('/get_transcript', methods=['GET','POST'])
+def get_transcript():
+    data = request.json  
+    video_url = data.get('url')
+
+    if not video_url :
+        return jsonify({'error': 'url not provided'})
+
+    video_id = video_url.split('v=')[1]
+    
+    youtube=build('youtube','v3', developerKey="your_api_key_here")
+    captions = youtube.captions().list(part='snippet', videoId=video_id).execute()
+    caption = captions['items'][0]['id']
+    transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+
+    transcript_txt=""
+
+    for transcript in transcript_list:
+        transcript_txt+=transcript['text']
+
+
+    return jsonify({'response': transcript_txt})
 
 
 @app.route('/ask_sydney', methods=['POST'])

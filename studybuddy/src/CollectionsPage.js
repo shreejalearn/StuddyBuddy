@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-
+import './styles/home.css';
 const Collections = () => {
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [newCollectionNotes, setNewCollectionNotes] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchCollections = async () => {
@@ -65,16 +66,27 @@ const Collections = () => {
   }
 
   return (
-    <div>
+    <div className="study-buddy">
       <h2>Your Collections</h2>
-      <ul>
+      <div className="search-bar">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search..."
+        />
+      </div>
+      <div className="category-buttons">
+        <button className="category-btn">
+          <span className="plus-icon">+</span> Review
+        </button>
+      
         {collections.map(collection => (
-          <li key={collection.id}>
-            <strong>{collection.title || 'Untitled'}</strong>
-            <button onClick={() => handleOpenCollection(collection.title)}>Open Collection</button>
-          </li>
+          <button className="category-btn" key={collection.id} onClick={() => handleOpenCollection(collection.title)}>
+            {collection.title || 'Untitled'}
+          </button>
         ))}
-      </ul>
+        </div>
       
       <h2>Create New Collection</h2>
       <input
