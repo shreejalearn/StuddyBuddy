@@ -12,6 +12,9 @@ import UploadData from './uploadData';
 import Sections from './Sections';
 import Chapter from './Chapter';
 
+import Auth from './Signup';
+import Login from './Login';
+
 import reportWebVitals from './reportWebVitals';
 
 
@@ -21,6 +24,9 @@ ReactDOM.render(
       <Routes>
         <Route path="/" element={<FillerAuth />} />
         <Route path="/upload" element={<App />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/login" element={<Login />} />
+
         <Route path="/question" element={<AskQuestion />} />
         <Route path="/home" element={<Home />} />
         <Route path="/mygallery" element={<CollectionsPage />} />
