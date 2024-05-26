@@ -10,6 +10,7 @@ import CollectionsPage from './CollectionsPage';
 import OpenedCollection from './OpenedCollection';
 import UploadData from './uploadData';
 import Sections from './Sections';
+import Chapter from './Chapter';
 
 import reportWebVitals from './reportWebVitals';
 
@@ -26,6 +27,7 @@ ReactDOM.render(
         <Route path="/openedcollection" element={<OpenedCollection />} />
         <Route path="/uploaddata" element={<UploadData />} />
         <Route path="/sections" element={<Sections />} />
+        <Route path="/chapter" element={<Chapter />} />
 
       </Routes>
     </Router>

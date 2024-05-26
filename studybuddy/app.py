@@ -246,6 +246,22 @@ def ask_sydney_route():
 
     return jsonify({'response': response})
 
+
+@app.route('/get_sources', methods=['GET'])
+def get_sources():
+    chapter_id = request.args.get('chapter_id')
+    if not chapter_id:
+        return jsonify({'error': 'Chapter ID not provided'})
+
+    sources = []
+    sources_docs = db.collection('collections').document(chapter_id).collection('sources').get()
+
+    for doc in sources_docs:
+        source_data = doc.to_dict()
+        source_data['id'] = doc.id
+        sources.append(source_data)
+
+    return jsonify({'sources': sources})
 @app.route('/create_collection', methods=['POST'])
 def create_collection():
     data = request.get_json()

@@ -11,7 +11,6 @@ const Sections = () => {
   const [showNewSectionInput, setShowNewSectionInput] = useState(false);
   const collectionName = localStorage.getItem('collectionName');
 
-
   useEffect(() => {
     const fetchSections = async () => {
       try {
@@ -47,6 +46,12 @@ const Sections = () => {
     }
   };
 
+  const handleSectionClick = (section) => {
+    localStorage.setItem('currentSection', section.id);
+    localStorage.setItem('currentSectionName', section.section_name);
+    window.location.href = "/chapter"; // Redirect to the chapter page
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -59,31 +64,30 @@ const Sections = () => {
     <div className="study-buddy">
       <h2>Sections in {collectionName}</h2>
       <div className="category-buttons">
-      <div >
-        
-        {sections.map(section => (
-          <button key={section.id} className="category-btn">
-            {section.section_name}
-          </button>
-        ))}
-      </div>
-      {showNewSectionInput ? (
-        <div className="new-section-input">
-          <input
-            type="text"
-            placeholder="New Section Name"
-            value={newSectionName}
-            onChange={(e) => setNewSectionName(e.target.value)}
-          />
-          <button onClick={handleCreateSection}>Add Section</button>
-          <button onClick={() => setShowNewSectionInput(false)}>Cancel</button>
+        <div>
+          {sections.map(section => (
+            <button key={section.id} className="category-btn" onClick={() => handleSectionClick(section)}>
+              {section.section_name}
+            </button>
+          ))}
         </div>
-      ) : (
-        <button className="category-btn" onClick={() => setShowNewSectionInput(true)}>
-          <span className="plus-icon">+</span> New Section
-        </button>
-      )}
-    </div>
+        {showNewSectionInput ? (
+          <div className="new-section-input">
+            <input
+              type="text"
+              placeholder="New Section Name"
+              value={newSectionName}
+              onChange={(e) => setNewSectionName(e.target.value)}
+            />
+            <button onClick={handleCreateSection}>Add Section</button>
+            <button onClick={() => setShowNewSectionInput(false)}>Cancel</button>
+          </div>
+        ) : (
+          <button className="category-btn" onClick={() => setShowNewSectionInput(true)}>
+            <span className="plus-icon">+</span> New Section
+          </button>
+        )}
+      </div>
     </div>
   );
 };

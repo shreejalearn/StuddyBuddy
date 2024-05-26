@@ -56,7 +56,7 @@ const Collections = () => {
     localStorage.setItem('currentCollection', collectionId);
     localStorage.setItem('collectionName', collectionName);
 
-    window.location.href = "/openedcollection";
+    window.location.href = "/sections";
   };
 
   if (loading) {

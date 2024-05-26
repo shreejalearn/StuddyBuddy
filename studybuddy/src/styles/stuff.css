@@ -1,0 +1,45 @@
+.container {
+    display: flex;
+  }
+  
+  .sidebar {
+    width: 300px;
+    padding: 20px;
+    background-color: #f0f0f0;
+  }
+  
+  .main-content {
+    flex: 1;
+    padding: 20px;
+  }
+  
+  .tabs {
+    display: flex;
+    margin-bottom: 20px;
+  }
+  
+  .tabs button {
+    margin-right: 10px;
+  }
+  
+  .content {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .category-btn {
+    background-color: #fff; /* Button background color */
+    border: 1px solid #b3c8cf; /* Button border color */
+    border-radius: 4px;
+    padding: 15px 20px; /* Adjust padding */
+    width: 150px; /* Adjust button width */
+    text-align: center;
+    cursor: pointer;
+    font-size: 16px;
+    color: #333; /* Button text color */
+    transition: background-color 0.3s ease; /* Smooth transition */
+  }
+  
+  .upload,
+  .ask-question {
+    margin-right: 20px;
+  }
