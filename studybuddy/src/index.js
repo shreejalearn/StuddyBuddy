@@ -11,14 +11,12 @@ import OpenedCollection from './OpenedCollection';
 import UploadData from './uploadData';
 import Sections from './Sections';
 import Chapter from './Chapter';
-import SignUp from './signUp';
-import Login from './logIn';
 
 import Auth from './Signup';
 import Login from './Login';
+import Signup from './Signup';
 
 import reportWebVitals from './reportWebVitals';
-
 
 ReactDOM.render(
   <React.StrictMode>
@@ -31,13 +29,9 @@ ReactDOM.render(
         <Route path="/mygallery" element={<CollectionsPage />} />
         <Route path="/sections" element={<Sections />} />
         <Route path="/chapter" element={<Chapter />} />
-
+        <Route path="/signup" element={<Signup />} />
         <Route path="/question" element={<AskQuestion />} />
         <Route path="/home" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/mygallery" element={<CollectionsPage />} />
-
       </Routes>
     </Router>
   </React.StrictMode>,

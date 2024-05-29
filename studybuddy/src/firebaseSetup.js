@@ -1,19 +1,17 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const firebaseConfig = {
-  apiKey: process.env.API_KEY,
-  authDomain: process.env.AUTH_DOMAIN,
-  databaseURL: process.env.DATABASE_URL,
-  projectId: process.env.PROJECT_ID,
-  storageBucket: process.env.STORAGE_BUCKET,
-  messagingSenderId: process.env.MESSAGING_SENDER_ID,
-  appId: process.env.APP_ID,
-  measurementId: process.env.MEASUREMENT_ID
+  apiKey: "AIzaSyC-yw2Y-ErogauUgrZaLMwHn_xXsnyE-JE",
+  authDomain: "study-buddy-6f0b9.firebaseapp.com",
+  databaseURL: "https://study-buddy-6f0b9-default-rtdb.firebaseio.com",
+  projectId: "study-buddy-6f0b9",
+  storageBucket: "study-buddy-6f0b9.appspot.com",
+  messagingSenderId: "151813698029",
+  appId: "1:151813698029:web:c56a9a38c43ea51c8537e4",
+  measurementId: "G-SV2TV5PPPV"
 };
+
 const app = initializeApp(firebaseConfig);
 // const analytics = getAnalytics(app);
 const auth = getAuth(app);
