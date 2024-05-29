@@ -26,15 +26,12 @@ ReactDOM.render(
         <Route path="/upload" element={<App />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/login" element={<Login />} />
-
-        <Route path="/question" element={<AskQuestion />} />
-        <Route path="/home" element={<Home />} />
         <Route path="/mygallery" element={<CollectionsPage />} />
-        <Route path="/openedcollection" element={<OpenedCollection />} />
-        <Route path="/uploaddata" element={<UploadData />} />
         <Route path="/sections" element={<Sections />} />
         <Route path="/chapter" element={<Chapter />} />
 
+        <Route path="/question" element={<AskQuestion />} />
+        <Route path="/home" element={<Home />} />
       </Routes>
     </Router>
   </React.StrictMode>,
