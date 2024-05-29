@@ -1,2 +1,3 @@
 serviceKey.json
-firebaseSetup.js
+public/src/firebaseSetup.js
+.env
