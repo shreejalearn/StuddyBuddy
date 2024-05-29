@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 const OpenedCollection = () => {
-  const collectionName = localStorage.getItem('currentCollection');
+  const collectionName = localStorage.getItem('collectionName');
+
   const [prompt, setPrompt] = useState('');
   const [response, setResponse] = useState('');
 
@@ -13,11 +14,15 @@ const OpenedCollection = () => {
       console.error('Error:', error);
     }
   };
+  const handleUploadDataPage = () => {
+    window.location.href = "/uploaddata";
+  };
 
   return (
     <div>
       <h2>{collectionName}</h2>
       <div>
+      <button onClick={() => handleUploadDataPage()}>Upload Data</button>
       <h1>Ask A Question (this is based on user notes from the collection)</h1>
       <div>
         <textarea

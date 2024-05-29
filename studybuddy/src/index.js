@@ -6,7 +6,11 @@ import App from './App';
 import FillerAuth from './FillerAuth';
 import AskQuestion from './AskQuestion';
 import Home from './Home';
-import CollectionGallery from './CollectionGallery';
+import CollectionsPage from './CollectionsPage';
+import OpenedCollection from './OpenedCollection';
+import UploadData from './uploadData';
+import Sections from './Sections';
+import Chapter from './Chapter';
 
 import reportWebVitals from './reportWebVitals';
 
@@ -19,7 +23,6 @@ ReactDOM.render(
         <Route path="/upload" element={<App />} />
         <Route path="/question" element={<AskQuestion />} />
         <Route path="/home" element={<Home />} />
-        <Route path="/mygallery" element={<CollectionGallery />} />
       </Routes>
     </Router>
   </React.StrictMode>,

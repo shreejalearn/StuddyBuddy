@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './styles/home.css';
 
 const Collections = () => {
   const [collections, setCollections] = useState([]);
@@ -7,7 +8,7 @@ const Collections = () => {
   const [error, setError] = useState(null);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [newCollectionNotes, setNewCollectionNotes] = useState('');
-
+  const [searchTerm, setSearchTerm] = useState('');
   useEffect(() => {
     const fetchCollections = async () => {
       try {
@@ -51,9 +52,11 @@ const Collections = () => {
     }
   };
 
-  const handleOpenCollection = (collectionName) => {
-    localStorage.setItem('currentCollection', collectionName);
-    window.location.href = "/openedcollection";
+  const handleOpenCollection = (collectionId, collectionName) => {
+    localStorage.setItem('currentCollection', collectionId);
+    localStorage.setItem('collectionName', collectionName);
+
+    window.location.href = "/sections";
   };
 
   if (loading) {
@@ -65,16 +68,27 @@ const Collections = () => {
   }
 
   return (
-    <div>
+    <div className="study-buddy">
       <h2>Your Collections</h2>
-      <ul>
+      <div className="search-bar">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search..."
+        />
+      </div>
+      <div className="category-buttons">
+        <button className="category-btn">
+          <span className="plus-icon">+</span> Review
+        </button>
+      
         {collections.map(collection => (
-          <li key={collection.id}>
-            <strong>{collection.title || 'Untitled'}</strong>
-            <button onClick={() => handleOpenCollection(collection.title)}>Open Collection</button>
-          </li>
+          <button className="category-btn" key={collection.id} onClick={() => handleOpenCollection(collection.id, collection.title)}>
+            {collection.title || 'Untitled'}
+          </button>
         ))}
-      </ul>
+      </div>
       
       <h2>Create New Collection</h2>
       <input
@@ -82,11 +96,6 @@ const Collections = () => {
         placeholder="Collection Name"
         value={newCollectionName}
         onChange={(e) => setNewCollectionName(e.target.value)}
-      />
-      <textarea
-        placeholder="Notes"
-        value={newCollectionNotes}
-        onChange={(e) => setNewCollectionNotes(e.target.value)}
       />
       <button onClick={handleCreateCollection}>Create Collection</button>
     </div>
