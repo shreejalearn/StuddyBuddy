@@ -19,6 +19,10 @@ const StudyBuddy = () => {
     fetchCollections();
   }, []);
 
+  const filteredCollections = collections.filter(collection =>
+    collection.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="study-buddy">
       <h2>Study Buddy</h2>
@@ -38,6 +42,17 @@ const StudyBuddy = () => {
         <button className="category-btn">Chemistry</button>
         <button className="category-btn">English</button>
         <button className="category-btn">Math</button>
+      </div>
+      <div className="collections">
+        {filteredCollections.length > 0 ? (
+          filteredCollections.map((collection) => (
+            <div key={collection.id} className="collection-item">
+              {collection.name}
+            </div>
+          ))
+        ) : (
+          <p>No collections found</p>
+        )}
       </div>
     </div>
   );
