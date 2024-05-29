@@ -11,6 +11,8 @@ import OpenedCollection from './OpenedCollection';
 import UploadData from './uploadData';
 import Sections from './Sections';
 import Chapter from './Chapter';
+import SignUp from './signUp';
+import Login from './logIn';
 
 import reportWebVitals from './reportWebVitals';
 
@@ -23,6 +25,10 @@ ReactDOM.render(
         <Route path="/upload" element={<App />} />
         <Route path="/question" element={<AskQuestion />} />
         <Route path="/home" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/mygallery" element={<CollectionsPage />} />
+
       </Routes>
     </Router>
   </React.StrictMode>,
