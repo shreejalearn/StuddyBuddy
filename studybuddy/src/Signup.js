@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { app, auth } from './config/firebaseSetup';
+import { auth } from './config/firebaseSetup';
+import './styles/signup.css'; // Make sure to import the CSS file
 
 const Signup = () => {
     const navigate = useNavigate();
@@ -14,7 +15,6 @@ const Signup = () => {
 
         await createUserWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
-                // Signed in
                 const user = userCredential.user;
                 console.log(user);
                 navigate("/login");
@@ -25,52 +25,41 @@ const Signup = () => {
                 console.log(errorCode, errorMessage);
             });
     };
-// 
+
     return (
-        <main>
-            <section>
-                <div>
-                    <div>
+        <main className="signup-main">
+            <section className="signup-section">
+                <div className="signup-container">
+                    <div className="signup-content">
                         <h1>Sign Up</h1>
-                        <form>
-                            <div>
-                                <label htmlFor="email-address">
-                                    Email address
-                                </label>
+                        <form className="signup-form">
+                            <div className="input-group">
+                                <label htmlFor="email-address">Email address</label>
                                 <input
                                     type="email"
-                                    label="Email address"
+                                    id="email-address"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
                                     placeholder="Email address"
                                 />
                             </div>
-                            <div>
-                                <label htmlFor="password">
-                                    Password
-                                </label>
+                            <div className="input-group">
+                                <label htmlFor="password">Password</label>
                                 <input
                                     type="password"
-                                    label="Create password"
+                                    id="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
                                     placeholder="Password"
                                 />
                             </div>
-                            <button
-                                type="submit"
-                                onClick={onSubmit}
-                            >
-                                Sign up
-                            </button>
+                            <button type="submit" onClick={onSubmit}>Sign up</button>
                         </form>
                         <p>
                             Already have an account?{' '}
-                            <NavLink to="/login">
-                                Sign in
-                            </NavLink>
+                            <NavLink to="/login">Sign in</NavLink>
                         </p>
                     </div>
                 </div>

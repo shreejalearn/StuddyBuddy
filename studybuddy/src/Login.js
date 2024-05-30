@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './config/firebaseSetup';
+import './styles/login.css';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -14,12 +15,10 @@ const Login = () => {
 
         await signInWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
-                // Signed in
                 const user = userCredential.user;
                 console.log(user);
                 localStorage.setItem('userName', email);
-
-                navigate("/mygallery");  // or any other route you want to navigate to
+                navigate("/mygallery");
             })
             .catch((error) => {
                 const errorCode = error.code;
@@ -29,50 +28,39 @@ const Login = () => {
     };
 
     return (
-        <main>
-            <section>
-                <div>
-                    <div>
+        <main className="login-main">
+            <section className="login-section">
+                <div className="login-container">
+                    <div className="login-content">
                         <h1>Log In</h1>
-                        <form>
-                            <div>
-                                <label htmlFor="email-address">
-                                    Email address
-                                </label>
+                        <form className="login-form">
+                            <div className="input-group">
+                                <label htmlFor="email-address">Email address</label>
                                 <input
                                     type="email"
-                                    label="Email address"
+                                    id="email-address"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
                                     placeholder="Email address"
                                 />
                             </div>
-                            <div>
-                                <label htmlFor="password">
-                                    Password
-                                </label>
+                            <div className="input-group">
+                                <label htmlFor="password">Password</label>
                                 <input
                                     type="password"
-                                    label="Password"
+                                    id="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
                                     placeholder="Password"
                                 />
                             </div>
-                            <button
-                                type="submit"
-                                onClick={onSubmit}
-                            >
-                                Log in
-                            </button>
+                            <button type="submit" onClick={onSubmit}>Log in</button>
                         </form>
                         <p>
                             Don't have an account?{' '}
-                            <NavLink to="/auth">
-                                Sign up
-                            </NavLink>
+                            <NavLink to="/auth">Sign up</NavLink>
                         </p>
                     </div>
                 </div>
@@ -80,5 +68,5 @@ const Login = () => {
         </main>
     );
 };
-// 
+
 export default Login;
