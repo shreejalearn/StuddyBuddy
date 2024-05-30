@@ -25,3 +25,8 @@ yarn-error.log*
 serviceKey.json
 
 .env
+
+/node_modules
+/build
+/dist
+/src/config/*
