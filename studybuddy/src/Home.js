@@ -3,6 +3,7 @@ import axios from 'axios';
 import './styles/home.css'; // Ensure to create this CSS file
 
 const StudyBuddy = () => {
+  
   const [collections, setCollections] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 

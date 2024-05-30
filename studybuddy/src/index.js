@@ -15,8 +15,8 @@ import Sections from './Sections';
 import Chapter from './Chapter';
 
 // import Auth from './Signup';
-// import Login from './Login';
-// import Signup from './Signup';
+import Login from './Login';
+import Signup from './Signup';
 
 import reportWebVitals from './reportWebVitals';
 
@@ -28,8 +28,9 @@ ReactDOM.render(
         <Route path="/fill" element={<Fill />} />
 
         <Route path="/upload" element={<App />} />
-        {/* <Route path="/auth" element={<Auth />} />
-        <Route path="/login" element={<Login />} /> */}
+        {/* <Route path="/auth" element={<Auth />} /> */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/mygallery" element={<CollectionsPage />} />
         <Route path="/sections" element={<Sections />} />
         <Route path="/chapter" element={<Chapter />} />
