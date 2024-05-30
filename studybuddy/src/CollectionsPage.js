@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './styles/collections.css'; // Import the CSS file
+import './styles/collections.css';
 
 const Collections = () => {
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newCollectionName, setNewCollectionName] = useState('');
-  const [newCollectionNotes, setNewCollectionNotes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchCollections = async () => {
@@ -40,7 +39,6 @@ const Collections = () => {
 
       await axios.post('http://localhost:5000/create_collection', {
         collection_name: newCollectionName,
-        notes: newCollectionNotes,
         username: username
       });
 
@@ -48,7 +46,6 @@ const Collections = () => {
       setCollections(response.data.collections);
 
       setNewCollectionName('');
-      setNewCollectionNotes('');
       setIsModalOpen(false); // Close modal after creation
     } catch (error) {
       setError(error.message);
@@ -68,7 +65,6 @@ const Collections = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setNewCollectionName('');
-    setNewCollectionNotes('');
   };
 
   if (loading) {

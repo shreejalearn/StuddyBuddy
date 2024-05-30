@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './styles/home.css';
+import './styles/sections.css';
 
 const Sections = () => {
   const collectionId = localStorage.getItem('currentCollection');
@@ -8,7 +8,7 @@ const Sections = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newSectionName, setNewSectionName] = useState('');
-  const [showNewSectionInput, setShowNewSectionInput] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const collectionName = localStorage.getItem('collectionName');
 
   useEffect(() => {
@@ -40,7 +40,7 @@ const Sections = () => {
       const response = await axios.get(`http://localhost:5000/get_sections?collection_id=${collectionId}`);
       setSections(response.data.sections);
       setNewSectionName('');
-      setShowNewSectionInput(false);
+      setIsModalOpen(false); // Close modal after creation
     } catch (error) {
       setError(error.message);
     }
@@ -50,6 +50,15 @@ const Sections = () => {
     localStorage.setItem('currentSection', section.id);
     localStorage.setItem('currentSectionName', section.section_name);
     window.location.href = "/chapter"; // Redirect to the chapter page
+  };
+
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setNewSectionName('');
   };
 
   if (loading) {
@@ -64,30 +73,31 @@ const Sections = () => {
     <div className="study-buddy">
       <h2>Sections in {collectionName}</h2>
       <div className="category-buttons">
-        <div>
-          {sections.map(section => (
-            <button key={section.id} className="category-btn" onClick={() => handleSectionClick(section)}>
-              {section.section_name}
-            </button>
-          ))}
-        </div>
-        {showNewSectionInput ? (
-          <div className="new-section-input">
+        {sections.map(section => (
+          <button key={section.id} className="category-btn" onClick={() => handleSectionClick(section)}>
+            {section.section_name}
+          </button>
+        ))}
+        <button className="category-btn" onClick={openModal}>
+          <span className="plus-icon">+</span> New Section
+        </button>
+      </div>
+
+      {isModalOpen && (
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={closeModal}>&times;</span>
+            <h2>Create New Section</h2>
             <input
               type="text"
-              placeholder="New Section Name"
+              placeholder="Section Name"
               value={newSectionName}
               onChange={(e) => setNewSectionName(e.target.value)}
             />
-            <button onClick={handleCreateSection}>Add Section</button>
-            <button onClick={() => setShowNewSectionInput(false)}>Cancel</button>
+            <button className="create-btn" onClick={handleCreateSection}>Create Section</button>
           </div>
-        ) : (
-          <button className="category-btn" onClick={() => setShowNewSectionInput(true)}>
-            <span className="plus-icon">+</span> New Section
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
