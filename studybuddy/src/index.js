@@ -15,9 +15,9 @@ import Chapter from './Chapter';
 import Auth from './Signup';
 import Login from './Login';
 import Signup from './Signup';
+import Signup from './Signup';
 
 import reportWebVitals from './reportWebVitals';
-
 
 ReactDOM.render(
   <React.StrictMode>
@@ -30,7 +30,6 @@ ReactDOM.render(
         <Route path="/mygallery" element={<CollectionsPage />} />
         <Route path="/sections" element={<Sections />} />
         <Route path="/chapter" element={<Chapter />} />
-        <Route path="/signup" element={<Signup />} />
 
         <Route path="/question" element={<AskQuestion />} />
         <Route path="/home" element={<Home />} />

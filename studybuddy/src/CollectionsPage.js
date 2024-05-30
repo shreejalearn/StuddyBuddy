@@ -9,6 +9,26 @@ const Collections = () => {
   const [newCollectionName, setNewCollectionName] = useState('');
   const [newCollectionNotes, setNewCollectionNotes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  // useEffect(() => {
+  //   const fetchCollections = async () => {
+  //     try {
+  //       const username = localStorage.getItem('username');
+  //       if (!username) {
+  //         throw new Error('Username not found in local storage');
+  //       }
+
+  //       const response = await axios.get(`http://localhost:5000/get_my_collections?username=${username}`);
+  //       setCollections(response.data.collections);
+  //       setLoading(false);
+  //     } catch (error) {
+  //       setError(error.message);
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchCollections();
+  // }, []);
+
   useEffect(() => {
     const fetchCollections = async () => {
       try {
@@ -16,7 +36,7 @@ const Collections = () => {
         if (!username) {
           throw new Error('Username not found in local storage');
         }
-
+  
         const response = await axios.get(`http://localhost:5000/get_my_collections?username=${username}`);
         setCollections(response.data.collections);
         setLoading(false);
@@ -25,9 +45,9 @@ const Collections = () => {
         setLoading(false);
       }
     };
-
+  
     fetchCollections();
-  }, []);
+  }, []);  
 
   const handleCreateCollection = async () => {
     try {
