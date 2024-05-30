@@ -79,8 +79,12 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './config/firebaseSetup';
 import { useAuth } from './AuthContext'; // Import useAuth
 import './styles/login.css';
+// import { CookiesProvider, useCookies } from 'react-cookie'
+
 
 const Login = () => {
+    // const [cookies, setCookie] = useCookies(['user'])
+
     const navigate = useNavigate();
     const { login } = useAuth(); // Use the login function from the context
 
@@ -95,6 +99,7 @@ const Login = () => {
             const user = userCredential.user;
             console.log(user);
             login(user.accessToken); // Update the context with the token
+            // setCookie('user', user, { path: '/' })
             localStorage.setItem('userName', email);
             navigate("/mygallery");
         } catch (error) {
