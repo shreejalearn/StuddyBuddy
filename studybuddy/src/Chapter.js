@@ -103,29 +103,33 @@ const ChapterPage = () => {
           <button className="category-btn">Game</button>
         </div>
         <div className="content">
-          <div className="upload">
-            <h3>Upload Data</h3>
-            <input type="file" accept="image/*" onChange={handleUploadImage} />
-            {recognizedText && <p>Recognized Text: {recognizedText}</p>}
-            <input type="text" placeholder="YouTube Video URL" onChange={handleUploadVideo} />
-            {recognizedVid && <p>Recognized Video Transcript: {recognizedVid}</p>}
+          <div className="section ai-communication">
+            <div className="ask-question">
+              <h3>Ask A Question</h3>
+              <textarea
+                rows="4"
+                cols="50"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Enter your prompt here..."
+              />
+              <button onClick={handleSubmitQuestion}>Submit</button>
+              {response && (
+                <div>
+                  <h2>Response:</h2>
+                  <p>{response}</p>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="ask-question">
-            <h3>Ask A Question</h3>
-            <textarea
-              rows="4"
-              cols="50"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Enter your prompt here..."
-            />
-            <button onClick={handleSubmitQuestion}>Submit</button>
-            {response && (
-              <div>
-                <h2>Response:</h2>
-                <p>{response}</p>
-              </div>
-            )}
+          <div className="section source-uploading">
+            <div className="upload">
+              <h3>Upload Data</h3>
+              <input type="file" accept="image/*" onChange={handleUploadImage} />
+              {recognizedText && <p>Recognized Text: {recognizedText}</p>}
+              <input type="text" placeholder="YouTube Video URL" onChange={handleUploadVideo} />
+              {recognizedVid && <p>Recognized Video Transcript: {recognizedVid}</p>}
+            </div>
           </div>
         </div>
       </div>
