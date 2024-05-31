@@ -31,6 +31,16 @@ const Collections = () => {
   }, []);
 
   const handleCreateCollection = async () => {
+    if (!newCollectionName.trim()) {
+      setError('Collection name cannot be empty.');
+      return;
+    }
+
+    if (collections.some(collection => collection.title === newCollectionName)) {
+      setError('A collection with this name already exists.');
+      return;
+    }
+
     try {
       const username = localStorage.getItem('username');
       if (!username) {
@@ -47,6 +57,7 @@ const Collections = () => {
 
       setNewCollectionName('');
       setIsModalOpen(false); // Close modal after creation
+      setError(null); // Clear any previous errors
     } catch (error) {
       setError(error.message);
     }
@@ -65,6 +76,7 @@ const Collections = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setNewCollectionName('');
+    setError(null); // Clear any errors when closing the modal
   };
 
   if (loading) {
@@ -109,6 +121,7 @@ const Collections = () => {
               onChange={(e) => setNewCollectionName(e.target.value)}
             />
             <button className="create-btn" onClick={handleCreateCollection}>Create Collection</button>
+            {error && <div className="error-message">{error}</div>}
           </div>
         </div>
       )}
