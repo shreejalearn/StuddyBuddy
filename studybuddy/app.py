@@ -318,6 +318,50 @@ def recognize_handwriting():
     return jsonify({'text': recognized_text})
 
 
+@app.route('/section_visibility', methods=['GET', 'POST'])
+def visibility():
+    if request.method == 'POST':
+        data = request.get_json()
+        if not data:
+            app.logger.error('No data provided')
+            return jsonify({'error': 'No data provided'}), 400
+
+        collection_id = data.get('collection_id')
+        section_id = data.get('section_id')
+        visibility = data.get('visibility')
+
+        if not collection_id or not section_id or not visibility:
+            app.logger.error('Collection ID, Section ID or visibility not provided')
+            return jsonify({'error': 'Collection ID, Section ID or visibility not provided'}), 400
+
+        section_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id)
+        
+        try:
+            section_ref.update({'visibility': visibility})
+            app.logger.info(f'Visibility updated to {visibility} for collection {collection_id}, section {section_id}')
+        except Exception as e:
+            app.logger.error(f'Error updating visibility: {e}')
+            return jsonify({'error': 'Failed to update visibility'}), 500
+
+        return jsonify({'message': 'Visibility updated successfully'})
+
+    elif request.method == 'GET':
+        collection_id = request.args.get('collection_id')
+        section_id = request.args.get('section_id')
+
+        if not collection_id or not section_id:
+            app.logger.error('Collection ID or Section ID not provided')
+            return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+
+        section_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id)
+        section = section_ref.get()
+
+        if not section.exists:
+            app.logger.error('Section not found')
+            return jsonify({'error': 'Section not found'}), 404
+
+        return jsonify({'section': section.to_dict()})
+
 if __name__ == '__main__':
     app.run(host='localhost', port=5000, debug=True)
 
