@@ -81,6 +81,17 @@ async def ask_sydney(question):
     async with SydneyClient() as sydney:
         response = await sydney.ask(question, citations=True)
         return response
+    
+async def ask_sydney_with_retry(question, max_retries=3):
+    retries = 0
+    while retries < max_retries:
+        try:
+            return await ask_sydney(question)
+        except Exception as e:
+            print(f"Request throttled. Retrying in {2**retries} seconds...")
+            await asyncio.sleep(2**retries)
+            retries += 1
+    raise Exception("Exceeded maximum number of retries")
 
 app = Flask(__name__)
 CORS(app)
@@ -165,7 +176,7 @@ def answer_question():
     # Ask Sydney a question based on the combined notes
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    response = loop.run_until_complete(ask_sydney(question + " based on these notes: "+combined_notes))
+    response = loop.run_until_complete(ask_sydney_with_retry(question + " based on these notes: "+combined_notes))
 
     return jsonify({'response': response})
 
@@ -275,9 +286,10 @@ def ask_sydney_route():
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    response = loop.run_until_complete(ask_sydney(prompt))
-
-    return jsonify({'response': response})
+    response = loop.run_until_complete(ask_sydney_with_retry(prompt))
+    response = jsonify({'response': response})
+    response.headers.add('Access-Control-Allow-Origin', '*')  # Adjust the origin as needed
+    return response
 
 
 @app.route('/get_notes', methods=['GET'])
