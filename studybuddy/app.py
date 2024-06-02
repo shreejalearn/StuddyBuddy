@@ -50,6 +50,9 @@ import pytesseract
 import io
 import os
 import asyncio
+from sumy.parsers.plaintext import PlaintextParser
+from sumy.nlp.tokenizers import Tokenizer
+from sumy.summarizers.lsa import LsaSummarizer
 import os
 from sydney import SydneyClient
 from dotenv import load_dotenv
@@ -123,6 +126,23 @@ def protected_resource():
     except auth.InvalidIdTokenError:
         return jsonify({'error': 'Invalid ID token'}), 401
 
+@app.route('/delete_note', methods=['DELETE'])
+def delete_note():
+    collection_id = request.args.get('collection_id')
+    section_id = request.args.get('section_id')
+    note_id = request.args.get('note_id')
+
+    if not collection_id or not section_id or not note_id:
+        return jsonify({'error': 'Collection ID, Section ID, or Note ID not provided'}), 400
+
+    try:
+        note_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').document(note_id)
+        note_ref.delete()
+        return jsonify({'message': 'Note deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/answer_question', methods=['GET','POST'])
 def answer_question():
     data = request.json  
@@ -153,6 +173,10 @@ def answer_question():
 
 @app.route('/get_transcript', methods=['POST'])
 def get_transcript():
+    
+    collection_id = request.form.get('collection_id')
+    section_id = request.form.get('section_id')
+
     video_url = request.form.get('url')
     print(video_url)
     url_parts = urlparse(video_url)
@@ -175,6 +199,15 @@ def get_transcript():
 
     for transcript in transcript_list:
         transcript_txt+=transcript['text']
+    video_response = youtube.videos().list(
+        part="snippet",
+        id=video_id
+    ).execute()
+
+    video_title = video_response['items'][0]['snippet']['title']
+    notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
+    note_ref = notes_collection_ref.document()  # Automatically generate a new document ID
+    note_ref.set({'notes': transcript_txt, 'tldr':("Video: "+video_title)})
 
 
     return jsonify({'response': transcript_txt})
@@ -247,21 +280,25 @@ def ask_sydney_route():
     return jsonify({'response': response})
 
 
-@app.route('/get_sources', methods=['GET'])
-def get_sources():
-    chapter_id = request.args.get('chapter_id')
-    if not chapter_id:
-        return jsonify({'error': 'Chapter ID not provided'})
+@app.route('/get_notes', methods=['GET'])
+def get_notes():
+    collection_id = request.args.get('collection_id')
+    section_id = request.args.get('section_id')
 
-    sources = []
-    sources_docs = db.collection('collections').document(chapter_id).collection('sources').get()
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
 
-    for doc in sources_docs:
-        source_data = doc.to_dict()
-        source_data['id'] = doc.id
-        sources.append(source_data)
+    try:
+        notes = []
+        notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
+        for doc in notes_docs:
+            note_data = doc.to_dict()
+            note_data['id'] = doc.id
+            notes.append(note_data)
+        return jsonify({'notes': notes}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    return jsonify({'sources': sources})
 @app.route('/create_collection', methods=['POST'])
 def create_collection():
     data = request.get_json()
@@ -305,17 +342,34 @@ def recognize_handwriting():
     if 'image' not in request.files:
         return jsonify({'error': 'No image uploaded'})
 
+    collection_id = request.form.get('collection_id')
+    section_id = request.form.get('section_id')
+
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+
     image_file = request.files['image']
     image_stream = io.BytesIO(image_file.read())
     image = Image.open(image_stream)
 
     recognized_text = pytesseract.image_to_string(image)
 
-    # Store recognized_text in Cloud Firestore
-    doc_ref = db.collection('recognized_texts').document()
-    doc_ref.set({'text': recognized_text})
+    try:
+        notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
+        note_ref = notes_collection_ref.document()  
+        parser = PlaintextParser.from_string(recognized_text, Tokenizer("english"))
+        summarizer = LsaSummarizer()
+        tldr = summarizer(parser.document, sentences_count=1)  
 
-    return jsonify({'text': recognized_text})
+        tldr = " ".join(str(sentence) for sentence in tldr)
+
+
+        note_ref.set({'notes': recognized_text, 'tldr':("Notes: "+tldr)})
+
+        return jsonify({'text': recognized_text, 'tldr':tldr, 'message': 'Text recognized and stored successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 
 if __name__ == '__main__':
