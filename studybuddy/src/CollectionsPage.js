@@ -13,11 +13,11 @@ const Collections = () => {
   useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const username = localStorage.getItem('username');
+        const username = localStorage.getItem('userName');
         if (!username) {
           throw new Error('Username not found in local storage');
         }
-
+        console.log(username);
         const response = await axios.get(`http://localhost:5000/get_my_collections?username=${username}`);
         setCollections(response.data.collections);
         setLoading(false);

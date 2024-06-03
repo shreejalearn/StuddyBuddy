@@ -1,3 +1,0 @@
-import pytesseract
-
-print(pytesseract)

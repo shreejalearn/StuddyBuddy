@@ -101,6 +101,7 @@ const Login = () => {
             login(user.accessToken); // Update the context with the token
             // setCookie('user', user, { path: '/' })
             localStorage.setItem('userName', email);
+            
             navigate("/mygallery");
         } catch (error) {
             const errorCode = error.code;

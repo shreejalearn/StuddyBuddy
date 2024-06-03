@@ -1,46 +1,3 @@
-# from flask import Flask, request, jsonify
-# from flask_cors import CORS
-# from PIL import Image
-# import pytesseract
-# import io
-# import os
-# import firebase_admin
-# from firebase_admin import credentials, firestore
-
-# app = Flask(__name__)
-# CORS(app)
-
-# # Specify the full path to the Tesseract executable
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
-# # Initialize Firebase Admin SDK
-# cred = credentials.Certificate("serviceKey.json")
-# firebase_admin.initialize_app(cred)
-
-# # Initialize Firestore client
-# db = firestore.client()
-
-# @app.route('/recognize', methods=['POST'])
-# def recognize_handwriting():
-#     if 'image' not in request.files:
-#         return jsonify({'error': 'No image uploaded'})
-
-#     image_file = request.files['image']
-#     image_stream = io.BytesIO(image_file.read())
-#     image = Image.open(image_stream)
-
-#     recognized_text = pytesseract.image_to_string(image)
-
-#     # Store recognized_text in Cloud Firestore
-#     doc_ref = db.collection('recognized_texts').document()
-#     doc_ref.set({'text': recognized_text})
-
-#     return jsonify({'text': recognized_text})
-
-# if __name__ == '__main__':
-#     app.run(host='localhost', port=5000, debug=True)
-
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import firebase_admin
@@ -50,6 +7,9 @@ import pytesseract
 import io
 import os
 import asyncio
+from sumy.parsers.plaintext import PlaintextParser
+from sumy.nlp.tokenizers import Tokenizer
+from sumy.summarizers.lsa import LsaSummarizer
 import os
 from sydney import SydneyClient
 from dotenv import load_dotenv
@@ -59,7 +19,16 @@ import googleapiclient.discovery
 from googleapiclient.discovery import build
 from youtube_transcript_api import YouTubeTranscriptApi
 from urllib.parse import urlparse, parse_qs
-
+from typing import OrderedDict
+from sentence_transformers import SentenceTransformer
+from transformers import T5ForConditionalGeneration, T5Tokenizer, BertTokenizer, BertModel, AutoTokenizer
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import torch
+import spacy
+from transformers import BertTokenizer as BTokenizer, BertModel as BModel
+from warnings import filterwarnings as ignore_warnings
+from transformers import pipeline
 
 import json
 
@@ -73,11 +42,123 @@ if bing_cookies_key is None:
     exit(1)
 
 os.environ["BING_COOKIES"] = bing_cookies_key
+qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
+t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v1')
+t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
+sentence_model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+nlp = spacy.load("en_core_web_sm")
+
+ignore_warnings('ignore')
+
+qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
+
+async def generate_question_answer(sentence, answer):
+    t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v1')
+    t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
+
+    text = "context: {} answer: {}".format(sentence, answer)
+    max_len = 256
+    encoding = t5_tokenizer.encode_plus(text, max_length=max_len, pad_to_max_length=False, truncation=True, return_tensors="pt")
+
+    input_ids, attention_mask = encoding["input_ids"], encoding["attention_mask"]
+
+    outputs = t5_model.generate(input_ids=input_ids,
+                                 attention_mask=attention_mask,
+                                 early_stopping=True,
+                                 num_beams=5,
+                                 num_return_sequences=1,
+                                 no_repeat_ngram_size=2,
+                                 max_length=300)
+
+    decoded_outputs = [t5_tokenizer.decode(ids, skip_special_tokens=True) for ids in outputs]
+
+    question = decoded_outputs[0].replace("question:", "")
+    question = question.strip()
+
+    answer_output = qa_pipeline(question=question, context=txt)
+
+    return question, answer_output['answer']
+
+async def generate_question(sentence, answer):
+    text = f"context: {sentence} answer: {answer}"
+    max_len = 256
+    encoding = t5_tokenizer.encode_plus(text, max_length=max_len, pad_to_max_length=False, truncation=True, return_tensors="pt")
+
+    input_ids, attention_mask = encoding["input_ids"], encoding["attention_mask"]
+
+    outputs = t5_model.generate(input_ids=input_ids,
+                                 attention_mask=attention_mask,
+                                 early_stopping=True,
+                                 num_beams=5,
+                                 num_return_sequences=1,
+                                 no_repeat_ngram_size=2,
+                                 max_length=300)
+
+    decoded_outputs = [t5_tokenizer.decode(ids, skip_special_tokens=True) for ids in outputs]
+
+    question = decoded_outputs[0].replace("question:", "").strip()
+    return question
+
+async def calculate_embedding(doc):
+    tokens = BTokenizer.from_pretrained('bert-base-uncased').tokenize(doc)
+    token_ids = BTokenizer.from_pretrained('bert-base-uncased').convert_tokens_to_ids(tokens)
+    segment_ids = [1] * len(tokens)
+
+    torch_tokens = torch.tensor([token_ids])
+    torch_segments = torch.tensor([segment_ids])
+
+    return BModel.from_pretrained("bert-base-uncased")(torch_tokens, torch_segments)[-1].detach().numpy()
+
+async def get_parts_of_speech(context):
+  doc = nlp(context)
+  pos_tags = [token.pos_ for token in doc]
+  return pos_tags, context.split()
+
+async def get_sentences(context):
+  doc = nlp(context)
+  return list(doc.sents)
+
+async def get_vectorizer(doc):
+  stop_words = "english"
+  n_gram_range = (1,1)
+  vectorizer = CountVectorizer(ngram_range = n_gram_range, stop_words = stop_words).fit([doc])
+  return vectorizer.get_feature_names_out()
+
+async def get_keywords(context, module_type='t'):
+    keywords = []
+    top_n = 5
+    sentences = list(nlp(context).sents)
+
+    for sentence in sentences:
+        key_words = CountVectorizer(ngram_range=(1, 1), stop_words="english").fit([str(sentence)]).get_feature_names_out()
+        
+        if module_type == 't':
+            sentence_embedding = await calculate_embedding(str(sentence))
+            keyword_embedding = await calculate_embedding(' '.join(key_words))
+        else:
+            sentence_embedding = sentence_model.encode([str(sentence)])
+            keyword_embedding = sentence_model.encode(key_words)
+        
+        distances = cosine_similarity(sentence_embedding, keyword_embedding)
+        keywords += [(key_words[index], str(sentence)) for index in distances.argsort()[0][-top_n:]]
+
+    return keywords
 
 async def ask_sydney(question):
     async with SydneyClient() as sydney:
         response = await sydney.ask(question, citations=True)
         return response
+    
+async def ask_sydney_with_retry(question, max_retries=3):
+    retries = 0
+    while retries < max_retries:
+        try:
+            return await ask_sydney(question)
+        except Exception as e:
+            print(f"Request throttled. Retrying in {2**retries} seconds...")
+            await asyncio.sleep(2**retries)
+            retries += 1
+    raise Exception("Exceeded maximum number of retries")
 
 app = Flask(__name__)
 CORS(app)
@@ -123,6 +204,23 @@ def protected_resource():
     except auth.InvalidIdTokenError:
         return jsonify({'error': 'Invalid ID token'}), 401
 
+@app.route('/delete_note', methods=['DELETE'])
+def delete_note():
+    collection_id = request.args.get('collection_id')
+    section_id = request.args.get('section_id')
+    note_id = request.args.get('note_id')
+
+    if not collection_id or not section_id or not note_id:
+        return jsonify({'error': 'Collection ID, Section ID, or Note ID not provided'}), 400
+
+    try:
+        note_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').document(note_id)
+        note_ref.delete()
+        return jsonify({'message': 'Note deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/answer_question', methods=['GET','POST'])
 def answer_question():
     data = request.json  
@@ -145,7 +243,7 @@ def answer_question():
     # Ask Sydney a question based on the combined notes
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    response = loop.run_until_complete(ask_sydney(question + " based on these notes: "+combined_notes))
+    response = loop.run_until_complete(ask_sydney_with_retry(question + " based on these notes: "+combined_notes))
 
     return jsonify({'response': response})
 
@@ -153,6 +251,10 @@ def answer_question():
 
 @app.route('/get_transcript', methods=['POST'])
 def get_transcript():
+    
+    collection_id = request.form.get('collection_id')
+    section_id = request.form.get('section_id')
+
     video_url = request.form.get('url')
     print(video_url)
     url_parts = urlparse(video_url)
@@ -175,6 +277,15 @@ def get_transcript():
 
     for transcript in transcript_list:
         transcript_txt+=transcript['text']
+    video_response = youtube.videos().list(
+        part="snippet",
+        id=video_id
+    ).execute()
+
+    video_title = video_response['items'][0]['snippet']['title']
+    notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
+    note_ref = notes_collection_ref.document()  # Automatically generate a new document ID
+    note_ref.set({'notes': transcript_txt, 'tldr':("Video: "+video_title)})
 
 
     return jsonify({'response': transcript_txt})
@@ -242,26 +353,31 @@ def ask_sydney_route():
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    response = loop.run_until_complete(ask_sydney(prompt))
+    response = loop.run_until_complete(ask_sydney_with_retry(prompt))
+    response = jsonify({'response': response})
+    response.headers.add('Access-Control-Allow-Origin', '*')  # Adjust the origin as needed
+    return response
 
-    return jsonify({'response': response})
 
+@app.route('/get_notes', methods=['GET'])
+def get_notes():
+    collection_id = request.args.get('collection_id')
+    section_id = request.args.get('section_id')
 
-@app.route('/get_sources', methods=['GET'])
-def get_sources():
-    chapter_id = request.args.get('chapter_id')
-    if not chapter_id:
-        return jsonify({'error': 'Chapter ID not provided'})
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
 
-    sources = []
-    sources_docs = db.collection('collections').document(chapter_id).collection('sources').get()
+    try:
+        notes = []
+        notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
+        for doc in notes_docs:
+            note_data = doc.to_dict()
+            note_data['id'] = doc.id
+            notes.append(note_data)
+        return jsonify({'notes': notes}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    for doc in sources_docs:
-        source_data = doc.to_dict()
-        source_data['id'] = doc.id
-        sources.append(source_data)
-
-    return jsonify({'sources': sources})
 @app.route('/create_collection', methods=['POST'])
 def create_collection():
     data = request.get_json()
@@ -305,17 +421,75 @@ def recognize_handwriting():
     if 'image' not in request.files:
         return jsonify({'error': 'No image uploaded'})
 
+    collection_id = request.form.get('collection_id')
+    section_id = request.form.get('section_id')
+
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+
     image_file = request.files['image']
     image_stream = io.BytesIO(image_file.read())
     image = Image.open(image_stream)
 
     recognized_text = pytesseract.image_to_string(image)
 
-    # Store recognized_text in Cloud Firestore
-    doc_ref = db.collection('recognized_texts').document()
-    doc_ref.set({'text': recognized_text})
+    try:
+        notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
+        note_ref = notes_collection_ref.document()  
+        parser = PlaintextParser.from_string(recognized_text, Tokenizer("english"))
+        summarizer = LsaSummarizer()
+        tldr = summarizer(parser.document, sentences_count=1)  
 
-    return jsonify({'text': recognized_text})
+        tldr = " ".join(str(sentence) for sentence in tldr)
+
+
+        note_ref.set({'notes': recognized_text, 'tldr':("Notes: "+tldr)})
+
+        return jsonify({'text': recognized_text, 'tldr':tldr, 'message': 'Text recognized and stored successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/generate_qna', methods=['POST'])
+async def generate_qna():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    collection_id = data.get('collection_id')
+    section_id = data.get('section_id')
+    num_questions = data.get('num_questions')
+
+    if not num_questions:
+        return jsonify({'error': 'Number of questions not provided'}), 400
+
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+
+    try:
+        notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
+        all_text = ''
+        for doc in notes_docs:
+            note_data = doc.to_dict().get('notes', '')
+            all_text += note_data + ' '
+
+        if not all_text:
+            return jsonify({'error': 'No notes found in the specified section'}), 404
+
+        keywords = await get_keywords(all_text, 't')
+        qa_pairs = []
+        answer_dict = OrderedDict()
+
+        for answer, context in keywords:
+            if len(qa_pairs) >= num_questions:
+                break
+            question = await generate_question(context, answer)
+            if answer not in answer_dict:
+                answer_dict[answer] = question
+                qa_pairs.append({'question': question, 'answer': answer})
+
+        return jsonify({'qa_pairs': qa_pairs}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/section_visibility', methods=['GET', 'POST'])
