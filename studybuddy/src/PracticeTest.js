@@ -16,7 +16,7 @@ const QuizComponent = () => {
             const response = await axios.post('http://localhost:5000/generate_qna', {
                 collection_id: collectionId,
                 section_id: chapterId,
-                num_questions: 5
+                num_questions: 10
             });
             setQuestions(response.data.qa_pairs);
             setShowResults(false);

@@ -52,32 +52,6 @@ ignore_warnings('ignore')
 
 qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
 
-async def generate_question_answer(sentence, answer):
-    t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v1')
-    t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
-
-    text = "context: {} answer: {}".format(sentence, answer)
-    max_len = 256
-    encoding = t5_tokenizer.encode_plus(text, max_length=max_len, pad_to_max_length=False, truncation=True, return_tensors="pt")
-
-    input_ids, attention_mask = encoding["input_ids"], encoding["attention_mask"]
-
-    outputs = t5_model.generate(input_ids=input_ids,
-                                 attention_mask=attention_mask,
-                                 early_stopping=True,
-                                 num_beams=5,
-                                 num_return_sequences=1,
-                                 no_repeat_ngram_size=2,
-                                 max_length=300)
-
-    decoded_outputs = [t5_tokenizer.decode(ids, skip_special_tokens=True) for ids in outputs]
-
-    question = decoded_outputs[0].replace("question:", "")
-    question = question.strip()
-
-    answer_output = qa_pipeline(question=question, context=txt)
-
-    return question, answer_output['answer']
 
 async def generate_question(sentence, answer):
     text = f"context: {sentence} answer: {answer}"
@@ -89,9 +63,9 @@ async def generate_question(sentence, answer):
     outputs = t5_model.generate(input_ids=input_ids,
                                  attention_mask=attention_mask,
                                  early_stopping=True,
-                                 num_beams=5,
-                                 num_return_sequences=1,
-                                 no_repeat_ngram_size=2,
+                                 num_beams=15,
+                                 num_return_sequences=10,
+                                 no_repeat_ngram_size=20,
                                  max_length=300)
 
     decoded_outputs = [t5_tokenizer.decode(ids, skip_special_tokens=True) for ids in outputs]
@@ -483,9 +457,11 @@ async def generate_qna():
             if len(qa_pairs) >= num_questions:
                 break
             question = await generate_question(context, answer)
-            if answer not in answer_dict:
-                answer_dict[answer] = question
-                qa_pairs.append({'question': question, 'answer': answer})
+            # if answer not in answer_dict:
+            #     answer_dict[answer] = question
+            #     qa_pairs.append({'question': question, 'answer': answer})
+            answer_dict[answer] = question
+            qa_pairs.append({'question': question, 'answer': answer})
 
         return jsonify({'qa_pairs': qa_pairs}), 200
     except Exception as e:
