@@ -647,11 +647,11 @@ async def main() -> None:
         clip = ImageSequenceClip(image_paths, fps=fps)
 
         # Add the audio to the video clip
-        # clip = clip.set_audio("all_summary_audio.mp3")
+        clip = clip.set_audio(AudioFileClip("all_summary_audio.mp3"))
 
         # Write the video file
         output_video_path = "output_video.mp4"
-        clip.write_videofile(output_video_path, codec="libx264", temp_audiofile="all_summary_audio.mp3", remove_temp=True, verbose=True)
+        clip.write_videofile(output_video_path)
 
 if __name__ == "__main__":
     asyncio.run(main())
