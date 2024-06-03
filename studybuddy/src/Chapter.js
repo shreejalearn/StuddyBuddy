@@ -292,8 +292,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './styles/stuff.css';
+import { useNavigate } from 'react-router-dom';
+
 
 const ChapterPage = () => {
+  const navigate = useNavigate();
   const chapterId = localStorage.getItem('currentSection');
   const collName = localStorage.getItem('collectionName');
   const chapterName = localStorage.getItem('currentSectionName');
@@ -483,7 +486,7 @@ const ChapterPage = () => {
           <button className="category-btn">Flashcards</button>
           <button className="category-btn">Video</button>
           <button className="category-btn">Presentations</button>
-          <button className="category-btn">Practice Test</button>
+          <button className="category-btn" onClick={() => navigate('/practicetest')}>Practice Test</button>
           <button className="category-btn">Game</button>
         </div>
         <div className="content">

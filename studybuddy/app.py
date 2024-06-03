@@ -42,6 +42,107 @@ if bing_cookies_key is None:
     exit(1)
 
 os.environ["BING_COOKIES"] = bing_cookies_key
+qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
+t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v1')
+t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
+sentence_model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+nlp = spacy.load("en_core_web_sm")
+
+ignore_warnings('ignore')
+
+qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
+
+async def generate_question_answer(sentence, answer):
+    t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v1')
+    t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
+
+    text = "context: {} answer: {}".format(sentence, answer)
+    max_len = 256
+    encoding = t5_tokenizer.encode_plus(text, max_length=max_len, pad_to_max_length=False, truncation=True, return_tensors="pt")
+
+    input_ids, attention_mask = encoding["input_ids"], encoding["attention_mask"]
+
+    outputs = t5_model.generate(input_ids=input_ids,
+                                 attention_mask=attention_mask,
+                                 early_stopping=True,
+                                 num_beams=5,
+                                 num_return_sequences=1,
+                                 no_repeat_ngram_size=2,
+                                 max_length=300)
+
+    decoded_outputs = [t5_tokenizer.decode(ids, skip_special_tokens=True) for ids in outputs]
+
+    question = decoded_outputs[0].replace("question:", "")
+    question = question.strip()
+
+    answer_output = qa_pipeline(question=question, context=txt)
+
+    return question, answer_output['answer']
+
+async def generate_question(sentence, answer):
+    text = f"context: {sentence} answer: {answer}"
+    max_len = 256
+    encoding = t5_tokenizer.encode_plus(text, max_length=max_len, pad_to_max_length=False, truncation=True, return_tensors="pt")
+
+    input_ids, attention_mask = encoding["input_ids"], encoding["attention_mask"]
+
+    outputs = t5_model.generate(input_ids=input_ids,
+                                 attention_mask=attention_mask,
+                                 early_stopping=True,
+                                 num_beams=5,
+                                 num_return_sequences=1,
+                                 no_repeat_ngram_size=2,
+                                 max_length=300)
+
+    decoded_outputs = [t5_tokenizer.decode(ids, skip_special_tokens=True) for ids in outputs]
+
+    question = decoded_outputs[0].replace("question:", "").strip()
+    return question
+
+async def calculate_embedding(doc):
+    tokens = BTokenizer.from_pretrained('bert-base-uncased').tokenize(doc)
+    token_ids = BTokenizer.from_pretrained('bert-base-uncased').convert_tokens_to_ids(tokens)
+    segment_ids = [1] * len(tokens)
+
+    torch_tokens = torch.tensor([token_ids])
+    torch_segments = torch.tensor([segment_ids])
+
+    return BModel.from_pretrained("bert-base-uncased")(torch_tokens, torch_segments)[-1].detach().numpy()
+
+async def get_parts_of_speech(context):
+  doc = nlp(context)
+  pos_tags = [token.pos_ for token in doc]
+  return pos_tags, context.split()
+
+async def get_sentences(context):
+  doc = nlp(context)
+  return list(doc.sents)
+
+async def get_vectorizer(doc):
+  stop_words = "english"
+  n_gram_range = (1,1)
+  vectorizer = CountVectorizer(ngram_range = n_gram_range, stop_words = stop_words).fit([doc])
+  return vectorizer.get_feature_names_out()
+
+async def get_keywords(context, module_type='t'):
+    keywords = []
+    top_n = 5
+    sentences = list(nlp(context).sents)
+
+    for sentence in sentences:
+        key_words = CountVectorizer(ngram_range=(1, 1), stop_words="english").fit([str(sentence)]).get_feature_names_out()
+        
+        if module_type == 't':
+            sentence_embedding = await calculate_embedding(str(sentence))
+            keyword_embedding = await calculate_embedding(' '.join(key_words))
+        else:
+            sentence_embedding = sentence_model.encode([str(sentence)])
+            keyword_embedding = sentence_model.encode(key_words)
+        
+        distances = cosine_similarity(sentence_embedding, keyword_embedding)
+        keywords += [(key_words[index], str(sentence)) for index in distances.argsort()[0][-top_n:]]
+
+    return keywords
 
 async def ask_sydney(question):
     async with SydneyClient() as sydney:
@@ -348,6 +449,47 @@ def recognize_handwriting():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/generate_qna', methods=['POST'])
+async def generate_qna():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    collection_id = data.get('collection_id')
+    section_id = data.get('section_id')
+    num_questions = data.get('num_questions')
+
+    if not num_questions:
+        return jsonify({'error': 'Number of questions not provided'}), 400
+
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+
+    try:
+        notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
+        all_text = ''
+        for doc in notes_docs:
+            note_data = doc.to_dict().get('notes', '')
+            all_text += note_data + ' '
+
+        if not all_text:
+            return jsonify({'error': 'No notes found in the specified section'}), 404
+
+        keywords = await get_keywords(all_text, 't')
+        qa_pairs = []
+        answer_dict = OrderedDict()
+
+        for answer, context in keywords:
+            if len(qa_pairs) >= num_questions:
+                break
+            question = await generate_question(context, answer)
+            if answer not in answer_dict:
+                answer_dict[answer] = question
+                qa_pairs.append({'question': question, 'answer': answer})
+
+        return jsonify({'qa_pairs': qa_pairs}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/section_visibility', methods=['GET', 'POST'])
