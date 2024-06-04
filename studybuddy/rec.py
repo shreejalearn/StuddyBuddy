@@ -1,56 +1,58 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.neighbors import NearestNeighbors
+from dotenv import load_dotenv
+from flask import Flask, jsonify
 
-# Initialize Firebase Admin SDK (replace 'path/to/serviceAccountKey.json' with your own service account key file)
-cred = credentials.Certificate("./serviceKey.json")
+# Load environment variables
+load_dotenv()
+
+# Get the service key path from environment variable
+service_key_path = os.getenv('FIREBASE_SERVICE_KEY_PATH')
+
+if service_key_path is None:
+    raise ValueError("The environment variable FIREBASE_SERVICE_KEY_PATH is not set.")
+
+# Initialize Firebase
+cred = credentials.Certificate(service_key_path)
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
-def get_collection_titles(username):
-    collections_ref = db.collection('collections').where('username', '==', username).stream()
+def collection_recommender_engine(collection_name, matrix, cf_model, n_recs):
+    cf_model.fit(matrix)
+    
+    collection_index = process.extractOne(collection_name, matrix.index)[2]
+    
+    distances, indices = cf_model.kneighbors(matrix.iloc[collection_index].values.reshape(1, -1), n_neighbors=n_recs)
+    collection_rec_ids = sorted(list(zip(indices.squeeze().tolist(), distances.squeeze().tolist())), key=lambda x: x[1])[:0:-1]
+    
+    cf_recs = []
+    for i in collection_rec_ids:
+        cf_recs.append({'Title': matrix.index[i[0]], 'Distance': i[1]})
+    
+    df = pd.DataFrame(cf_recs, index=range(1, n_recs))
+     
+    return df
 
-    titles = []
-    for collection in collections_ref:
-        for document in collection.to_dict().get('document', []):
-            data = document.get('data', [])
-            for item in data:
-                if 'title' in item:
-                    titles.append(item['title'])
-    
-    return titles
+collections = []
+collection_docs = db.collection('collections').stream()
+for doc in collection_docs:
+    collections.append(doc.document('data').get('title')) 
 
-def suggest_similar_titles(username):
-    titles = get_collection_titles(username)
-    
-    if not titles:
-        print("No titles found for user:", username)
-        return []
+collection_titles = collections
+num_collections = len(collection_titles)
+dummy_relevancy_matrix = np.random.rand(num_collections, num_collections)
 
-    # Vectorize titles using TF-IDF
-    vectorizer = TfidfVectorizer().fit_transform(titles)
-    vectors = vectorizer.toarray()
-    
-    # Compute cosine similarity matrix
-    cosine_matrix = cosine_similarity(vectors)
-    
-    # Get similarity scores for the first title against all other titles
-    similarity_scores = list(enumerate(cosine_matrix[0]))
-    
-    # Sort by similarity score in descending order
-    similarity_scores = sorted(similarity_scores, key=lambda x: x[1], reverse=True)
-    
-    # Get top 5 most similar titles (excluding the first one which is the title itself)
-    top_5_similar = [titles[i] for i, _ in similarity_scores[1:6]]
-    
-    return top_5_similar
+dummy_relevancy_matrix = (dummy_relevancy_matrix + dummy_relevancy_matrix.T) / 2
 
-# Example usage
-if __name__ == "__main__":
-    username = 'annekm26@bergen.org'
-    similar_titles = suggest_similar_titles(username)
-    print("Top 5 similar titles for user:", username)
-    for title in similar_titles:
-        print(title)
+np.fill_diagonal(dummy_relevancy_matrix, 1)
+
+relevancy_df = pd.DataFrame(dummy_relevancy_matrix, index=collection_titles, columns=collection_titles)
+relevancy_df.head()
+
+cf_knn_model = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=10, n_jobs=-1)
+cf_knn_model.fit(relevancy_df)
+
+n_recs = 10
+print(collection_recommender_engine('Some Collection Title', relevancy_df, cf_knn_model, n_recs))
