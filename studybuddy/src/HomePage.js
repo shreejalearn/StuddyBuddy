@@ -8,7 +8,7 @@ const HomePage = () => {
   return (
     <div>
       <nav style={{ backgroundColor: 'lightblue', padding: '1rem' }}>
-        <img src="logo.png" alt="Logo" style={{ height: '50px', marginRight: '1rem' }} />
+        <img src="assets/logo (2).png" alt="Logo" style={{ height: '50px', marginRight: '1rem' }} />
         <input type="text" placeholder="Search..." style={{ padding: '0.5rem', marginRight: '1rem' }} />
         <button onClick={() => navigate('/mygallery')} style={{ padding: '0.5rem 1rem', marginRight: '1rem' } }>Your Collections</button>
       </nav>
