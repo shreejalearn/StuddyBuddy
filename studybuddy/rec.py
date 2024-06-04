@@ -1,6 +1,3 @@
-import os
-import numpy as np
-import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, firestore
 from sklearn.neighbors import NearestNeighbors
@@ -19,48 +16,43 @@ if service_key_path is None:
 # Initialize Firebase
 cred = credentials.Certificate(service_key_path)
 firebase_admin.initialize_app(cred)
+
 db = firestore.client()
 
-# Fetch all collection titles from Firestore
-def fetch_collection_titles():
-    collection_titles = []
-    collection_docs = db.collection('collections').stream()
-    for doc in collection_docs:
-        title = doc.get('data', {}).get('title', '')
-        if title:
-            collection_titles.append(title)
-    return collection_titles
+def collection_recommender_engine(collection_name, matrix, cf_model, n_recs):
+    cf_model.fit(matrix)
+    
+    collection_index = process.extractOne(collection_name, matrix.index)[2]
+    
+    distances, indices = cf_model.kneighbors(matrix.iloc[collection_index].values.reshape(1, -1), n_neighbors=n_recs)
+    collection_rec_ids = sorted(list(zip(indices.squeeze().tolist(), distances.squeeze().tolist())), key=lambda x: x[1])[:0:-1]
+    
+    cf_recs = []
+    for i in collection_rec_ids:
+        cf_recs.append({'Title': matrix.index[i[0]], 'Distance': i[1]})
+    
+    df = pd.DataFrame(cf_recs, index=range(1, n_recs))
+     
+    return df
 
-# Create a dummy relevancy matrix based on collection titles
-def create_relevancy_matrix(collection_titles):
-    num_collections = len(collection_titles)
-    dummy_relevancy_matrix = np.random.rand(num_collections, num_collections)
-    dummy_relevancy_matrix = (dummy_relevancy_matrix + dummy_relevancy_matrix.T) / 2
-    np.fill_diagonal(dummy_relevancy_matrix, 1)
-    return pd.DataFrame(dummy_relevancy_matrix, index=collection_titles, columns=collection_titles)
+collections = []
+collection_docs = db.collection('collections').stream()
+for doc in collection_docs:
+    collections.append(doc.document('data').get('title')) 
 
-# Initialize and fit the NearestNeighbors model
-def build_recommendation_model(matrix):
-    cf_knn_model = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=10, n_jobs=-1)
-    cf_knn_model.fit(matrix)
-    return cf_knn_model
+collection_titles = collections
+num_collections = len(collection_titles)
+dummy_relevancy_matrix = np.random.rand(num_collections, num_collections)
 
-# Fetch collection titles
-collection_titles = fetch_collection_titles()
+dummy_relevancy_matrix = (dummy_relevancy_matrix + dummy_relevancy_matrix.T) / 2
 
-# Create relevancy matrix
-relevancy_matrix = create_relevancy_matrix(collection_titles)
+np.fill_diagonal(dummy_relevancy_matrix, 1)
 
-# Build recommendation model
-recommendation_model = build_recommendation_model(relevancy_matrix)
+relevancy_df = pd.DataFrame(dummy_relevancy_matrix, index=collection_titles, columns=collection_titles)
+relevancy_df.head()
 
-# Flask application
-app = Flask(__name__)
+cf_knn_model = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=10, n_jobs=-1)
+cf_knn_model.fit(relevancy_df)
 
-# Endpoint to return all available titles
-@app.route('/get_all_titles', methods=['GET'])
-def get_all_titles():
-    return jsonify({'titles': collection_titles})
-
-if __name__ == '__main__':
-    app.run(host='localhost', port=5000, debug=True)
+n_recs = 10
+print(collection_recommender_engine('Some Collection Title', relevancy_df, cf_knn_model, n_recs))
