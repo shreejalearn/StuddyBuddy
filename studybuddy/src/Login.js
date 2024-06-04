@@ -102,7 +102,7 @@ const Login = () => {
             // setCookie('user', user, { path: '/' })
             localStorage.setItem('userName', email);
             
-            navigate("/mygallery");
+            navigate("/homepage");
         } catch (error) {
             const errorCode = error.code;
             const errorMessage = error.message;
