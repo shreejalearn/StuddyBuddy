@@ -63,6 +63,7 @@ import OpenedCollection from './OpenedCollection';
 import Sections from './Sections';
 import Chapter from './Chapter';
 import PracticeTest from './PracticeTest';
+import HomePage from './HomePage';
 
 import Login from './Login';
 import Signup from './Signup';
@@ -85,6 +86,7 @@ function MainApp() {
             <Route path="/question" element={<AskQuestion />} />
             <Route path="/home" element={<Home />} />
             <Route path="/practicetest" element={<PracticeTest />} />
+            <Route path="/homepage" element={<HomePage />} />
 
           </Route>
           <Route path="/" element={<FillerAuth />} />
