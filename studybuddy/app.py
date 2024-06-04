@@ -162,6 +162,23 @@ def get_my_collections():
 
     return jsonify({'collections': collections})
 
+
+@app.route('/get_my_sections', methods=['GET'])
+def get_my_collections():
+    username = request.args.get('username')
+    if not username:
+        return jsonify({'error': 'Username not provided'})
+
+    collections = []
+    collection_docs = db.collection('collections').where('username', '==', username).collection('sections').stream()
+    for doc in collection_docs:
+        # Access the 'data' field and then retrieve the 'title' from it
+        title = doc.to_dict().get('data', {}).get('section_name', '')
+        visibility = doc.to_dict().get('data', {}).get('visibility', '')
+        collections.append({'id': doc.id, 'title': title, 'visibility': visibility})
+        
+    return jsonify({'collections': collections})
+
 @app.route('/protected_resource', methods=['GET'])
 def protected_resource():
     # Get the ID token from the request headers
