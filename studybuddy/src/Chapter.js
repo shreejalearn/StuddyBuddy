@@ -321,6 +321,16 @@ const ChapterPage = () => {
     //     console.error('Error:', error);
     //   }
     // };
+    const updateAccessTime = async () => {
+      try {
+        await axios.post('http://localhost:5000/update_access_time', {
+          collection_id: collectionId,
+          section_id: chapterId
+        });
+      } catch (error) {
+        console.error('Error updating access time:', error);
+      }
+    };
 
     const fetchNotes = async () => {
       try {
@@ -338,6 +348,7 @@ const ChapterPage = () => {
 
     // fetchSources();
     fetchNotes();
+    updateAccessTime()
   }, [chapterId, collectionId]);
 
   const handleSourceChange = (source) => {
@@ -418,7 +429,7 @@ const ChapterPage = () => {
 
     try {
       const response = await axios.post('http://localhost:5000/section_visibility', {
-        collection_id: collName,
+        collection_id: collectionId,
         section_id: chapterId,
         visibility: newVisibility,
       });

@@ -178,6 +178,23 @@ def protected_resource():
     except auth.InvalidIdTokenError:
         return jsonify({'error': 'Invalid ID token'}), 401
 
+@app.route('/update_access_time', methods=['POST'])
+def update_access_time():
+    data = request.get_json()
+    collection_id = data.get('collection_id')
+    section_id = data.get('section_id')
+
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Missing parameters'}), 400
+
+    try:
+        section_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id)
+        section_ref.update({'last_accessed': firestore.SERVER_TIMESTAMP})
+        return jsonify({'message': 'Access time updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/delete_note', methods=['DELETE'])
 def delete_note():
     collection_id = request.args.get('collection_id')
@@ -311,7 +328,8 @@ def create_section():
     sections_ref = collection_ref.collection('sections').document()
     sections_ref.set({
         'section_name': section_name,
-        'notes': notes
+        'notes': notes,
+        'visibility': 'public'
     })
 
     return jsonify({'message': 'Section created successfully'})
