@@ -175,7 +175,22 @@ def get_my_collections():
         # Access the 'data' field and then retrieve the 'title' from it
         title = doc.to_dict().get('data', {}).get('section_name', '')
         visibility = doc.to_dict().get('data', {}).get('visibility', '')
-        collections.append({'id': doc.id, 'title': title, 'visibility': visibility})
+        access = doc.to_dict().get('data', {}).get('last_accessed', '')
+        collections.append({'id': doc.id, 'title': title, 'visibility': visibility, 'access': access})
+
+        
+    return jsonify({'collections': collections})
+
+@app.route('/get_all_sections', methods=['GET'])
+def get_my_collections():
+    collections = []
+    collection_docs = db.collection('collections').collection('sections').stream()
+    for doc in collection_docs:
+        # Access the 'data' field and then retrieve the 'title' from it
+        title = doc.to_dict().get('data', {}).get('section_name', '')
+        visibility = doc.to_dict().get('data', {}).get('visibility', '')
+        access = doc.to_dict().get('data', {}).get('last_accessed', '')
+        collections.append({'id': doc.id, 'title': title, 'visibility': visibility, 'access': access})
         
     return jsonify({'collections': collections})
 
