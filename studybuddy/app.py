@@ -164,7 +164,7 @@ def get_my_collections():
 
 
 @app.route('/get_my_sections', methods=['GET'])
-def get_my_collections():
+def get_my_sections():
     username = request.args.get('username')
     if not username:
         return jsonify({'error': 'Username not provided'})
@@ -182,7 +182,7 @@ def get_my_collections():
     return jsonify({'collections': collections})
 
 @app.route('/get_all_sections', methods=['GET'])
-def get_my_collections():
+def get_all_sections():
     collections = []
     collection_docs = db.collection('collections').collection('sections').stream()
     for doc in collection_docs:
