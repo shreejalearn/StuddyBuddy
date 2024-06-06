@@ -37,7 +37,7 @@ const HomePage = () => {
 
   return (
     <div>
-      <nav style={{ backgroundColor: 'lightblue', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <nav style={{ backgroundColor: '#c9d4d4', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <img src={Logo} alt="Logo" style={{ height: '100px', marginRight: '1rem' }} />
         </div>

@@ -505,14 +505,13 @@ def search_public_sections():
 
     public_sections = []
     
-    section_docs = db.collection('collections').where('username', '!=', name).stream()
+    section_docs = db.collection('collections').where('username',"!=", name).stream()
+    print(section_docs)
     for doc in section_docs:
         section_ref = doc.reference.collection('sections').where('visibility', '==', 'public').stream()
         for section_doc in section_ref:
-            section_data = section_doc.to_dict()
-            print("Section Data:", section_data)
+            section_data = section_doc.to_dict().get('data', {})
             title = section_data.get('section_name', '')
-            print("Title:", title)
             if search_term.lower() in title.lower():
                 public_sections.append({'id': section_doc.id, 'title': title})
 
@@ -698,4 +697,3 @@ def visibility():
 
 if __name__ == '__main__':
     app.run(host='localhost', port=5000, debug=True)
-
