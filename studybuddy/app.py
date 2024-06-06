@@ -773,44 +773,70 @@ def get_my_collections():
     collections = []
     collection_docs = db.collection('collections').where('username', '==', username).stream()
     for doc in collection_docs:
+        # Access the 'data' field and then retrieve the 'title' from it
         title = doc.to_dict().get('data', {}).get('title', '')
         collections.append({'id': doc.id, 'title': title})
 
     return jsonify({'collections': collections})
+
+@app.route('/get_my_collections', methods=['GET'])
+def get_my_collections():
+    username = request.args.get('username')
+    if not username:
+        return jsonify({'error': 'Username not provided'})
+
+    collections = []
+    collection_docs = db.collection('collections').where('username', '==', username).stream()
+    for doc in collection_docs:
+        title = doc.to_dict().get('data', {}).get('title', '')
+        collections.append({'id': doc.id, 'title': title})
+
+    return jsonify({'collections': collections})
+
+@app.route('/get_my_sections', methods=['GET'])
+def get_my_sections():
+    username = request.args.get('username')
+    if not username:
+        return jsonify({'error': 'Username not provided'})
+
+    collections = []
+    collection_docs = db.collection('collections').where('username', '==', username).collection('sections').stream()
+    for doc in collection_docs:
+        title = doc.to_dict().get('data', {}).get('section_name', '')
+        visibility = doc.to_dict().get('data', {}).get('visibility', '')
+        access = doc.to_dict().get('data', {}).get('last_accessed', '')
+        collections.append({'id': doc.id, 'title': title, 'visibility': visibility, 'access': access})
+
+    return jsonify({'collections': collections})
+
 @app.route('/get_my_sections_recent', methods=['GET'])
 def get_my_sections_recent():
     username = request.args.get('username')
     if not username:
         return jsonify({'error': 'Username not provided'})
 
-    collection_docs = db.collection('collections').where('username', '==', username).stream()
-
     collections = []
-
+    collection_docs = db.collection('collections').collection('sections').stream()
     for doc in collection_docs:
         doc_data = doc.to_dict().get('data', {})
         title = doc_data.get('section_name', '')
         visibility = doc_data.get('visibility', '')
         access = doc_data.get('last_accessed', '')
 
-        # If access is empty, continue to next document
         if not access:
             continue
 
-        # Try to parse the 'last_accessed' string to a datetime object
         try:
             access_date = parser.parse(access)
         except ValueError:
-            continue  # Skip if date format is incorrect
+            continue
 
         collections.append({'id': doc.id, 'title': title, 'visibility': visibility, 'access': access_date})
 
-    # Sort the collections by 'access' date in descending order
     collections.sort(key=lambda x: x['access'], reverse=True)
 
-    # Convert datetime objects back to strings if needed
     for collection in collections:
-        collection['access'] = collection['access'].isoformat()  # Adjust format as needed
+        collection['access'] = collection['access'].isoformat()
 
     return jsonify({'collections': collections})
 
@@ -883,103 +909,23 @@ def summarize_youtube():
     summarizer = LsaSummarizer()
     summary = summarizer(parser.document, num_sentences)
 
-        tldr = " ".join(str(sentence) for sentence in tldr)
+    summary_text = " ".join(str(sentence) for sentence in summary)
 
+    return jsonify({'summary': summary_text})
 
-        note_ref.set({'notes': recognized_text, 'tldr':("Notes: "+tldr)})
+@app.route('/transcribe', methods=['POST'])
+def transcribe():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
 
-        return jsonify({'text': recognized_text, 'tldr':tldr, 'message': 'Text recognized and stored successfully'}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
 
-@app.route('/generate_qna', methods=['POST'])
-async def generate_qna():
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
+    image = Image.open(io.BytesIO(file.read()))
+    text = pytesseract.image_to_string(image)
 
-    collection_id = data.get('collection_id')
-    section_id = data.get('section_id')
-    num_questions = data.get('num_questions')
-
-    if not num_questions:
-        return jsonify({'error': 'Number of questions not provided'}), 400
-
-    if not collection_id or not section_id:
-        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
-
-    try:
-        notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
-        all_text = ''
-        for doc in notes_docs:
-            note_data = doc.to_dict().get('notes', '')
-            all_text += note_data + ' '
-
-        if not all_text:
-            return jsonify({'error': 'No notes found in the specified section'}), 404
-
-        keywords = await get_keywords(all_text, 't')
-        qa_pairs = []
-        answer_dict = OrderedDict()
-
-        for answer, context in keywords:
-            if len(qa_pairs) >= num_questions:
-                break
-            question = await generate_question(context, answer)
-            # if answer not in answer_dict:
-            #     answer_dict[answer] = question
-            #     qa_pairs.append({'question': question, 'answer': answer})
-            answer_dict[answer] = question
-            qa_pairs.append({'question': question, 'answer': answer})
-
-        return jsonify({'qa_pairs': qa_pairs}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/section_visibility', methods=['GET', 'POST'])
-def visibility():
-    if request.method == 'POST':
-        data = request.get_json()
-        if not data:
-            app.logger.error('No data provided')
-            return jsonify({'error': 'No data provided'}), 400
-
-        collection_id = data.get('collection_id')
-        section_id = data.get('section_id')
-        visibility = data.get('visibility')
-
-        if not collection_id or not section_id or not visibility:
-            app.logger.error('Collection ID, Section ID or visibility not provided')
-            return jsonify({'error': 'Collection ID, Section ID or visibility not provided'}), 400
-
-        section_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id)
-        
-        try:
-            section_ref.update({'visibility': visibility})
-            app.logger.info(f'Visibility updated to {visibility} for collection {collection_id}, section {section_id}')
-        except Exception as e:
-            app.logger.error(f'Error updating visibility: {e}')
-            return jsonify({'error': 'Failed to update visibility'}), 500
-
-        return jsonify({'message': 'Visibility updated successfully'})
-
-    elif request.method == 'GET':
-        collection_id = request.args.get('collection_id')
-        section_id = request.args.get('section_id')
-
-        if not collection_id or not section_id:
-            app.logger.error('Collection ID or Section ID not provided')
-            return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
-
-        section_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id)
-        section = section_ref.get()
-
-        if not section.exists:
-            app.logger.error('Section not found')
-            return jsonify({'error': 'Section not found'}), 404
-
-        return jsonify({'section': section.to_dict()})
+    return jsonify({'transcription': text})
 
 if __name__ == '__main__':
     app.run(debug=True)
