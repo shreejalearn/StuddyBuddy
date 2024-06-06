@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "dotenv": "^16.4.5",
+    "reading-time-estimator": "^1.11.0",
     "sydney": "^1.0.0"
   }
 }
