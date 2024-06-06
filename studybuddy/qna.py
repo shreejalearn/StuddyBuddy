@@ -117,12 +117,7 @@ def get_keywords(context, module_type = 't'):
   return keywords
 
 txt = """
-The Battle of Waterloo was fought on Sunday, 18 June 1815, near Waterloo in Belgium,
-part of the United Kingdom of the Netherlands at the time. A French army under the
-command of Napoleon Bonaparte was defeated by two of the armies of the Seventh Coalition:
-an Anglo-led Allied army under the command of the Duke of Wellington, and a Prussian army
-under the command of Field Marshal von Blücher. The battle marked the end of the Napoleonic Wars.
-"""
+Deviations from the five conditions for Hardy-Weinberg equilibrium can alter allele frequencies in a population, microevolution The three main causes of evolutionary change are natural selection, genetic drift, and gene flow Genetic drift - a change in the gene pool of a population due to chance, the effects of this are most pronounced in small populations Two situations in which genetic drift can have a significant impact on a population are those that produce the bottleneck effect and the founder effect Catastrophes that drastically reduce population size is called bottleneck effect; and the surviving population is likely not genetically representative of the original population, changing the gene pool Founder effect - when a few individuals become isolated from a larger population and form a new population whose gene pool is not reflective of the original population Gene flow - the transfer of alleles from one population to another as a result of movement of individuals or their gametes"""
 qa_pairs = []
 answer_dict = OrderedDict()
 
