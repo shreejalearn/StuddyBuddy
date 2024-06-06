@@ -56,6 +56,7 @@ import App from './App';
 import FillerAuth from './FillerAuth';
 import Fill from './Fill';
 import SavedResponses from './SavedResponses';
+import PublicSections from './PublicSectionsPage';
 
 import AskQuestion from './AskQuestion';
 import Home from './Home';
@@ -81,6 +82,8 @@ function MainApp() {
           <Route element={<PrivateRoutes />}>
             <Route path="/fill" element={<Fill />} />
             <Route path="/upload" element={<App />} />
+            <Route path="/publicsections" element={<PublicSections />} />
+
             <Route path="/mygallery" element={<CollectionsPage />} />
             <Route path="/sections" element={<Sections />} />
             <Route path="/chapter" element={<Chapter />} />

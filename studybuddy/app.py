@@ -495,6 +495,28 @@ def recognize_handwriting():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/search_public_sections', methods=['GET'])
+def search_public_sections():
+    search_term = request.args.get('search_term')
+    name = request.args.get('name')
+
+    if not search_term:
+        return jsonify({'error': 'Search term not provided'})
+
+    public_sections = []
+    
+    section_docs = db.collection('collections').where('username',"!=", name).stream()
+    print(section_docs)
+    for doc in section_docs:
+        section_ref = doc.reference.collection('sections').where('visibility', '==', 'public').stream()
+        for section_doc in section_ref:
+            section_data = section_doc.to_dict().get('data', {})
+            title = section_data.get('section_name', '')
+            if search_term.lower() in title.lower():
+                public_sections.append({'id': section_doc.id, 'title': title})
+
+    return jsonify({'sections': public_sections})
+
 @app.route('/save_response', methods=['POST'])
 def save_response():
     data = request.get_json()

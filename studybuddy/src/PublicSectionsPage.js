@@ -9,6 +9,8 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [recentSections, setRecentSections] = useState([]);
   const username = localStorage.getItem('userName');
+  const st = localStorage.getItem('searchTerm');
+  const [publicSections, setPublicSections] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleKeyPress = (event) => {
@@ -18,21 +20,19 @@ const HomePage = () => {
     }
   }
   useEffect(() => {
-    const fetchRecentSections = async () => {
+    const fetchPublicSections = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/get_my_sections_recent', {
-          params: { username: username} 
-        });
-        setRecentSections(response.data.collections);
+        const response = await axios.get(`http://localhost:5000/search_public_sections?search_term=${st}&name=${username}`);
+        setPublicSections(response.data.sections);
       } catch (error) {
-        console.error('Error fetching recent sections:', error);
+        console.error('Error fetching public sections:', error);
       }
     };
 
-    fetchRecentSections();
-  }, []);
+    fetchPublicSections();
+  }, [searchTerm]);
   const handleSectionClick = (sectionId) => {
-    navigate(`/section/${sectionId}`);
+    // VIEW CLONING LOGIC
   };
 
   return (
@@ -57,16 +57,12 @@ const HomePage = () => {
       <div>
       </div>
       <div className="landing-content">
-        <h1>Study Buddy</h1>
-        <p>Recently Viewed</p>
-        {recentSections.map(section => (
+        <p>Search Results</p>
+        {publicSections.map(section => (
           <button className="category-btn" key={section.id} onClick={() => handleSectionClick(section.id)}>
             {section.title  || 'Untitled'}
           </button>
         ))}
-        <p>Sections For You</p>
-        <div className="category-buttons">
-        </div>
       </div>
     </div>
   );
