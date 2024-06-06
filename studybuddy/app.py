@@ -180,42 +180,28 @@ def get_my_sections():
 
         
     return jsonify({'collections': collections})
-
 @app.route('/get_my_sections_recent', methods=['GET'])
 def get_my_sections_recent():
     username = request.args.get('username')
     if not username:
         return jsonify({'error': 'Username not provided'})
 
+    collection_docs = db.collection('collections').where('username', '==', username).stream()
+
     collections = []
-    collection_docs = db.collection('collections').collection('sections').stream()
+
     for doc in collection_docs:
-        doc_data = doc.to_dict().get('data', {})
-        title = doc_data.get('section_name', '')
-        visibility = doc_data.get('visibility', '')
-        access = doc_data.get('last_accessed', '')
+        collection_id = doc.id
+        section_docs = db.collection('collections').document(collection_id).collection('sections').order_by('last_accessed', direction=firestore.Query.DESCENDING).limit(5).stream()
+        
+        for section_doc in section_docs:
+            doc_data = section_doc.to_dict().get('data', {})
+            title = doc_data.get('section_name')
+            visibility = doc_data.get('visibility')
+            access = doc_data.get('last_accessed')
 
-        # If access is empty, continue to next document
-        if not access:
-            continue
-
-        # Try to parse the 'last_accessed' string to a datetime object
-        try:
-            access_date = parser.parse(access)
-        except ValueError:
-            continue  # Skip if date format is incorrect
-
-        collections.append({'id': doc.id, 'title': title, 'visibility': visibility, 'access': access_date})
-
-    # Sort the collections by 'access' date in descending order
-    collections.sort(key=lambda x: x['access'], reverse=True)
-
-    # Convert datetime objects back to strings if needed
-    for collection in collections:
-        collection['access'] = collection['access'].isoformat()  # Adjust format as needed
-
+            collections.append({'id': section_doc.id, 'title': title, 'visibility': visibility, 'access': access})
     return jsonify({'collections': collections})
-
 
 @app.route('/get_all_sections', methods=['GET'])
 def get_all_sections():

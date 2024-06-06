@@ -1,10 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from './components/menuButton';
 import Logo from './assets/logo (2).png';
+import axios from 'axios';
+
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [recentSections, setRecentSections] = useState([]);
+  const username = localStorage.getItem('userName');
+
+  useEffect(() => {
+    const fetchRecentSections = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/get_my_sections_recent', {
+          params: { username: username} 
+        });
+        setRecentSections(response.data.collections);
+      } catch (error) {
+        console.error('Error fetching recent sections:', error);
+      }
+    };
+
+    fetchRecentSections();
+  }, []);
+  const handleSectionClick = (sectionId) => {
+    // Redirect to the section page using React Router
+    navigate(`/section/${sectionId}`);
+  };
 
   return (
     <div>
@@ -24,6 +47,11 @@ const HomePage = () => {
       <div className="landing-content">
         <h1>Study Buddy</h1>
         <p>Recently Viewed</p>
+        {recentSections.map(section => (
+          <button className="category-btn" key={section.id} onClick={() => handleSectionClick(section.id)}>
+            {section.title  || 'Untitled'}
+          </button>
+        ))}
         <p>Public Sections</p>
         <div className="category-buttons">
         </div>
