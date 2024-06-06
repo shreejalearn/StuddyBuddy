@@ -8,12 +8,12 @@ const HomePage = () => {
 
   return (
     <div>
-      <nav style={{ backgroundColor: 'lightblue', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <nav style={{ backgroundColor: '#c9d4d4', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <img src={Logo} alt="Logo" style={{ height: '100px', marginRight: '1rem' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center' }}>
-          <input type="text" placeholder="Search..." style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderColor: 'gray' }} />
+          <input type="text" placeholder="Search..." style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderColor: 'gray', borderRadius: '5px' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <button onClick={() => navigate('/mygallery')} style={{ padding: '0.5rem 1rem' }}>Your Collections</button>
