@@ -31,10 +31,15 @@ const HomePage = () => {
 
     fetchRecentSections();
   }, []);
-  const handleSectionClick = (sectionId) => {
-    navigate(`/section/${sectionId}`);
-  };
+  const handleSectionClick = (sectionId, collId, title, colName) => {
+    localStorage.setItem('chapterId', sectionId);
+    localStorage.setItem('collectionId', collId);
+    localStorage.setItem('collectionName', colName);
+    localStorage.setItem('currentSectionName', title);
 
+    navigate(`/chapter`);
+  };
+ 
   return (
     <div>
       <nav style={{ backgroundColor: '#c9d4d4', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -60,7 +65,7 @@ const HomePage = () => {
         <h1>Study Buddy</h1>
         <p>Recently Viewed</p>
         {recentSections.map(section => (
-          <button className="category-btn" key={section.id} onClick={() => handleSectionClick(section.id)}>
+          <button className="category-btn" key={section.id} onClick={() => handleSectionClick(section.id, section.collection_id, section.title, section.collName)}>
             {section.title  || 'Untitled'}
           </button>
         ))}

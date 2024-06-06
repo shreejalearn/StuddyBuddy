@@ -185,7 +185,7 @@ def get_my_sections():
 def get_my_sections_recent():
     username = request.args.get('username')
     if not username:
-        return jsonify({'error': 'Username not provided'})
+        return jsonify({'error': 'Username not provided'}), 400
 
     collection_docs = db.collection('collections').where('username', '==', username).stream()
 
@@ -193,15 +193,26 @@ def get_my_sections_recent():
 
     for doc in collection_docs:
         collection_id = doc.id
+        collection_name = doc.to_dict().get('data', {}).get('title', None)
         section_docs = db.collection('collections').document(collection_id).collection('sections').order_by('last_accessed', direction=firestore.Query.DESCENDING).limit(5).stream()
         
         for section_doc in section_docs:
-            doc_data = section_doc.to_dict().get('data', {})
-            title = doc_data.get('section_name')
-            visibility = doc_data.get('visibility')
-            access = doc_data.get('last_accessed')
+            doc_data = section_doc.to_dict()
 
-            collections.append({'id': section_doc.id, 'title': title, 'visibility': visibility, 'access': access})
+            title = doc_data.get('section_name', None)
+            visibility = doc_data.get('visibility', None)
+            access = doc_data.get('last_accessed', None)
+
+            collections.append({
+                'collection_id': collection_id,
+                'id': section_doc.id,
+                'title': title,
+                'visibility': visibility,
+                'access': access,
+                'collName': collection_name
+
+            })
+
     return jsonify({'collections': collections})
 
 @app.route('/get_all_sections', methods=['GET'])
