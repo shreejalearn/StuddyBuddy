@@ -181,24 +181,6 @@ def get_my_sections():
         
     return jsonify({'collections': collections})
 
-@app.route('/get_my_sections', methods=['GET'])
-def get_my_sections():
-    username = request.args.get('username')
-    if not username:
-        return jsonify({'error': 'Username not provided'})
-
-    collections = []
-    collection_docs = db.collection('collections').where('username', '==', username).collection('sections').stream()
-    for doc in collection_docs:
-        # Access the 'data' field and then retrieve the 'title' from it
-        title = doc.to_dict().get('data', {}).get('section_name', '')
-        visibility = doc.to_dict().get('data', {}).get('visibility', '')
-        access = doc.to_dict().get('data', {}).get('last_accessed', '')
-        collections.append({'id': doc.id, 'title': title, 'visibility': visibility, 'access': access})
-
-        
-    return jsonify({'collections': collections})
-
 @app.route('/get_my_sections_recent', methods=['GET'])
 def get_my_sections_recent():
     username = request.args.get('username')
@@ -524,6 +506,95 @@ def recognize_handwriting():
         note_ref.set({'notes': recognized_text, 'tldr':("Notes: "+tldr)})
 
         return jsonify({'text': recognized_text, 'tldr':tldr, 'message': 'Text recognized and stored successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/save_response', methods=['POST'])
+def save_response():
+    data = request.get_json()
+   
+    collection_id = data.get('collection_id')
+    section_id = data.get('section_id')
+    response = data.get('response')
+
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section id not provided'})
+
+    parser = PlaintextParser.from_string(response, Tokenizer("english"))
+    summarizer = LsaSummarizer()
+    tldr = summarizer(parser.document, sentences_count=1)  
+    tldr = " ".join(str(sentence) for sentence in tldr)
+
+
+    responses = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('saved_responses').document()
+    responses.set({
+        'data': response,
+        'tldr': tldr
+    })
+    return jsonify({'success'}), 200
+
+@app.route('/get_saved_responses', methods=['GET'])
+def get_saved_responses():
+    collection_id = request.args.get('collection_id')
+    section_id = request.args.get('section_id')
+
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+
+    try:
+        notes = []
+        notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('saved_responses').stream()
+        for doc in notes_docs:
+            note_data = doc.to_dict()
+            note_data['id'] = doc.id
+            notes.append(note_data)
+        return jsonify({'notes': notes}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+@app.route('/delete_response', methods=['DELETE'])
+def delete_response():
+    collection_id = request.args.get('collection_id')
+    section_id = request.args.get('section_id')
+    response_id = request.args.get('response_id')
+
+    if not collection_id or not section_id or not response_id:
+        return jsonify({'error': 'Collection ID, Section ID, or Response ID not provided'}), 400
+
+    try:
+        db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('saved_responses').document(response_id).delete()
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/add_response_to_notes', methods=['POST'])
+def add_to_notes():
+    data = request.get_json()
+    collection_id = data.get('collection_id')
+    section_id = data.get('section_id')
+    response_id = data.get('response_id')
+
+    if not collection_id or not section_id or not response_id:
+        return jsonify({'error': 'Collection ID, Section ID, or Response ID not provided'}), 400
+
+    try:
+        response_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('saved_responses').document(response_id)
+        response_doc = response_ref.get()
+
+        if response_doc.exists:
+            response_data = response_doc.to_dict()
+
+            notes_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').document()
+            notes_ref.set({
+                'notes': response_data['data'],
+                'tldr': response_data['Saved Response: '+'tldr']
+            })
+
+            response_ref.delete()
+
+            return jsonify({'success': True}), 200
+        else:
+            return jsonify({'error': 'Response not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

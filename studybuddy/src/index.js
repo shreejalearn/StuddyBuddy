@@ -55,6 +55,7 @@ import './index.css';
 import App from './App';
 import FillerAuth from './FillerAuth';
 import Fill from './Fill';
+import SavedResponses from './SavedResponses';
 
 import AskQuestion from './AskQuestion';
 import Home from './Home';
@@ -87,6 +88,7 @@ function MainApp() {
             <Route path="/home" element={<Home />} />
             <Route path="/practicetest" element={<PracticeTest />} />
             <Route path="/homepage" element={<HomePage />} />
+            <Route path="/savedresponses" element={<SavedResponses />} />
 
           </Route>
           <Route path="/" element={<FillerAuth />} />
