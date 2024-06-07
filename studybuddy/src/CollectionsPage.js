@@ -42,7 +42,7 @@ const Collections = () => {
     }
 
     try {
-      const username = localStorage.getItem('username');
+      const username = localStorage.getItem('userName');
       if (!username) {
         throw new Error('Username not found in local storage');
       }
