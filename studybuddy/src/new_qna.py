@@ -1,76 +1,7 @@
-# import asyncio
-# import os
-# from sydney import SydneyClient
-# from dotenv import load_dotenv
-
-# import json
-
-# load_dotenv()
-
-# bing_cookies_key = os.getenv('BING_COOKIES')
-
-# if bing_cookies_key is None:
-#     print("Error: BING_COOKIES environment variable is not set.")
-#     exit(1)
-
-# os.environ["BING_COOKIES"] = bing_cookies_key
-
-
-# async def main() -> None:
-#     async with SydneyClient() as sydney:
-#         question = '''
-        
-# Task: Generate 10 practice questions based on the following notes. The questions should cover the main topics. Ensure the questions are of medium-hard difficulty and are either multiple choice (with options) or true/false.
-
-# Notes:
-
-# Creating functions:
-# def my_functionQ: pass
-# Decomposition:
-# Breaking down big ideas into small helper functions (e.g., the library exercise)
-# While loops:
-# Indefinite loops (run until a condition is false)
-# while condition: pass
-# For loops:
-# Definite loops (run a fixed number of times)
-# for i in range(10): pass
-
-# Question Format:
-
-# Question: [Your question here]
-# Answer: [Correct answer]
-# Difficulty: Medium-Hard
-# Type: Multiple Choice/True or False
-# Citation: Derived from provided notes
-# For Multiple Choice Questions:
-
-# Provide four options labeled a, b, c, and d.
-# Example:
-
-# Question 1:
-
-# Question: Which of the following correctly defines a function named my_functionQ?
-# a) def my_functionQ(): pass
-# b) def my_functionQ: pass
-# c) function my_functionQ() {}
-# d) def my_functionQ() pass
-# Answer: a) def my_functionQ(): pass
-# Difficulty: Medium-Hard
-# Type: Multiple Choice
-# Citation: Derived from provided notes
-# '''
-
-#     response = await sydney.ask(question, citations=True)
-#     print("Sydney:", response.encode('ascii', 'ignore').decode('ascii'))
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
-
 import asyncio
 import os
 from sydney import SydneyClient
 from dotenv import load_dotenv
-import json
 
 load_dotenv()
 
@@ -83,57 +14,43 @@ if bing_cookies_key is None:
 os.environ["BING_COOKIES"] = bing_cookies_key
 
 async def main() -> None:
-    async with SydneyClient() as sydney:
-        question = '''
-        
-Task: Generate 10 practice questions based on the following notes. The questions should cover the main topics. Ensure the questions are of medium-hard difficulty and are either multiple choice (with options) or true/false.
+    notes = '''The circumference of a circle is its "perimeter," or the distance around its edge. If we broke the circle and bent it into one flat line, the length of this line would be its circumference:
+The diameter of a circle is a line segment from one point on the edge of the circle to another point on the edge, passing through the center of the circle. It is the longest line segment that cuts across the circle from one point to another. There are many different diameters, but they all have the same length:
 
-Notes:
 
-Creating functions:
-def my_functionQ: pass
-Decomposition:
-Breaking down big ideas into small helper functions (e.g., the library exercise)
-While loops:
-Indefinite loops (run until a condition is false)
-while condition: pass
-For loops:
-Definite loops (run a fixed number of times)
-for i in range(10): pass
+Diameters of a Circle
+The radius of a circle is a line segment from the center of the circle to a point on the edge of the circle. It is half of a diameter, and thus its length is half the length of the diameter. Again, there are many radii, but they all have the same length. In the following diagram, a, b, and c are all radii:
 
-Question Format:
 
-Question: [Your question here]
-Answer: [Correct answer]
-Difficulty: Medium-Hard
-Type: Multiple Choice/True or False
-Citation: Derived from provided notes
-For Multiple Choice Questions:
+Radii of a Circle
+The area of a circle is the total number of square units that fill the circle. The area of the following circle is about 13 units. Note that we count fractional units inside the circle as well as whole units.
 
-Provide four options labeled a, b, c, and d.
-Example:
 
-Question 1:
+Example: Max is building a house. The first step is to drill holes and fill them with concrete.
+The holes are 0.4 m wide and 1 m deep, how much concrete should Max order for each hole?
 
-Question: Which of the following correctly defines a function named my_functionQ?
-a) def my_functionQ(): pass
-b) def my_functionQ: pass
-c) function my_functionQ() {}
-d) def my_functionQ() pass
-Answer: a) def my_functionQ(): pass
-Difficulty: Medium-Hard
-Type: Multiple Choice
-Citation: Derived from provided notes
+ 
+
+circle auger
+The holes are circular (in cross section) because they are drilled out using an auger.
+
+The diameter is 0.4m, so the Area is: 0.126 m2
 '''
 
+    async with SydneyClient() as sydney:
+        question = f'''
+        Task: Generate 10 practice test questions based on the following notes. The question should cover the main topics. Ensure the question is of difficulty difficulty and is question_type.
+
+        Notes:
+        {notes}
+
+        Question Format: Multiple Choice
+        Question: [Your question here]
+        Options: [Option 1, Option 2, Option 3, Option 4]
+        Answer: [Correct answer]
+        '''
         response = await sydney.ask(question, citations=True)
         print("Sydney:", response.encode('ascii', 'ignore').decode('ascii'))
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except RuntimeError as e:
-        if str(e).startswith('Event loop is closed'):
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(main())
+    asyncio.run(main())

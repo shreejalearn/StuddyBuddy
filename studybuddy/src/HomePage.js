@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import Button from './components/menuButton';
 import Logo from './assets/logo (2).png';
 import axios from 'axios';
-
+import './styles/homepage.css';
 
 const HomePage = () => {
   const navigate = useNavigate();
   const [recentSections, setRecentSections] = useState([]);
+  const [recommendedSections, setRecommendedSections] = useState([]);
   const username = localStorage.getItem('userName');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -17,11 +18,12 @@ const HomePage = () => {
       navigate(`/publicsections`);
     }
   }
+
   useEffect(() => {
     const fetchRecentSections = async () => {
       try {
         const response = await axios.get('http://localhost:5000/get_my_sections_recent', {
-          params: { username: username} 
+          params: { username: username } 
         });
         setRecentSections(response.data.collections);
       } catch (error) {
@@ -31,6 +33,22 @@ const HomePage = () => {
 
     fetchRecentSections();
   }, []);
+
+  useEffect(() => {
+    const fetchRecommendedSections = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/recommend_public_sections', {
+          params: { username: username } 
+        });
+        setRecommendedSections(response.data.recommended_sections);
+      } catch (error) {
+        console.error('Error fetching recommended sections:', error);
+      }
+    };
+
+    fetchRecommendedSections();
+  }, []);
+
   const handleSectionClick = (sectionId, collId, title, colName) => {
     localStorage.setItem('chapterId', sectionId);
     localStorage.setItem('collectionId', collId);
@@ -39,38 +57,43 @@ const HomePage = () => {
 
     navigate(`/chapter`);
   };
- 
+
   return (
     <div>
-      <nav style={{ backgroundColor: '#c9d4d4', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <nav>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src={Logo} alt="Logo" style={{ height: '100px', marginRight: '1rem' }} />
+          <img src={Logo} alt="Logo" />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center' }}>
-        <input 
+        <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center', borderRadius: '7px' }}>
+          <input 
             type="text" 
             placeholder="Search public sets..." 
-            style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderColor: 'gray' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyPress={handleKeyPress} 
-          />        </div>
+          />
+        </div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button onClick={() => navigate('/mygallery')} style={{ padding: '0.5rem 1rem' }}>Your Collections</button>
+          <button onClick={() => navigate('/mygallery')}>Your Collections</button>
         </div>
       </nav>
-      <div>
-      </div>
-      <div className="landing-content">
+      <div className="main">
         <h1>Study Buddy</h1>
         <p>Recently Viewed</p>
-        {recentSections.map(section => (
-          <button className="category-btn" key={section.id} onClick={() => handleSectionClick(section.id, section.collection_id, section.title, section.collName)}>
-            {section.title  || 'Untitled'}
-          </button>
-        ))}
+        <div className="cards-container">
+          {recentSections.map(section => (
+            <div className="card" key={section.id} onClick={() => handleSectionClick(section.id, section.collection_id, section.title, section.collName)}>
+              <div className="card-title">{section.title || 'Untitled'}</div>
+            </div>
+          ))}
+        </div>
         <p>Sections For You</p>
-        <div className="category-buttons">
+        <div className="cards-container">
+          {recommendedSections.map(section => (
+            <div className="card" key={section.id} onClick={() => handleSectionClick(section.id, section.collection_id, section.title, section.collName)}>
+              <div className="card-title">{section.title || 'Untitled'}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

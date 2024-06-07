@@ -36,6 +36,8 @@ from duckduckgo_search import DDGS
 from fastcore.all import *
 from gtts import gTTS
 from moviepy.editor import ImageSequenceClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips
+from gensim.models import Word2Vec
+
 import sys
 import json
 
@@ -875,6 +877,49 @@ def visibility():
             return jsonify({'error': 'Section not found'}), 404
 
         return jsonify({'section': section.to_dict()})
+    
+# Load pre-trained word embeddings model (you need to train or download one)
+word_embeddings_model = Word2Vec.load("word2vec.model")
+
+@app.route('/recommend_public_sections', methods=['GET'])
+def recommend_public_sections():
+    username = request.args.get('username')
+
+    if not username:
+        return jsonify({'error': 'Username not provided'}), 400
+
+    user_sections = []
+    public_sections = []
+
+    # Get user's sections
+    user_section_docs = db.collection('collections').where('username', '==', username).stream()
+    for doc in user_section_docs:
+        collection_id = doc.id
+        section_docs = db.collection('collections').document(collection_id).collection('sections').stream()
+        
+        for section_doc in section_docs:
+            doc_data = section_doc.to_dict()
+            title = doc_data.get('section_name', '')
+            user_sections.append(title)
+
+    # Get public sections
+    section_docs = db.collection('collections').stream()
+    for doc in section_docs:
+        section_ref = doc.reference.collection('sections').where('visibility', '==', 'public').stream()
+        for section_doc in section_ref:
+            section_data = section_doc.to_dict()
+            title = section_data.get('section_name', '')
+            # Calculate semantic similarity using word embeddings
+            similarity_scores = [word_embeddings_model.wv.similarity(title.lower(), user_section.lower()) for user_section in user_sections]
+            average_similarity = sum(similarity_scores) / len(similarity_scores)
+            if average_similarity > 0.5:  # You can adjust this threshold based on your requirements
+                public_sections.append({'id': section_doc.id, 'title': title, 'similarity': average_similarity})
+
+    # Sort recommended sections by similarity score
+    public_sections.sort(key=lambda x: x['similarity'], reverse=True)
+
+    return jsonify({'recommended_sections': public_sections})
+
 
 if __name__ == '__main__':
     app.run(host='localhost', port=5000, debug=True)
