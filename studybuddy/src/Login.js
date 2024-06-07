@@ -1,38 +1,38 @@
-// Login.js
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './config/firebaseSetup';
 import { useAuth } from './AuthContext'; // Import useAuth
 import './styles/login.css';
-// import { CookiesProvider, useCookies } from 'react-cookie'
-
 
 const Login = () => {
-    // const [cookies, setCookie] = useCookies(['user'])
-
     const navigate = useNavigate();
     const { login } = useAuth(); // Use the login function from the context
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
 
     const onSubmit = async (e) => {
         e.preventDefault();
+        setErrorMessage('');  // Clear any previous error messages
 
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
             console.log(user);
             login(user.accessToken); // Update the context with the token
-            // setCookie('user', user, { path: '/' })
             localStorage.setItem('userName', email);
-            
             navigate("/homepage");
         } catch (error) {
             const errorCode = error.code;
             const errorMessage = error.message;
             console.log(errorCode, errorMessage);
+            if (errorCode === 'auth/invalid-credential') {
+                setErrorMessage('Invalid credentials. Please try again.');
+            } else {
+                setErrorMessage(errorMessage);
+            }
         }
     };
 
@@ -65,6 +65,7 @@ const Login = () => {
                                     placeholder="Password"
                                 />
                             </div>
+                            {errorMessage && <p className="error-message">{errorMessage}</p>}
                             <button type="submit">Log in</button>
                         </form>
                         <p>

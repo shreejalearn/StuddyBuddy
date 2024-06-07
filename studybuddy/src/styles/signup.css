@@ -102,3 +102,9 @@ p a {
 p a:hover {
     text-decoration: underline;
 }
+
+.error-message {
+    color: red;
+    font-size: 1rem;
+    margin-top: -10px;
+}
