@@ -36,7 +36,7 @@ from duckduckgo_search import DDGS
 from fastcore.all import *
 from gtts import gTTS
 from moviepy.editor import ImageSequenceClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips
-
+import sys
 import json
 
 load_dotenv()
@@ -54,6 +54,9 @@ t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v
 t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
 sentence_model = SentenceTransformer('distilbert-base-nli-mean-tokens')
 nlp = spacy.load("en_core_web_sm")
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 
 ignore_warnings('ignore')
 
@@ -228,96 +231,97 @@ def retrieve_notes(collection_id, section_id):
     for doc in notes_docs:
         note_data = doc.to_dict()
         notes.append(note_data.get('notes'))
+    print(f"Retrieved notes: {notes}")
     return notes
-
 @app.route('/generate_video_from_notes', methods=['POST'])
 def generate_video_from_notes():
-    collection_id = request.json.get('collection_id')
-    section_id = request.json.get('section_id')
-    if not collection_id or not section_id:
-        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+    try:
+        collection_id = request.json.get('collection_id')
+        section_id = request.json.get('section_id')
+        if not collection_id or not section_id:
+            return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
 
-    notes = retrieve_notes(collection_id, section_id)
+        notes = retrieve_notes(collection_id, section_id)
 
+        response = ""
+        for note in notes:
+            response += note 
+        print(f"Constructed response: {response}")
 
-    response = ""
-    for note in notes:
-        response += note 
-    print(response)
+        matches = re.findall(r"\*\*([^*]+)\*\*:[\s\S]*?- Search phrases:\s*\"(.*?)\"[\s\S]*?Summary: (.*?)\[\^", response)
+        print(f"Matches found: {matches}")
 
-    matches = re.findall(r"\*\*([^*]+)\*\*:[\s\S]*?- Search phrases:\s*\"(.*?)\"[\s\S]*?Summary: (.*?)\[\^", response)
+        if not matches:
+            return jsonify({'error': 'No matches found in notes'}), 400
 
-    concepts = {}
+        concepts = {}
 
-    for match in matches:
-        concept_name = match[0].strip()
-        search_phrases = match[1].strip().split('", "')
-        summary = match[2].strip()
-        concepts[concept_name] = {"search_phrases": search_phrases, "summary": summary}
+        for match in matches:
+            concept_name = match[0].strip()
+            search_phrases = match[1].strip().split('", "')
+            summary = match[2].strip()
+            concepts[concept_name] = {"search_phrases": search_phrases, "summary": summary}
 
-    image_paths = []
+        image_paths = []
 
-    for concept, data in concepts.items():
-        concept_images = []
-        for phrase in data["search_phrases"]:
-            images = search_images(phrase, max_images=1)
-            if images:
-                concept_images.append(images[0])
-        concepts[concept]["images"] = concept_images
+        for concept, data in concepts.items():
+            concept_images = []
+            for phrase in data["search_phrases"]:
+                images = search_images(phrase, max_images=1)
+                if images:
+                    concept_images.append(images[0])
+            concepts[concept]["images"] = concept_images
 
-        print(f"Downloading images for concept: {concept}")
-        concept_folder = os.path.join(os.getcwd(), "images", concept)
-        os.makedirs(concept_folder, exist_ok=True)
-        for i, image_url in enumerate(data['images']):
-            image_path = download_image(image_url, concept_folder)
-            image_paths.append(image_path)
-            print(f"Downloaded image {i + 1}: {image_path}")
+            print(f"Downloading images for concept: {concept}")
+            concept_folder = os.path.join(os.getcwd(), "images", concept)
+            os.makedirs(concept_folder, exist_ok=True)
+            for i, image_url in enumerate(data['images']):
+                image_path = download_image(image_url, concept_folder)
+                image_paths.append(image_path)
+                print(f"Downloaded image {i + 1}: {image_path}")
 
-    image_paths = resize_images(image_paths, "resized_images")
+        image_paths = resize_images(image_paths, "resized_images")
+        print(f"Resized image paths: {image_paths}")
 
-    concept_audio_paths = []
-    concept_video_clips = []
+        if not image_paths:
+            return jsonify({'error': 'No images found or downloaded'}), 400
 
-    for concept, data in concepts.items():
-        summary = data["summary"]
-        images = data["images"]
-        image_durations = []
-        image_clips = []
+        concept_audio_paths = []
+        concept_video_clips = []
 
-        tts = generate_audio(summary)
-        audio_path = f"audio_{concept}.mp3"
-        tts.save(audio_path)
-        concept_audio_paths.append(audio_path)
+        for concept, data in concepts.items():
+            summary = data["summary"]
+            images = data["images"]
+            image_durations = []
+            image_clips = []
 
-        audio_clip = AudioFileClip(audio_path)
-        audio_duration = audio_clip.duration
+            audio_path = generate_audio(summary)
+            concept_audio_paths.append(audio_path)
 
-        duration_per_image = audio_duration / len(images)
-        for i, image in enumerate(images):
-            image_path = os.path.join("resized_images", os.path.basename(image))
-            image_clips.append((image_path, duration_per_image))
+            audio_clip = AudioFileClip(audio_path)
+            audio_duration = audio_clip.duration
 
-        for image_path, duration in image_clips:
-            img_clip = ImageSequenceClip([image_path], durations=[duration])
-            concept_video_clips.append(img_clip)
+            duration_per_image = audio_duration / len(images)
+            for i, image in enumerate(images):
+                image_path = os.path.join("resized_images", os.path.basename(image))
+                image_clips.append((image_path, duration_per_image))
 
-    final_video_clip = concatenate_videoclips(concept_video_clips)
-    final_audio_clip = concatenate_audioclips([AudioFileClip(p) for p in concept_audio_paths])
-    final_video_clip = final_video_clip.set_audio(final_audio_clip)
+            for image_path, duration in image_clips:
+                img_clip = ImageSequenceClip([image_path], durations=[duration])
+                concept_video_clips.append(img_clip)
 
-    output_video_path = f"output_video_{uuid.uuid4()}.mp4"
-    final_video_clip.write_videofile(output_video_path, fps=24)
+        if not concept_video_clips:
+            return jsonify({'error': 'No video clips generated'}), 400
 
-    if output_video_path:
-        responses = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('videos').document()
-        responses.set({'path': output_video_path})
-        return jsonify({'video_path': output_video_path})
-    else:
-        return jsonify({'error': 'Failed to generate video'}), 500
+        final_video_clip = concatenate_videoclips(concept_video_clips)
+        final_audio_clip = concatenate_audioclips([AudioFileClip(p) for p in concept_audio_paths])
+        final_video_clip = final_video_clip.set_audio(final_audio_clip)
+        final_video_clip.write_videofile("final_video.mp4", codec="libx264")
 
-
-
-
+        return jsonify({'message': 'Video generated successfully', 'video_path': 'final_video.mp4'})
+    except Exception as e:
+        print(f"Error generating video: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 
