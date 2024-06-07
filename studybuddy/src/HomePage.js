@@ -8,6 +8,7 @@ import './styles/homepage.css';
 const HomePage = () => {
   const navigate = useNavigate();
   const [recentSections, setRecentSections] = useState([]);
+  const [recommendedSections, setRecommendedSections] = useState([]);
   const username = localStorage.getItem('userName');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -22,7 +23,7 @@ const HomePage = () => {
     const fetchRecentSections = async () => {
       try {
         const response = await axios.get('http://localhost:5000/get_my_sections_recent', {
-          params: { username: username} 
+          params: { username: username } 
         });
         setRecentSections(response.data.collections);
       } catch (error) {
@@ -31,6 +32,21 @@ const HomePage = () => {
     };
 
     fetchRecentSections();
+  }, []);
+
+  useEffect(() => {
+    const fetchRecommendedSections = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/recommend_public_sections', {
+          params: { username: username } 
+        });
+        setRecommendedSections(response.data.recommended_sections);
+      } catch (error) {
+        console.error('Error fetching recommended sections:', error);
+      }
+    };
+
+    fetchRecommendedSections();
   }, []);
 
   const handleSectionClick = (sectionId, collId, title, colName) => {
@@ -73,7 +89,11 @@ const HomePage = () => {
         </div>
         <p>Sections For You</p>
         <div className="cards-container">
-          {/* Add logic for recommended sections here */}
+          {recommendedSections.map(section => (
+            <div className="card" key={section.id} onClick={() => handleSectionClick(section.id, section.collection_id, section.title, section.collName)}>
+              <div className="card-title">{section.title || 'Untitled'}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
