@@ -29,6 +29,13 @@ import spacy
 from transformers import BertTokenizer as BTokenizer, BertModel as BModel
 from warnings import filterwarnings as ignore_warnings
 from transformers import pipeline
+import uuid
+import re
+import requests
+from duckduckgo_search import DDGS
+from fastcore.all import *
+from gtts import gTTS
+from moviepy.editor import ImageSequenceClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips
 
 import json
 
@@ -162,6 +169,159 @@ def get_my_collections():
         collections.append({'id': doc.id, 'title': title})
 
     return jsonify({'collections': collections})
+
+@app.route('/get_video_paths', methods=['GET'])
+def get_video_paths():
+    collection_id = request.args.get('collection_id')
+    section_id = request.args.get('section_id')
+    
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+
+    video_paths = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('videos').stream()
+    video_paths_list = [video.to_dict() for video in video_paths]
+    
+    return jsonify({'videoPaths': video_paths_list})
+
+def generate_audio(text):
+    tts = gTTS(text=text, lang='en')
+    return tts
+
+# Function to search for images based on a given term
+def search_images(term, max_images=30):
+    print(f"Searching for '{term}'")
+    ddgs = DDGS()
+    return L(ddgs.images(keywords=term, max_results=max_images)).itemgot('image')
+
+# Function to download an image from a URL
+def download_image(url, folder):
+    filename = os.path.join(folder, os.path.basename(url))
+    with open(filename, 'wb') as f:
+        response = requests.get(url)
+        f.write(response.content)
+    return filename
+
+def resize_images(image_paths, output_folder, target_size=(1280, 720)):
+    resized_paths = []
+    
+    # Create the output folder if it doesn't exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    for image_path in image_paths:
+        image = Image.open(image_path)
+        image = image.resize(target_size)  # Apply anti-aliasing here
+        resized_path = os.path.join(output_folder, os.path.basename(image_path))
+        image.save(resized_path)
+        resized_paths.append(resized_path)
+    
+    return resized_paths
+
+def calculate_reading_time(text, wpm=200):
+    words = len(text.split())
+    reading_time_minutes = words / wpm
+    return reading_time_minutes * 60  # convert to seconds
+def retrieve_notes(collection_id, section_id):
+    notes = []
+    collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
+    notes_docs = collection_ref.stream()
+    for doc in notes_docs:
+        note_data = doc.to_dict()
+        notes.append(note_data.get('notes'))
+    return notes
+
+@app.route('/generate_video_from_notes', methods=['POST'])
+def generate_video_from_notes():
+    collection_id = request.json.get('collection_id')
+    section_id = request.json.get('section_id')
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+
+    notes = retrieve_notes(collection_id, section_id)
+
+
+    response = ""
+    for note in notes:
+        response += note 
+    print(response)
+
+    matches = re.findall(r"\*\*([^*]+)\*\*:[\s\S]*?- Search phrases:\s*\"(.*?)\"[\s\S]*?Summary: (.*?)\[\^", response)
+
+    concepts = {}
+
+    for match in matches:
+        concept_name = match[0].strip()
+        search_phrases = match[1].strip().split('", "')
+        summary = match[2].strip()
+        concepts[concept_name] = {"search_phrases": search_phrases, "summary": summary}
+
+    image_paths = []
+
+    for concept, data in concepts.items():
+        concept_images = []
+        for phrase in data["search_phrases"]:
+            images = search_images(phrase, max_images=1)
+            if images:
+                concept_images.append(images[0])
+        concepts[concept]["images"] = concept_images
+
+        print(f"Downloading images for concept: {concept}")
+        concept_folder = os.path.join(os.getcwd(), "images", concept)
+        os.makedirs(concept_folder, exist_ok=True)
+        for i, image_url in enumerate(data['images']):
+            image_path = download_image(image_url, concept_folder)
+            image_paths.append(image_path)
+            print(f"Downloaded image {i + 1}: {image_path}")
+
+    image_paths = resize_images(image_paths, "resized_images")
+
+    concept_audio_paths = []
+    concept_video_clips = []
+
+    for concept, data in concepts.items():
+        summary = data["summary"]
+        images = data["images"]
+        image_durations = []
+        image_clips = []
+
+        tts = generate_audio(summary)
+        audio_path = f"audio_{concept}.mp3"
+        tts.save(audio_path)
+        concept_audio_paths.append(audio_path)
+
+        audio_clip = AudioFileClip(audio_path)
+        audio_duration = audio_clip.duration
+
+        duration_per_image = audio_duration / len(images)
+        for i, image in enumerate(images):
+            image_path = os.path.join("resized_images", os.path.basename(image))
+            image_clips.append((image_path, duration_per_image))
+
+        for image_path, duration in image_clips:
+            img_clip = ImageSequenceClip([image_path], durations=[duration])
+            concept_video_clips.append(img_clip)
+
+    final_video_clip = concatenate_videoclips(concept_video_clips)
+    final_audio_clip = concatenate_audioclips([AudioFileClip(p) for p in concept_audio_paths])
+    final_video_clip = final_video_clip.set_audio(final_audio_clip)
+
+    output_video_path = f"output_video_{uuid.uuid4()}.mp4"
+    final_video_clip.write_videofile(output_video_path, fps=24)
+
+    if output_video_path:
+        responses = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('videos').document()
+        responses.set({'path': output_video_path})
+        return jsonify({'video_path': output_video_path})
+    else:
+        return jsonify({'error': 'Failed to generate video'}), 500
+
+
+
+
+
+
+
+
 
 
 @app.route('/get_my_sections', methods=['GET'])
@@ -415,6 +575,10 @@ def ask_sydney_route():
     response = jsonify({'response': response})
     response.headers.add('Access-Control-Allow-Origin', '*')  # Adjust the origin as needed
     return response
+def get_notess(collection_id, section_id):
+    notes_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
+    notes = [note.to_dict().get('notes', '') for note in notes_ref]
+    return notes
 
 
 @app.route('/get_notes', methods=['GET'])

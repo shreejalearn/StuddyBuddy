@@ -57,6 +57,7 @@ import FillerAuth from './FillerAuth';
 import Fill from './Fill';
 import SavedResponses from './SavedResponses';
 import PublicSections from './PublicSectionsPage';
+import Videos from './Videos';
 
 import AskQuestion from './AskQuestion';
 import Home from './Home';
@@ -83,7 +84,7 @@ function MainApp() {
             <Route path="/fill" element={<Fill />} />
             <Route path="/upload" element={<App />} />
             <Route path="/publicsections" element={<PublicSections />} />
-
+            <Route path="/videos" element={<Videos />} />
             <Route path="/mygallery" element={<CollectionsPage />} />
             <Route path="/sections" element={<Sections />} />
             <Route path="/chapter" element={<Chapter />} />
