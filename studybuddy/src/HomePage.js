@@ -64,7 +64,7 @@ const HomePage = () => {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <img src={Logo} alt="Logo" />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center', borderRadius: '7px' }}>
           <input 
             type="text" 
             placeholder="Search public sets..." 
