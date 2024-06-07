@@ -1,4 +1,4 @@
-.container {
+/* .container {
   display: flex;
 }
 
@@ -27,16 +27,16 @@
   flex-wrap: wrap;
 }
 .category-btn {
-  background-color: #fff; /* Button background color */
-  border: 1px solid #b3c8cf; /* Button border color */
+  background-color: #fff;
+  border: 1px solid #b3c8cf; 
   border-radius: 4px;
-  padding: 15px 20px; /* Adjust padding */
-  width: 150px; /* Adjust button width */
+  padding: 15px 20px;
+  width: 150px;
   text-align: center;
   cursor: pointer;
   font-size: 16px;
-  color: #333; /* Button text color */
-  transition: background-color 0.3s ease; /* Smooth transition */
+  color: #333;
+  transition: background-color 0.3s ease;
 }
 
 .upload,
@@ -64,4 +64,4 @@
   background-color: #007bff;
   color: white;
   border-color: #007bff;
-}
+} */

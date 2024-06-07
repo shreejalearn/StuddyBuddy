@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap');
 
 body {
     background-color: #E8ECEF;
@@ -33,31 +33,31 @@ h2 {
 }
 
 .category-btn {
-    background: rgba(255, 255, 255, 0.2); /* Semi-transparent white */
-    backdrop-filter: blur(10px); /* Blur effect */
-    -webkit-backdrop-filter: blur(10px); /* Safari support */
-    border: 1px solid rgba(255, 255, 255, 0.3); /* Border to define the button */
-    border-radius: 20px; /* Rounded corners */
-    padding: 20px 40px; /* Increased padding for larger buttons */
-    color: #fff; /* Text color */
-    font-size: 1.5rem; /* Larger font size */
-    cursor: pointer; /* Pointer cursor on hover */
-    transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth transitions */
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-    margin: 10px; /* Margin to ensure spacing between buttons */
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 20px 40px; 
+    color: #fff; 
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease; 
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    margin: 10px;
 }
 
 .category-btn:hover {
-    background: rgba(255, 255, 255, 0.3); /* Slightly more opaque on hover */
-    transform: translateY(-5px); /* Lift effect on hover */
+    background: rgba(255, 255, 255, 0.3); 
+    transform: translateY(-5px); 
 }
 
 .category-btn:active {
-    transform: translateY(2px); /* Slight press effect */
+    transform: translateY(2px);
 }
 
 .plus-icon {
-    font-size: 2rem; /* Larger plus icon */
+    font-size: 2rem;
 }
 
 .new-section-input {
@@ -105,4 +105,4 @@ h2 {
 
 input::placeholder {
     color: #bfbfbf;
-}
+} */

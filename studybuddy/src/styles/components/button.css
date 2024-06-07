@@ -5,10 +5,11 @@
     font-size: 1.1rem;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    width: 30%;
 }
 
 .category-btn:hover {
-    background-color: #88b1b8; /* Adjusted hover color */
+    background-color: #88b1b8;
     transform: translateY(-3px);
 }
 
