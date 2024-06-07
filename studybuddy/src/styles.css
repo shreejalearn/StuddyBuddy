@@ -1,4 +1,4 @@
-.study-buddy {
+/* .study-buddy {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -31,7 +31,7 @@
   }
   
   .category-btn {
-    background-color: white;
+    background-color: red;
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 15px;
@@ -47,4 +47,4 @@
     vertical-align: middle;
     margin-right: 5px;
   }
-  
+   */
