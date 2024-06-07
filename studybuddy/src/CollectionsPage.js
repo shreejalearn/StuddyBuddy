@@ -177,7 +177,7 @@ const Collections = () => {
     }
 
     try {
-      const username = localStorage.getItem('username'); // Use consistent key
+      const username = localStorage.getItem('userName');
       if (!username) {
         throw new Error('Username not found in local storage');
       }

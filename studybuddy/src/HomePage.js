@@ -34,20 +34,20 @@ const HomePage = () => {
     fetchRecentSections();
   }, []);
 
-  useEffect(() => {
-    const fetchRecommendedSections = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/recommend_public_sections', {
-          params: { username: username } 
-        });
-        setRecommendedSections(response.data.recommended_sections);
-      } catch (error) {
-        console.error('Error fetching recommended sections:', error);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchRecommendedSections = async () => {
+  //     try {
+  //       const response = await axios.get('http://localhost:5000/recommend_public_sections', {
+  //         params: { username: username } 
+  //       });
+  //       setRecommendedSections(response.data.recommended_sections);
+  //     } catch (error) {
+  //       console.error('Error fetching recommended sections:', error);
+  //     }
+  //   };
 
-    fetchRecommendedSections();
-  }, []);
+  //   fetchRecommendedSections();
+  // }, []);
 
   const handleSectionClick = (sectionId, collId, title, colName) => {
     localStorage.setItem('chapterId', sectionId);

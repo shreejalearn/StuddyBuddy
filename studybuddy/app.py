@@ -38,7 +38,7 @@ from gtts import gTTS
 from moviepy.editor import ImageSequenceClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips
 # from gensim.models import Word2Vec
 
-
+import sys
 import json
 
 load_dotenv()
@@ -56,6 +56,9 @@ t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v
 t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
 sentence_model = SentenceTransformer('distilbert-base-nli-mean-tokens')
 nlp = spacy.load("en_core_web_sm")
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 
 ignore_warnings('ignore')
 
@@ -186,6 +189,23 @@ def get_video_paths():
     
     return jsonify({'videoPaths': video_paths_list})
 
+def extract_main_concepts(text):
+    # Process the text with spaCy
+    doc = nlp(text)
+    
+    # Initialize an empty list to store main concepts
+    main_concepts = []
+    
+    # Iterate over each noun chunk in the document
+    for chunk in doc.noun_chunks:
+        # Extract the text of the noun chunk
+        chunk_text = chunk.text.strip()
+        # Extract only the first word as the main concept
+        main_concept = re.match(r'^\w+', chunk_text)
+        if main_concept:
+            main_concepts.append(main_concept.group())
+    
+    return main_concepts
 def generate_audio(text):
     tts = gTTS(text=text, lang='en')
     return tts
@@ -224,99 +244,109 @@ def calculate_reading_time(text, wpm=200):
     words = len(text.split())
     reading_time_minutes = words / wpm
     return reading_time_minutes * 60  # convert to seconds
-def retrieve_notes(collection_id, section_id):
-    notes = []
-    collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
-    notes_docs = collection_ref.stream()
-    for doc in notes_docs:
-        note_data = doc.to_dict()
-        notes.append(note_data.get('notes'))
-    return notes
 
 @app.route('/generate_video_from_notes', methods=['POST'])
 def generate_video_from_notes():
-    collection_id = request.json.get('collection_id')
-    section_id = request.json.get('section_id')
-    if not collection_id or not section_id:
-        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+    try:
+        collection_id = request.json.get('collection_id')
+        section_id = request.json.get('section_id')
+        selected_notes = request.json.get('selected_notes')
+        
+        if not collection_id or not section_id or not selected_notes:
+            return jsonify({'error': 'Collection ID, Section ID, or Note IDs not provided'}), 400
 
-    notes = retrieve_notes(collection_id, section_id)
+        
+        response = ""
+        for note in selected_notes:
+            response += note
+        print(f"Constructed response: {response}")
+# Parse the response and extract concept names, search phrases, and summaries
+        matches = re.findall(r"\*\*([^*]+)\*\*:.*?Search\s*phrases:\s*\"(.*?)\".*?Summary:\s*(.*?)(?:\[|$)", response)
+
+        print('matches: '+str(matches))
+        # Create a dictionary to store the concepts, search phrases, and summaries
+        concepts = {}
+
+        # Populate the dictionry with the extracted information
+        for match in matches:
+            concept_name = match[0].strip()
+            search_phrases = match[1].strip().split('", "')
+            summary = match[2].strip()
+            concepts[concept_name] = {"search_phrases": search_phrases, "summary": summary}
+
+        # Create a list to store the paths of downloaded images
+        image_paths = []
+
+        # Fetch relevant images for each concept
+        for concept, data in concepts.items():
+            concept_images = []
+            for phrase in data["search_phrases"]:
+                images = search_images(phrase, max_images=1)
+                if images:
+                    concept_images.append(images[0])
+            concepts[concept]["images"] = concept_images
+
+            # Download images
+            print(f"Downloading images for concept: {concept}")
+            concept_folder = os.path.join(os.getcwd(), "images", concept)
+            os.makedirs(concept_folder, exist_ok=True)
+            for i, image_url in enumerate(data['images']):
+                image_path = download_image(image_url, concept_folder)
+                image_paths.append(image_path)
+                print(f"Downloaded image {i + 1}: {image_path}")
+
+        # Resize the downloaded images
+        image_paths = resize_images(image_paths, "resized_images")
+
+        # Process each concept and its summary
+        concept_audio_paths = []
+        concept_video_clips = []
+
+        for concept, data in concepts.items():
+            summary = data["summary"]
+            images = data["images"]
+            image_durations = []
+            image_clips = []
+
+            # Generate audio for the summary
+            tts = generate_audio(summary)
+            audio_path = f"audio_{concept}.mp3"
+            tts.save(audio_path)
+            concept_audio_paths.append(audio_path)
+
+            # Load the audio file to get its duration
+            audio_clip = AudioFileClip(audio_path)
+            audio_duration = audio_clip.duration
+
+            # Calculate duration for each image
+            duration_per_image = audio_duration / len(images)
+            for i, image in enumerate(images):
+                image_path = os.path.join("resized_images", os.path.basename(image))
+                image_clips.append((image_path, duration_per_image))
+
+            # Create video clips for each image with the respective duration
+            for image_path, duration in image_clips:
+                img_clip = ImageSequenceClip([image_path], durations=[duration])
+                concept_video_clips.append(img_clip)
+
+        # Concatenate all video clips and set the audio
+        final_video_clip = concatenate_videoclips(concept_video_clips)
+        final_audio_clip = concatenate_audioclips([AudioFileClip(p) for p in concept_audio_paths])
+        final_video_clip = final_video_clip.set_audio(final_audio_clip)
+
+        # Write the final video file
+        output_video_path = "output_video.mp4"
+        final_video_clip.write_videofile(output_video_path, fps=24)
+
+        return jsonify({'video_path': 'final_video.mp4'})
+
+    except Exception as e:
+        print(f"Error generating video: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
-    response = ""
-    for note in notes:
-        response += note 
-    print(response)
 
-    matches = re.findall(r"\*\*([^*]+)\*\*:[\s\S]*?- Search phrases:\s*\"(.*?)\"[\s\S]*?Summary: (.*?)\[\^", response)
 
-    concepts = {}
-
-    for match in matches:
-        concept_name = match[0].strip()
-        search_phrases = match[1].strip().split('", "')
-        summary = match[2].strip()
-        concepts[concept_name] = {"search_phrases": search_phrases, "summary": summary}
-
-    image_paths = []
-
-    for concept, data in concepts.items():
-        concept_images = []
-        for phrase in data["search_phrases"]:
-            images = search_images(phrase, max_images=1)
-            if images:
-                concept_images.append(images[0])
-        concepts[concept]["images"] = concept_images
-
-        print(f"Downloading images for concept: {concept}")
-        concept_folder = os.path.join(os.getcwd(), "images", concept)
-        os.makedirs(concept_folder, exist_ok=True)
-        for i, image_url in enumerate(data['images']):
-            image_path = download_image(image_url, concept_folder)
-            image_paths.append(image_path)
-            print(f"Downloaded image {i + 1}: {image_path}")
-
-    image_paths = resize_images(image_paths, "resized_images")
-
-    concept_audio_paths = []
-    concept_video_clips = []
-
-    for concept, data in concepts.items():
-        summary = data["summary"]
-        images = data["images"]
-        image_durations = []
-        image_clips = []
-
-        tts = generate_audio(summary)
-        audio_path = f"audio_{concept}.mp3"
-        tts.save(audio_path)
-        concept_audio_paths.append(audio_path)
-
-        audio_clip = AudioFileClip(audio_path)
-        audio_duration = audio_clip.duration
-
-        duration_per_image = audio_duration / len(images)
-        for i, image in enumerate(images):
-            image_path = os.path.join("resized_images", os.path.basename(image))
-            image_clips.append((image_path, duration_per_image))
-
-        for image_path, duration in image_clips:
-            img_clip = ImageSequenceClip([image_path], durations=[duration])
-            concept_video_clips.append(img_clip)
-
-    final_video_clip = concatenate_videoclips(concept_video_clips)
-    final_audio_clip = concatenate_audioclips([AudioFileClip(p) for p in concept_audio_paths])
-    final_video_clip = final_video_clip.set_audio(final_audio_clip)
-
-    output_video_path = f"output_video_{uuid.uuid4()}.mp4"
-    final_video_clip.write_videofile(output_video_path, fps=24)
-
-    if output_video_path:
-        responses = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('videos').document()
-        responses.set({'path': output_video_path})
-        return jsonify({'video_path': output_video_path})
-    else:
-        return jsonify({'error': 'Failed to generate video'}), 500
 
 @app.route('/get_my_sections', methods=['GET'])
 def get_my_sections():
@@ -866,47 +896,94 @@ def visibility():
 
         return jsonify({'section': section.to_dict()})
     
-# Load pre-trained word embeddings model (you need to train or download one)
+app.route('/clone_section', methods=['POST'])
+def clone_section():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    section_id = data.get('sectionId')
+    add_to_existing = data.get('addToExisting', False)
+    collection_id = data.get('collectionId')  # If add_to_existing is True
+    collection_name = data.get('collectionName')  # If add_to_existing is False
+
+    if not section_id:
+        return jsonify({'error': 'Section ID not provided'}), 400
+
+    if not add_to_existing and not collection_name:
+        return jsonify({'error': 'Collection name not provided for creating a new collection'}), 400
+
+    try:
+        # Get the section data from the database based on the provided section_id
+        section_ref = db.collection('sections').document(section_id)
+        section_data = section_ref.get().to_dict()
+
+        if not section_data:
+            return jsonify({'error': 'Section not found'}), 404
+
+        if add_to_existing:
+            if not collection_id:
+                return jsonify({'error': 'Collection ID not provided for adding to an existing collection'}), 400
+
+            # Add the cloned section to the specified existing collection
+            collection_ref = db.collection('collections').document(collection_id)
+            new_section_ref = collection_ref.collection('sections').document()
+            new_section_ref.set(section_data)
+            return jsonify({'message': 'Section cloned and added to the existing collection successfully', 'newSectionId': new_section_ref.id}), 200
+        else:
+            # Create a new collection and add the cloned section to it
+            new_collection_ref = db.collection('collections').document()
+            new_collection_name = collection_name.strip()
+            new_section_ref = new_collection_ref.collection('sections').document()
+            new_section_ref.set(section_data)
+            new_collection_ref.set({
+                'name': new_collection_name,
+                'sections': [new_section_ref.id]
+            })
+            return jsonify({'message': 'Section cloned and added to a new collection successfully', 'newCollectionId': new_collection_ref.id, 'newSectionId': new_section_ref.id}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+# # Load pre-trained word embeddings model (you need to train or download one)
 # word_embeddings_model = Word2Vec.load("word2vec.model")
 
-@app.route('/recommend_public_sections', methods=['GET'])
-def recommend_public_sections():
-    username = request.args.get('username')
+# @app.route('/recommend_public_sections', methods=['GET'])
+# def recommend_public_sections():
+#     username = request.args.get('username')
 
-    if not username:
-        return jsonify({'error': 'Username not provided'}), 400
+#     if not username:
+#         return jsonify({'error': 'Username not provided'}), 400
 
-    user_sections = []
-    public_sections = []
+#     user_sections = []
+#     public_sections = []
 
-    # Get user's sections
-    user_section_docs = db.collection('collections').where('username', '==', username).stream()
-    for doc in user_section_docs:
-        collection_id = doc.id
-        section_docs = db.collection('collections').document(collection_id).collection('sections').stream()
+#     # Get user's sections
+#     user_section_docs = db.collection('collections').where('username', '==', username).stream()
+#     for doc in user_section_docs:
+#         collection_id = doc.id
+#         section_docs = db.collection('collections').document(collection_id).collection('sections').stream()
         
-        for section_doc in section_docs:
-            doc_data = section_doc.to_dict()
-            title = doc_data.get('section_name', '')
-            user_sections.append(title)
+#         for section_doc in section_docs:
+#             doc_data = section_doc.to_dict()
+#             title = doc_data.get('section_name', '')
+#             user_sections.append(title)
 
-    # Get public sections
-    section_docs = db.collection('collections').stream()
-    for doc in section_docs:
-        section_ref = doc.reference.collection('sections').where('visibility', '==', 'public').stream()
-        for section_doc in section_ref:
-            section_data = section_doc.to_dict()
-            title = section_data.get('section_name', '')
-            # Calculate semantic similarity using word embeddings
-            similarity_scores = [word_embeddings_model.wv.similarity(title.lower(), user_section.lower()) for user_section in user_sections]
-            average_similarity = sum(similarity_scores) / len(similarity_scores)
-            if average_similarity > 0.5:  # You can adjust this threshold based on your requirements
-                public_sections.append({'id': section_doc.id, 'title': title, 'similarity': average_similarity})
+#     # Get public sections
+#     section_docs = db.collection('collections').stream()
+#     for doc in section_docs:
+#         section_ref = doc.reference.collection('sections').where('visibility', '==', 'public').stream()
+#         for section_doc in section_ref:
+#             section_data = section_doc.to_dict()
+#             title = section_data.get('section_name', '')
+#             # Calculate semantic similarity using word embeddings
+#             similarity_scores = [word_embeddings_model.wv.similarity(title.lower(), user_section.lower()) for user_section in user_sections]
+#             average_similarity = sum(similarity_scores) / len(similarity_scores)
+#             if average_similarity > 0.5:  # You can adjust this threshold based on your requirements
+#                 public_sections.append({'id': section_doc.id, 'title': title, 'similarity': average_similarity})
 
-    # Sort recommended sections by similarity score
-    public_sections.sort(key=lambda x: x['similarity'], reverse=True)
+#     # Sort recommended sections by similarity score
+#     public_sections.sort(key=lambda x: x['similarity'], reverse=True)
 
-    return jsonify({'recommended_sections': public_sections})
+#     return jsonify({'recommended_sections': public_sections})
 
 
 if __name__ == '__main__':
