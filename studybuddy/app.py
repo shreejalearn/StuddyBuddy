@@ -36,7 +36,7 @@ from duckduckgo_search import DDGS
 from fastcore.all import *
 from gtts import gTTS
 from moviepy.editor import ImageSequenceClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips
-from gensim.models import Word2Vec
+# from gensim.models import Word2Vec
 
 
 import json
@@ -159,18 +159,19 @@ db = firestore.client()
 @app.route('/get_my_collections', methods=['GET'])
 def get_my_collections():
     username = request.args.get('username')
+    print(username)
     if not username:
-        return jsonify({'error': 'Username not provided'})
+        return {'error': 'Username not provided'}
 
     collections = []
     collection_docs = db.collection('collections').where('username', '==', username).stream()
     for doc in collection_docs:
-        # Access the 'data' field and then retrieve the 'title' from it
-        # Access the 'data' field and then retrieve the 'title' from it
         title = doc.to_dict().get('data', {}).get('title', '')
         collections.append({'id': doc.id, 'title': title})
 
-    return jsonify({'collections': collections})
+    print(collections)
+
+    return {'collections': collections}
 
 @app.route('/get_video_paths', methods=['GET'])
 def get_video_paths():
@@ -866,7 +867,7 @@ def visibility():
         return jsonify({'section': section.to_dict()})
     
 # Load pre-trained word embeddings model (you need to train or download one)
-word_embeddings_model = Word2Vec.load("word2vec.model")
+# word_embeddings_model = Word2Vec.load("word2vec.model")
 
 @app.route('/recommend_public_sections', methods=['GET'])
 def recommend_public_sections():
