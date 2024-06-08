@@ -5,6 +5,7 @@ from firebase_admin import credentials, firestore
 from PIL import Image
 import pytesseract
 import io
+import logging
 import os
 import asyncio
 from sumy.parsers.plaintext import PlaintextParser
@@ -148,33 +149,36 @@ async def ask_sydney_with_retry(question, max_retries=3):
 
 app = Flask(__name__)
 CORS(app)
+logging.basicConfig(level=logging.DEBUG)
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Initialize Firebase Admin SDK
-cred = credentials.Certificate("./serviceKey.json")
-# firebase_admin.initialize_app(cred)
+cred = credentials.Certificate("serviceKey.json")
 firebase_admin.initialize_app(cred)
 
 # Initialize Firestore client
 db = firestore.client()
 
-@app.route('/get_my_collections', methods=['GET'])
+# @app.route('/get_my_collections', methods=['GET'])
+@app.route('/get_my_collections')
 def get_my_collections():
-    username = request.args.get('username')
-    print(username)
-    if not username:
-        return {'error': 'Username not provided'}
+    try:
+        username = request.args.get('username')
+        if not username:
+            return jsonify({'error': 'Username not provided'})
 
-    collections = []
-    collection_docs = db.collection('collections').where('username', '==', username).stream()
-    for doc in collection_docs:
-        title = doc.to_dict().get('data', {}).get('title', '')
-        collections.append({'id': doc.id, 'title': title})
+        collections = []
+        collection_docs = db.collection('collections').where('username', '==', username).stream()
+        for doc in collection_docs:
+            title = doc.to_dict().get('data', {}).get('title', '')
+            collections.append({'id': doc.id, 'title': title})
 
-    print(collections)
+        return jsonify({'collections': collections})
+    except Exception as e:
+        logging.error(f"Error: {e}")
+        return jsonify({'error': str(e)})
 
-    return {'collections': collections}
 
 @app.route('/get_video_paths', methods=['GET'])
 def get_video_paths():
@@ -1041,5 +1045,5 @@ def clone_section():
 
 
 if __name__ == '__main__':
-    app.run(host='localhost', port=5000, debug=True)
-
+    # app.run(host='localhost', port=5000, debug=True)
+    app.run(debug=True, port=5000)
