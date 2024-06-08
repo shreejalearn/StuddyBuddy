@@ -16,6 +16,15 @@ const SavedResponsesPage = () => {
         setSavedResponses(response.data.notes); 
       } catch (error) {
         console.error('Error fetching saved responses:', error);
+        if (error.response) {
+          console.error('Response data:', error.response.data);
+          console.error('Response status:', error.response.status);
+          console.error('Response headers:', error.response.headers);
+        } else if (error.request) {
+          console.error('Request data:', error.request);
+        } else {
+          console.error('Error message:', error.message);
+        }
       }
     };
 
@@ -44,6 +53,15 @@ const SavedResponsesPage = () => {
       setSavedResponses(savedResponses.filter(response => response.id !== id));
     } catch (error) {
       console.error('Error deleting response:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+        console.error('Response headers:', error.response.headers);
+      } else if (error.request) {
+        console.error('Request data:', error.request);
+      } else {
+        console.error('Error message:', error.message);
+      }
     }
   };
 
@@ -57,6 +75,15 @@ const SavedResponsesPage = () => {
       setSavedResponses(savedResponses.filter(res => res.id !== response.id));
     } catch (error) {
       console.error('Error adding to notes and deleting response:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+        console.error('Response headers:', error.response.headers);
+      } else if (error.request) {
+        console.error('Request data:', error.request);
+      } else {
+        console.error('Error message:', error.message);
+      }
     }
   };
 

@@ -911,11 +911,18 @@ def add_to_notes():
 
         if response_doc.exists:
             response_data = response_doc.to_dict()
+            parser = PlaintextParser.from_string(response_data['data'], Tokenizer("english"))
+            summarizer = LsaSummarizer()
+            tldr = summarizer(parser.document, sentences_count=1)  
+
+            tldr = " ".join(str(sentence) for sentence in tldr)
+
+            print(tldr)
 
             notes_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').document()
             notes_ref.set({
                 'notes': response_data['data'],
-                'tldr': response_data['Saved Response: '+'tldr']
+                'tldr': f"Sydney AI Response: {tldr}"
             })
 
             response_ref.delete()
