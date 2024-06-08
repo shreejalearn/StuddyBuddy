@@ -542,11 +542,17 @@ def process_text():
     collection_id = request.form.get('collection_id')
     section_id = request.form.get('section_id')
     raw_text = request.form.get('raw_text')
+    parser = PlaintextParser.from_string(raw_text, Tokenizer("english"))
+    summarizer = LsaSummarizer()
+    tldr = summarizer(parser.document, sentences_count=1)  
+
+    tldr = " ".join(str(sentence) for sentence in tldr)
+
 
     try:
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
         note_ref = notes_collection_ref.document()
-        note_ref.set({'notes': raw_text, 'tldr': "Raw Text Uploaded"})
+        note_ref.set({'notes': raw_text, 'tldr': f"Raw Text: {tldr}"})
         
         return jsonify({'response': 'Raw text uploaded successfully'})
     except Exception as e:
@@ -596,11 +602,20 @@ def process_pdf():
         for page_num in range(len(pdf_reader.pages)):
             page = pdf_reader.pages[page_num]
             text_content += page.extract_text()
+            
+
+        parser = PlaintextParser.from_string(text_content, Tokenizer("english"))
+        summarizer = LsaSummarizer()
+        tldr = summarizer(parser.document, sentences_count=1)  
+
+        tldr = " ".join(str(sentence) for sentence in tldr)
+
+
         
         # Save the text content to Firestore
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
         note_ref = notes_collection_ref.document()
-        note_ref.set({'notes': text_content, 'tldr': "Text from PDF Uploaded"})
+        note_ref.set({'notes': text_content, 'tldr': f"PDF: {tldr}"})
         
         return jsonify({'response': 'PDF text uploaded successfully'}), 200
     except PyPDF2.utils.PdfReadError:
@@ -622,10 +637,16 @@ def process_link():
         # Extract text content from the webpage
         text_content = ' '.join([p.text for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
 
+        parser = PlaintextParser.from_string(text_content, Tokenizer("english"))
+        summarizer = LsaSummarizer()
+        tldr = summarizer(parser.document, sentences_count=1)  
+
+        tldr = " ".join(str(sentence) for sentence in tldr)
+
         # Save the text content to Firestore
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
         note_ref = notes_collection_ref.document()
-        note_ref.set({'notes': text_content, 'tldr': "Text from Link Uploaded"})
+        note_ref.set({'notes': text_content, 'tldr': f"Text from Link: {tldr}"})
         
         return jsonify({'response': 'Text and headings uploaded successfully'})
     except Exception as e:
@@ -716,6 +737,7 @@ def get_notes():
             for doc in notes_docs:
                 note_data = doc.to_dict()
                 note_data['id'] = doc.id
+                notes.append(note_data)
         return jsonify({'notes': notes}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
