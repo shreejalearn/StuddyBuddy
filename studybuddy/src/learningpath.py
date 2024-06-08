@@ -18,7 +18,10 @@ os.environ["BING_COOKIES"] = bing_cookies_key
 
 async def main() -> None:
     async with SydneyClient() as sydney:
-        question = "Given an user's most recently studied sections, generate recommended learning paths/topics that might interest them. Here are recently studied topics: Trig, Equilibrium,Ionization, Molarity, Enthalpy"
+        recent = ["Equilibrium", "Trig", "Molarity", "Osmosis"]
+        public = ["Geometry", "Napoleon", "Functions - Python", "Diffusion", "Enthalpy", "Atoms", "Watercolor", "Cybersecurity 101"]
+
+        question = "Given a user's most recently studied sections and public sections, select the top 3 public sections the user may be interested in. Here's user's recently studied sets: {}. Here's all public study sets: {}.".format(recent, public)
         response = await sydney.ask(question, citations=True)
         print("Sydney:", response.encode('ascii', 'ignore').decode('ascii'))
 

@@ -645,8 +645,6 @@ def get_sections():
     return jsonify({'sections': sections})
 
 
-
-
 @app.route('/get_chapters', methods=['GET'])
 def get_chapters():
     collection_id = request.args.get('collection_id')
