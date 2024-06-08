@@ -604,22 +604,21 @@ def get_notess(collection_id, section_id):
     notes = [note.to_dict().get('notes', '') for note in notes_ref]
     return notes
 
-
 @app.route('/get_notes', methods=['GET'])
 def get_notes():
-    collection_id = request.args.get('collection_id')
     section_id = request.args.get('section_id')
 
-    if not collection_id or not section_id:
-        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+    if not section_id:
+        return jsonify({'error': 'Section ID not provided'}), 400
 
     try:
         notes = []
-        notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
-        for doc in notes_docs:
-            note_data = doc.to_dict()
-            note_data['id'] = doc.id
-            notes.append(note_data)
+        collections = db.collection('collections').stream()
+        for collection in collections:
+            notes_docs = db.collection('collections').document(collection.id).collection('sections').document(section_id).collection('notes_in_section').stream()
+            for doc in notes_docs:
+                note_data = doc.to_dict()
+                note_data['id'] = doc.id
         return jsonify({'notes': notes}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -658,10 +657,11 @@ def get_collections():
     collections = []
     collection_docs = db.collection('collections').stream()
     for doc in collection_docs:
-        collections.append(doc.id)
+        collection_data = doc.to_dict()
+        collection_data['id'] = doc.id
+        collections.append(collection_data)
 
     return jsonify({'collections': collections})
-
 @app.route('/recognize', methods=['POST'])
 def recognize_handwriting():
     if 'image' not in request.files:
@@ -929,7 +929,9 @@ def clone_section():
             collection_ref = db.collection('collections').document(collection_id)
             new_section_ref = collection_ref.collection('sections').document()
             new_section_ref.set(section_data)
-            return jsonify({'message': 'Section cloned and added to the existing collection successfully', 'newSectionId': new_section_ref.id}), 200
+            new_section_ref.headers.add('Access-Control-Allow-Origin', '*')  # Adjust the origin as needed
+
+            return jsonify({'message': 'Section cloned and added to the existing collection successfully', 'newSectionId': new_section_ref.id}), 500
         else:
             # Create a new collection and add the cloned section to it
             new_collection_ref = db.collection('collections').document()
@@ -940,7 +942,9 @@ def clone_section():
                 'name': new_collection_name,
                 'sections': [new_section_ref.id]
             })
-            return jsonify({'message': 'Section cloned and added to a new collection successfully', 'newCollectionId': new_collection_ref.id, 'newSectionId': new_section_ref.id}), 200
+            new_collection_ref.headers.add('Access-Control-Allow-Origin', '*')  # Adjust the origin as needed
+
+            return jsonify({'message': 'Section cloned and added to a new collection successfully', 'newCollectionId': new_collection_ref.id, 'newSectionId': new_section_ref.id}), 500
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 # # Load pre-trained word embeddings model (you need to train or download one)

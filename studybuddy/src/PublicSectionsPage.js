@@ -8,6 +8,7 @@ const HomePage = () => {
   const [publicSections, setPublicSections] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSection, setSelectedSection] = useState(null);
+  const [sectionNotes, setSectionNotes] = useState([]);
   const [existingCollections, setExistingCollections] = useState([]);
   const [addToExisting, setAddToExisting] = useState(true); // Default to adding to existing collection
   const [selectedCollectionId, setSelectedCollectionId] = useState('');
@@ -34,13 +35,13 @@ const HomePage = () => {
     };
 
     fetchPublicSections();
-  }, [searchTerm]);
+  }, [st, username]);
 
   useEffect(() => {
     const fetchExistingCollections = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/get_collections');
-        setExistingCollections(response.data.collections);
+        const response = await axios.get(`http://localhost:5000/get_my_collections?username=${username}`);        setExistingCollections(response.data.collections);
+        console.log(response.data.collections);
       } catch (error) {
         console.error('Error fetching existing collections:', error);
       }
@@ -49,8 +50,21 @@ const HomePage = () => {
     fetchExistingCollections();
   }, []);
 
-  const handleSectionClick = (sectionId) => {
+  const handleSectionClick = async (sectionId, collectionId) => {
     setSelectedSection(sectionId);
+    try {
+      const response = await axios.get('http://localhost:5000/get_notes', {
+        params: {
+          collection_id: collectionId,
+          section_id: sectionId
+        }
+      });
+      const notes = response.data.notes;
+      setSectionNotes(notes);
+      console.log(notes);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    }
   };
 
   const handleClone = async (sectionId) => {
@@ -69,7 +83,10 @@ const HomePage = () => {
           collectionName: newCollectionName
         };
       }
-      await axios.post(`http://localhost:5000/clone_section`, payload);
+      const res= await axios.post('http://localhost:5000/clone_section', {
+        payload
+      });
+      // await axios.post(`http://localhost:5000/clone_section`, payload);
       console.log('Section cloned successfully');
     } catch (error) {
       console.error('Error cloning section:', error);
@@ -100,15 +117,17 @@ const HomePage = () => {
         <p>Search Results</p>
         {publicSections.map(section => (
           <div key={section.id}>
-            <button className="category-btn" onClick={() => handleSectionClick(section.id)}>
+            <button className="category-btn" onClick={() => handleSectionClick(section.id, section.collectionId)}>
               {section.title || 'Untitled'}
             </button>
             {selectedSection === section.id && (
               <div className="modal">
                 <div className="modal-content">
                   <span className="close" onClick={() => setSelectedSection(null)}>&times;</span>
-                  <h2>Section Summary</h2>
-                  <p>{section.summary}</p>
+                  <h2>Source Summaries:</h2>
+                  {sectionNotes.map((note, index) => (
+                    <p key={note.id}>{note.tldr}</p>
+                  ))}
                   <label>
                     <input
                       type="checkbox"
@@ -120,8 +139,10 @@ const HomePage = () => {
                   {addToExisting ? (
                     <select value={selectedCollectionId} onChange={(e) => setSelectedCollectionId(e.target.value)}>
                       <option value="">Select existing collection</option>
-                      {existingCollections.map(collectionId => (
-                        <option key={collectionId} value={collectionId}>{collectionId}</option>
+                      {existingCollections.map(collection => (
+                        <option key={collection.id} value={collection.id}>
+                          {collection.title}
+                        </option>
                       ))}
                     </select>
                   ) : (
