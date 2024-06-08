@@ -8,6 +8,7 @@ import io
 import logging
 import os
 import asyncio
+import PyPDF2
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
@@ -550,6 +551,62 @@ def process_text():
         return jsonify({'response': 'Raw text uploaded successfully'})
     except Exception as e:
         return jsonify({'error': str(e)})
+    
+# @app.route('/process_pdf', methods=['POST'])
+# def process_pdf():
+#     collection_id = request.form.get('collection_id')
+#     section_id = request.form.get('section_id')
+#     pdf_file = request.files.get('pdf_file')
+
+#     if not pdf_file:
+#         return jsonify({'error': 'No PDF file uploaded'}), 400
+
+#     try:
+#         # Read the PDF file
+#         pdf_reader = PyPDF2.PdfFileReader(pdf_file)
+#         text_content = ''
+        
+#         for page_num in range(pdf_reader.numPages):
+#             page = pdf_reader.getPage(page_num)
+#             text_content += page.extract_text()
+
+#         # Save the text content to Firestore
+#         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
+#         note_ref = notes_collection_ref.document()
+#         note_ref.set({'notes': text_content, 'tldr': "Text from PDF Uploaded"})
+        
+#         return jsonify({'response': 'PDF text uploaded successfully'})
+#     except Exception as e:
+#         return jsonify({'error': str(e)})
+
+@app.route('/process_pdf', methods=['POST'])
+def process_pdf():
+    collection_id = request.form.get('collection_id')
+    section_id = request.form.get('section_id')
+    pdf_file = request.files.get('pdf_file')
+
+    if not pdf_file:
+        return jsonify({'error': 'No PDF file uploaded'}), 400
+
+    try:
+        # Read the PDF file
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        text_content = ''
+        
+        for page_num in range(len(pdf_reader.pages)):
+            page = pdf_reader.pages[page_num]
+            text_content += page.extract_text()
+        
+        # Save the text content to Firestore
+        notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
+        note_ref = notes_collection_ref.document()
+        note_ref.set({'notes': text_content, 'tldr': "Text from PDF Uploaded"})
+        
+        return jsonify({'response': 'PDF text uploaded successfully'}), 200
+    except PyPDF2.utils.PdfReadError:
+        return jsonify({'error': 'Failed to read PDF file'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     
 @app.route('/process_link', methods=['POST'])
 def process_link():
