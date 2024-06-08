@@ -33,6 +33,7 @@ from transformers import pipeline
 import uuid
 import re
 import requests
+from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
 from fastcore.all import *
 from gtts import gTTS
@@ -535,6 +536,43 @@ def get_transcript():
 
     return jsonify({'response': transcript_txt})
 
+@app.route('/process_text', methods=['POST'])
+def process_text():
+    collection_id = request.form.get('collection_id')
+    section_id = request.form.get('section_id')
+    raw_text = request.form.get('raw_text')
+
+    try:
+        notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
+        note_ref = notes_collection_ref.document()
+        note_ref.set({'notes': raw_text, 'tldr': "Raw Text Uploaded"})
+        
+        return jsonify({'response': 'Raw text uploaded successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    
+@app.route('/process_link', methods=['POST'])
+def process_link():
+    collection_id = request.form.get('collection_id')
+    section_id = request.form.get('section_id')
+    link = request.form.get('link')
+
+    try:
+        # Fetch the webpage content
+        response = requests.get(link)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Extract text content from the webpage
+        text_content = ' '.join([p.text for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
+
+        # Save the text content to Firestore
+        notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
+        note_ref = notes_collection_ref.document()
+        note_ref.set({'notes': text_content, 'tldr': "Text from Link Uploaded"})
+        
+        return jsonify({'response': 'Text and headings uploaded successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @app.route('/get_sections', methods=['GET'])
 def get_sections():
@@ -950,6 +988,42 @@ def clone_section():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+# @app.route('/recommend_sections', methods=['GET'])
+# def recommend_sections():
+#     username = request.args.get('username')
+#     if not username:
+#         return jsonify({'error': 'Username not provided'}), 400
+
+#     # Retrieve the user's recent sections
+#     user_sections = db.collection('collections').where('username', '==', username).stream()
+
+#     recent_sections = []
+#     for doc in user_sections:
+#         collection_id = doc.id
+#         section_docs = db.collection('collections').document(collection_id).collection('sections').order_by('last_accessed', direction=firestore.Query.DESCENDING).limit(5).stream()
+
+#         for section_doc in section_docs:
+#             doc_data = section_doc.to_dict()
+#             recent_sections.append(section_doc.id)
+
+#     # Find users with similar recent sections
+#     similar_users = db.collection('collections').where('sections', 'array_contains_any', recent_sections).stream()
+
+#     recommended_sections = []
+#     for doc in similar_users:
+#         if doc.to_dict()['username'] != username:  # Exclude current user
+#             collection_id = doc.id
+#             section_docs = db.collection('collections').document(collection_id).collection('sections').where('visibility', '==', 'public').stream()
+
+#             for section_doc in section_docs:
+#                 section_data = section_doc.to_dict()
+#                 title = section_data.get('section_name', '')
+#                 if section_doc.id not in recent_sections:  # Exclude sections user already has
+#                     recommended_sections.append({'id': section_doc.id, 'title': title})
+
+#     return jsonify({'recommended_sections': recommended_sections})
+
 # app.route('/clone_section', methods=['POST'])
 # def clone_section():
 #     data = request.get_json()

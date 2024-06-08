@@ -25,7 +25,9 @@ const HomePage = () => {
         const response = await axios.get('http://localhost:5000/get_my_sections_recent', {
           params: { username: username } 
         });
-        setRecentSections(response.data.collections);
+        // Get only the top 5 recent sections
+        const top5Sections = response.data.collections.slice(0, 5);
+        setRecentSections(top5Sections);
       } catch (error) {
         console.error('Error fetching recent sections:', error);
       }
@@ -87,7 +89,8 @@ const HomePage = () => {
             </div>
           ))}
         </div>
-        <p>Sections For You</p>
+
+        <p>Learning Paths For You</p>
         <div className="cards-container">
           {recommendedSections.map(section => (
             <div className="card" key={section.id} onClick={() => handleSectionClick(section.id, section.collection_id, section.title, section.collName)}>
@@ -95,6 +98,7 @@ const HomePage = () => {
             </div>
           ))}
         </div>
+
       </div>
     </div>
   );

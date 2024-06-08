@@ -1,41 +1,3 @@
-/* 
-body {
-    background-color: #E8ECEF;
-    font-family: 'Red Hat Display', sans-serif;
-    margin: 0;
-    padding: 0;
-}
-
-button {
-    background-color: lightblue;
-    border: none;
-    border-radius: 4px;
-    padding: 10px 20px;
-    color: #fff;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.main {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
-
-.main {
-    text-align: center;
-}
-
-.main h1 {
-    position: relative;
-    font-size: 5rem;
-    margin-bottom: 20px;
-    color: #99aab0;
-    z-index: 1; 
-} */
-
 @import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap');
 
 body {
@@ -104,23 +66,30 @@ nav button:hover {
 }
 
 .card {
-    background-color: white;
+    background-color: rgba(255, 255, 255, 0.6); /* Set a semi-transparent background */
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     padding: 1rem;
     width: 200px;
-    text-align: left;
+    height:100px;
+    text-align: center; /* Center the text horizontally */
+    display: flex; /* Use flexbox */
+    flex-direction: column; /* Align items vertically */
+    justify-content: center; /* Center items vertically */
     transition: transform 0.2s;
+    backdrop-filter: blur(10px); /* Add a blur effect */
 }
 
 .card:hover {
     transform: translateY(-5px);
+    backdrop-filter: none; /* Remove the blur effect on hover */
 }
 
 .card-title {
     font-size: 1.2rem;
     color: #333;
     margin-bottom: 0.5rem;
+    text-align: center; /* Center the text horizontally */
 }
 
 .category-buttons {

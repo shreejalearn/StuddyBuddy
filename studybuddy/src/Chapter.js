@@ -1,9 +1,47 @@
-
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './styles/stuff.css';
 import { useNavigate } from 'react-router-dom';
+
+const Upload = () => {
+  const [rawText, setRawText] = useState('');
+  const [response, setResponse] = useState('');
+
+  const handleTextChange = (event) => {
+    setRawText(event.target.value);
+  };
+
+
+  const handleSubmitText = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('raw_text', rawText);
+      formData.append('collection_id', localStorage.getItem('currentCollection'));
+      formData.append('section_id', localStorage.getItem('currentSection'));
+  
+      const response = await axios.post('http://localhost:5000/process_text', formData);
+      setResponse(response.data.response);
+    } catch (error) {
+      console.error('Error uploading text:', error);
+    }
+  };
+
+  return (
+    <div>
+      <textarea
+        rows="4"
+        cols="50"
+        value={rawText}
+        onChange={handleTextChange}
+        placeholder="Enter your text here..."
+      />
+      <button onClick={handleSubmitText}>Upload Text</button>
+      {response && <p>{response}</p>}
+    </div>
+  );
+};
+
+
 
 
 const ChapterPage = () => {
@@ -52,7 +90,6 @@ const ChapterPage = () => {
       }
     };
 
-    // fetchSources();
     fetchNotes();
     updateAccessTime()
   }, [chapterId, collectionId]);
@@ -75,8 +112,8 @@ const ChapterPage = () => {
   const handleUploadImage = async (event) => {
     const formData = new FormData();
     formData.append('image', event.target.files[0]);
-    formData.append('collection_id', collectionId);  // Add collection ID
-    formData.append('section_id', chapterId);  // Add section ID
+    formData.append('collection_id', collectionId);  
+    formData.append('section_id', chapterId);  
 
     try {
       const response = await axios.post('http://localhost:5000/recognize', formData, {
@@ -85,7 +122,6 @@ const ChapterPage = () => {
         }
       });
       setRecognizedText(response.data.text);
-      // Fetch the updated notes after uploading a new one
       const updatedNotesResponse = await axios.get(`http://localhost:5000/get_notes`, {
         params: {
           collection_id: collectionId,
@@ -137,7 +173,6 @@ const ChapterPage = () => {
   };
   const handleSaveResponse = async () => {
     try {
-        // Call the endpoint to save the response
         await axios.post('http://localhost:5000/save_response', {
             response: response, 
             collection_id: collectionId,
@@ -169,6 +204,12 @@ const ChapterPage = () => {
         });
       } else if (uploadType === 'video') {
         response = await axios.post('http://localhost:5000/get_transcript', formData);
+      } else if (uploadType === 'text') {
+        response = await axios.post('http://localhost:5000/process_text', {
+          collection_id: collectionId,
+          section_id: chapterId,
+          raw_text: event.target.value
+        });
       }
       const updatedNotesResponse = await axios.get(`http://localhost:5000/get_notes`, {
         params: {
@@ -211,7 +252,6 @@ const ChapterPage = () => {
           note_id: noteId
         }
       });
-      // Fetch the updated notes after deleting a note
       const updatedNotesResponse = await axios.get(`http://localhost:5000/get_notes`, {
         params: {
           collection_id: collectionId,
@@ -219,19 +259,17 @@ const ChapterPage = () => {
         }
       });
       setNotes(updatedNotesResponse.data.notes);
-      if (response.data.message === 'Note deleted successfully') {
-        setNotes(prevNotes => prevNotes.filter(note => note.id !== noteId));
-      }
     } catch (error) {
       console.error('Error deleting note:', error);
     }
   };
+
   return (
     <div className="container">
       <div className="sidebar">
         <h2>{collName} - {chapterName}</h2>
         <div className="upload-source-btn">
-        <button onClick={openUploadModal}>Upload Source</button>
+          <button onClick={openUploadModal}>Upload Source</button>
         </div>
         <div className="notes">
           <h3>Notes</h3>
@@ -248,7 +286,8 @@ const ChapterPage = () => {
         <div className="tabs">
           <button className="category-btn" onClick={() => navigate('/savedresponses')}>Saved Responses</button>
           <button className="category-btn">Flashcards</button>
-          <button className="category-btn" onClick={() => navigate('/videos')}>Video</button>          <button className="category-btn">Presentations</button>
+          <button className="category-btn" onClick={() => navigate('/videos')}>Video</button>
+          <button className="category-btn">Presentations</button>
           <button className="category-btn" onClick={() => navigate('/practicetest')}>Practice Test</button>
           <button className="category-btn">Game</button>
         </div>
@@ -269,13 +308,10 @@ const ChapterPage = () => {
                   <h2>Response:</h2>
                   <p>{response}</p>
                   <button onClick={handleSaveResponse} disabled={responseSaved}>Save Response</button>
-
                 </div>
               )}
-
             </div>
           </div>
-          
           <div className="toggle-container">
             <span className={isPublic ? "toggle-active" : ""} onClick={toggleVisibility}>Public</span>
             <span className={!isPublic ? "toggle-active" : ""} onClick={toggleVisibility}>Private</span>
@@ -299,22 +335,25 @@ const ChapterPage = () => {
             <div className="upload-options">
               <button onClick={() => handleUploadType('image')}>Upload Image</button>
               <button onClick={() => handleUploadType('video')}>Upload Video</button>
+              <button onClick={() => handleUploadType('text')}>Upload Text</button>
             </div>
             {uploadType && (
               <div className="upload-form">
-                <input type={uploadType === 'image' ? 'file' : 'text'} onChange={handleUpload} />
+                {uploadType === 'text' ? (
+                  <Upload />
+                ) : (
+                  <input type={uploadType === 'image' ? 'file' : 'text'} onChange={handleUpload} />
+                )}
                 <button onClick={handleUpload}>Upload</button>
               </div>
             )}
             <div className="section source-uploading">
-           
-          </div>
+            </div>
           </div>
         </div>
       )}
-      
     </div>
   );
 };
-    
+
 export default ChapterPage;
