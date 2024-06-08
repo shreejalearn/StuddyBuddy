@@ -895,58 +895,108 @@ def visibility():
             return jsonify({'error': 'Section not found'}), 404
 
         return jsonify({'section': section.to_dict()})
-    
-app.route('/clone_section', methods=['POST'])
+
+@app.route('/clone_section', methods=['POST'])
 def clone_section():
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
     section_id = data.get('sectionId')
-    add_to_existing = data.get('addToExisting', False)
-    collection_id = data.get('collectionId')  # If add_to_existing is True
-    collection_name = data.get('collectionName')  # If add_to_existing is False
-
     if not section_id:
         return jsonify({'error': 'Section ID not provided'}), 400
 
-    if not add_to_existing and not collection_name:
-        return jsonify({'error': 'Collection name not provided for creating a new collection'}), 400
-
     try:
-        # Get the section data from the database based on the provided section_id
+        # Check if the section to clone exists
         section_ref = db.collection('sections').document(section_id)
-        section_data = section_ref.get().to_dict()
-
-        if not section_data:
+        section_doc = section_ref.get()
+        if not section_doc.exists:
             return jsonify({'error': 'Section not found'}), 404
 
+        # Get the payload data
+        add_to_existing = data.get('addToExisting')
+        if add_to_existing is None:
+            return jsonify({'error': 'Parameter "addToExisting" not provided'}), 400
+
         if add_to_existing:
+            # Add to an existing collection
+            collection_id = data.get('collectionId')
             if not collection_id:
-                return jsonify({'error': 'Collection ID not provided for adding to an existing collection'}), 400
+                return jsonify({'error': 'Collection ID not provided'}), 400
 
-            # Add the cloned section to the specified existing collection
-            collection_ref = db.collection('collections').document(collection_id)
-            new_section_ref = collection_ref.collection('sections').document()
-            new_section_ref.set(section_data)
-            new_section_ref.headers.add('Access-Control-Allow-Origin', '*')  # Adjust the origin as needed
+            # Copy the section to the specified collection
+            new_section_ref = db.collection('collections').document(collection_id).collection('sections').document()
+            new_section_ref.set(section_doc.to_dict())
 
-            return jsonify({'message': 'Section cloned and added to the existing collection successfully', 'newSectionId': new_section_ref.id}), 500
         else:
-            # Create a new collection and add the cloned section to it
-            new_collection_ref = db.collection('collections').document()
-            new_collection_name = collection_name.strip()
-            new_section_ref = new_collection_ref.collection('sections').document()
-            new_section_ref.set(section_data)
-            new_collection_ref.set({
-                'name': new_collection_name,
-                'sections': [new_section_ref.id]
-            })
-            new_collection_ref.headers.add('Access-Control-Allow-Origin', '*')  # Adjust the origin as needed
+            # Create a new collection and add the section to it
+            collection_name = data.get('collectionName')
+            if not collection_name:
+                return jsonify({'error': 'Collection name not provided'}), 400
 
-            return jsonify({'message': 'Section cloned and added to a new collection successfully', 'newCollectionId': new_collection_ref.id, 'newSectionId': new_section_ref.id}), 500
+            # Create a new collection
+            new_collection_ref = db.collection('collections').document()
+            new_collection_ref.set({'name': collection_name})
+
+            # Copy the section to the new collection
+            new_section_ref = new_collection_ref.collection('sections').document()
+            new_section_ref.set(section_doc.to_dict())
+
+        return jsonify({'message': 'Section cloned successfully'}), 200
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+# app.route('/clone_section', methods=['POST'])
+# def clone_section():
+#     data = request.get_json()
+#     if not data:
+#         return jsonify({'error': 'No data provided'}), 400
+
+#     section_id = data.get('sectionId')
+#     add_to_existing = data.get('addToExisting', False)
+#     collection_id = data.get('collectionId')  # If add_to_existing is True
+#     collection_name = data.get('collectionName')  # If add_to_existing is False
+
+#     if not section_id:
+#         return jsonify({'error': 'Section ID not provided'}), 400
+
+#     if not add_to_existing and not collection_name:
+#         return jsonify({'error': 'Collection name not provided for creating a new collection'}), 400
+
+#     try:
+#         # Get the section data from the database based on the provided section_id
+#         section_ref = db.collection('sections').document(section_id)
+#         section_data = section_ref.get().to_dict()
+
+#         if not section_data:
+#             return jsonify({'error': 'Section not found'}), 404
+
+#         if add_to_existing:
+#             if not collection_id:
+#                 return jsonify({'error': 'Collection ID not provided for adding to an existing collection'}), 400
+
+#             # Add the cloned section to the specified existing collection
+#             collection_ref = db.collection('collections').document(collection_id)
+#             new_section_ref = collection_ref.collection('sections').document()
+#             new_section_ref.set(section_data)
+#             new_section_ref.headers.add('Access-Control-Allow-Origin', '*')  # Adjust the origin as needed
+
+#             return jsonify({'message': 'Section cloned and added to the existing collection successfully', 'newSectionId': new_section_ref.id}), 500
+#         else:
+#             # Create a new collection and add the cloned section to it
+#             new_collection_ref = db.collection('collections').document()
+#             new_collection_name = collection_name.strip()
+#             new_section_ref = new_collection_ref.collection('sections').document()
+#             new_section_ref.set(section_data)
+#             new_collection_ref.set({
+#                 'name': new_collection_name,
+#                 'sections': [new_section_ref.id]
+#             })
+#             new_collection_ref.headers.add('Access-Control-Allow-Origin', '*')  # Adjust the origin as needed
+
+#             return jsonify({'message': 'Section cloned and added to a new collection successfully', 'newCollectionId': new_collection_ref.id, 'newSectionId': new_section_ref.id}), 500
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
 # # Load pre-trained word embeddings model (you need to train or download one)
 # word_embeddings_model = Word2Vec.load("word2vec.model")
 
