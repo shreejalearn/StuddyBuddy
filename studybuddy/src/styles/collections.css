@@ -1,19 +1,25 @@
+/* styles/collections.css */
+
+/* Font import */
 @import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap');
 
+/* Body styles */
 body {
     font-family: 'Red Hat Display', sans-serif;
 }
 
-.collections-main {
+/* Main container styles */
+#collections-main {
     text-align: center;
     padding: 20px;
 }
 
-.search-bar {
+/* Search bar styles */
+#search-bar {
     margin-bottom: 20px;
 }
 
-.search-bar input {
+#search-input {
     width: 300px;
     padding: 10px;
     border: 1px solid #b3c8cf;
@@ -24,20 +30,15 @@ body {
     outline: none;
 }
 
-.create-btn {
+/* Create button styles */
+#category-buttons {
     display: flex;
     justify-content: center;
     gap: 10px;
     flex-wrap: wrap;
 }
 
-.plus-icon {
-    font-size: 1.5rem;
-    font-weight: bold;
-}
-
-.create-btn {
-    margin-top: 10px;
+#create-btn {
     background-color: #3a77f7;
     border: none;
     border-radius: 4px;
@@ -48,11 +49,17 @@ body {
     transition: background-color 0.3s ease;
 }
 
-.create-btn:hover {
+#create-btn:hover {
     background-color: #2352b7;
 }
 
-.modal {
+#plus-icon {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* Modal styles */
+#modal {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -66,7 +73,7 @@ body {
     background-color: rgba(0, 0, 0, 0.4);
 }
 
-.modal-content {
+#modal-content {
     background-color: #fefefe;
     margin: 15% auto;
     padding: 20px;
@@ -74,46 +81,48 @@ body {
     width: 80%;
     max-width: 500px;
     text-align: left;
-    border-radius: 5px; /* Added border radius */
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); /* Added box shadow */
+    border-radius: 5px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
 
-.close {
+#close {
     color: #aaa;
     float: right;
     font-size: 28px;
     font-weight: bold;
-    cursor: pointer; /* Removed hover effect */
+    cursor: pointer;
 }
 
-.close:focus {
+#close:focus {
     color: black;
     text-decoration: none;
 }
 
-.search-input,
-.collection-input {
-    width: 400px; /* Adjusted width for consistency */
+/* Input styles */
+#search-input,
+#collection-input {
+    width: 400px;
     padding: 0.5rem;
     border: 1px solid #ccc;
     border-radius: 5px;
     outline: none;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: border-color 0.2s, box-shadow 0.2s;
-    margin-bottom: 20px; /* Adjusted margin */
-    font-size: 16px; /* Adjusted font size */
-    color: #333; /* Adjusted text color */
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: #333;
 }
 
-.error-message {
-    color: red; /* Adjusted color for error message */
+/* Error message styles */
+#error-message {
+    color: red;
 }
 
-
-h2{
+/* Heading styles */
+.yourcollectioncreateheading {
     position: relative;
-    font-size: 5rem;
+    font-size: 2rem; /* Adjusted font size for better readability */
     margin-bottom: 20px;
     color: #99aab0;
-    z-index: 1; /* Ensure the text is above the background image */
+    z-index: 1;
 }
