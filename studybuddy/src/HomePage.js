@@ -8,6 +8,7 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [recentSections, setRecentSections] = useState([]);
   const [recommendedSections, setRecommendedSections] = useState('');
+  const [loading, setLoading] = useState(true); // Loading state
   const username = localStorage.getItem('userName');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -39,11 +40,14 @@ const HomePage = () => {
   
           setRecentSections(recentResponse.data.collections);
           setRecommendedSections(recommendationsResponse.data.recommendations);
+          setLoading(false); // Set loading to false when data is fetched
         } else {
           console.error('No recent sections found');
+          setLoading(false); // Set loading to false even if no recent sections found
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setLoading(false); // Set loading to false on error
       }
     };
   
@@ -81,30 +85,25 @@ const HomePage = () => {
       </nav>
       <div className="main">
         <h1>Study Buddy</h1>
-        <p>Recently Viewed</p>
-        <div className="cards-container">
-          {recentSections.map(section => (
-            <div className="card" key={section.id} onClick={() => handleSectionClick(section.id, section.collection_id, section.title, section.collName)}>
-              <div className="card-title">{section.title || 'Untitled'}</div>
+        {loading ? ( // Render loading spinner if loading is true
+          <div className="loading-spinner"></div>
+        ) : (
+          <>
+            <p>Recently Viewed</p>
+            <div className="cards-container">
+              {recentSections.map(section => (
+                <div className="card" key={section.id} onClick={() => handleSectionClick(section.id, section.collection_id, section.title, section.collName)}>
+                  <div className="card-title">{section.title || 'Untitled'}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <p>Learning Paths For You</p>
-<div className="recommendations-text">
-  <p>{recommendedSections}</p>
-  {/* {recommendedSections.split(/\d+\./).map((recommendation, index) => {
-    // Skip empty strings
-    if (recommendation.trim() === "") return null;
-    // Render each recommendation point
-    return (
-      <div key={index}>
-        <p>{index + 1}. {recommendation.trim()}</p>
-      </div>
-    );
-  })} */}
-</div>
-
+            <p>Learning Paths For You</p>
+            <div className="recommendations-text">
+              <p>{recommendedSections}</p>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
