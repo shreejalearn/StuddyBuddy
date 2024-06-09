@@ -950,6 +950,72 @@ def delete_response():
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+@app.route('/create_section_from_recommendation', methods=['POST'])
+def create_section_from_recommendation():
+    data = request.get_json()
+    print(data)
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    collection_id = data.get('collection_id')
+    section_data = data.get('section_data')
+
+    if not section_data:
+        return jsonify({'error': 'Section data not provided'}), 400
+
+    try:
+        if collection_id:
+            # Add to an existing collection
+            collection_ref = db.collection('collections').document(collection_id)
+            if not collection_ref.get().exists:
+                return jsonify({'error': 'Collection not found'}), 404
+        else:
+            # Create a new collection
+            username = data.get('username')
+            if not username:
+                return jsonify({'error': 'Username not provided'}), 400
+
+            collection_name = data.get('collection_name')
+            if not collection_name:
+                return jsonify({'error': 'Collection name not provided'}), 400
+
+            collection_ref = db.collection('collections').document()
+            collection_ref.set({
+                'collectionIdentification': collection_ref.id,
+                'username': username,
+                'data': {'title': collection_name}
+            })
+
+        # Create the new section
+        new_section_ref = collection_ref.collection('sections').document()
+        new_section_ref.set({
+            'section_name': section_data['topicName'],
+            'visibility':'public'
+        })
+        link=section_data['sources'][0]['url']
+        response = requests.get(link)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Extract text content from the webpage
+        text_content = ' '.join([p.text for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
+
+        parser = PlaintextParser.from_string(text_content, Tokenizer("english"))
+        summarizer = LsaSummarizer()
+        tldr = summarizer(parser.document, sentences_count=1)  
+
+        tldr = " ".join(str(sentence) for sentence in tldr)
+
+        for source in section_data['sources']:
+            new_note_ref = new_section_ref.collection('notes_in_section').document()
+            new_note_ref.set({
+                'notes': f"{source['title']}: {source['url']}",
+                'tldr': tldr
+            })
+
+        return jsonify({'message': 'Section created successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 async def get_recommendations(username, recent_sections):
@@ -979,6 +1045,7 @@ async def get_recommendations(username, recent_sections):
         response = await sydney.ask(question, citations=True)
         return response
 
+
 @app.route('/recommendations', methods=['GET'])
 def get_recommendations_endpoint():
     username = request.args.get('username')
@@ -988,8 +1055,38 @@ def get_recommendations_endpoint():
         return jsonify({'error': 'Username not provided'}), 400
 
     recommendations = asyncio.run(get_recommendations(username, recent_sections))
-    return jsonify({'recommendations': recommendations})
+    
+    structured_recommendations = process_recommendations(recommendations)
+    
+    return jsonify({'recommendations': structured_recommendations})
 
+def process_recommendations(recommendations_text):
+    recommendations = []
+    pattern = re.compile(
+        r'\*\*(.*?)\*\*:\s*'                # Topic Name
+        r'- \*\*Topic\s*Name\*\*:\s*(.*?)'  # Actual Topic Name (redundant)
+        r'- \*\*Topic\s*Description\*\*:\s*(.*?)'  # Topic Description
+        r'- \*\*Sources\*\*:\s*'            # Sources label
+        r'((?:- \[.*?\]\(.*?\)\s*)+)',       # One or more sources
+        re.DOTALL
+    )
+
+    matches = pattern.findall(recommendations_text)
+    
+    for match in matches:
+        topic_name = match[0].strip()
+        topic_description = match[2].strip()
+        sources = re.findall(r'- \[(.*?)\]\((.*?)\)', match[3].strip())
+
+        sources_list = [{'title': source[0], 'url': source[1]} for source in sources]
+
+        recommendations.append({
+            'topicName': topic_name,
+            'topicDescription': topic_description,
+            'sources': sources_list
+        })
+    
+    return recommendations
 @app.route('/add_response_to_notes', methods=['POST'])
 def add_to_notes():
     data = request.get_json()
