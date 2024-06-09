@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from './components/menuButton';
 import Logo from './assets/logo (2).png';
 import axios from 'axios';
 import './styles/homepage.css';
@@ -8,7 +7,7 @@ import './styles/homepage.css';
 const HomePage = () => {
   const navigate = useNavigate();
   const [recentSections, setRecentSections] = useState([]);
-  const [recommendedSections, setRecommendedSections] = useState([]);
+  const [recommendedSections, setRecommendedSections] = useState('');
   const username = localStorage.getItem('userName');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -20,37 +19,37 @@ const HomePage = () => {
   }
 
   useEffect(() => {
-    const fetchRecentSections = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/get_my_sections_recent', {
+        const recentResponse = await axios.get('http://localhost:5000/get_my_sections_recent', {
           params: { username: username } 
         });
-        // Get only the top 5 recent sections
-        const top5Sections = response.data.collections.slice(0, 5);
-        setRecentSections(top5Sections);
+  
+        if (recentResponse.data.collections && recentResponse.data.collections.length > 0) {
+          const recentSectionsTitles = recentResponse.data.collections.map(collection => collection.title);
+          const recentSectionsString = recentSectionsTitles.join(', ');
+          console.log(recentSectionsString);
+  
+          const recommendationsResponse = await axios.get('http://localhost:5000/recommendations', {
+            params: { 
+              username: username,
+              recentSections: recentSectionsString,
+            } 
+          });
+  
+          setRecentSections(recentResponse.data.collections);
+          setRecommendedSections(recommendationsResponse.data.recommendations);
+        } else {
+          console.error('No recent sections found');
+        }
       } catch (error) {
-        console.error('Error fetching recent sections:', error);
+        console.error('Error fetching data:', error);
       }
     };
-
-    fetchRecentSections();
-  }, []);
-
-  // useEffect(() => {
-  //   const fetchRecommendedSections = async () => {
-  //     try {
-  //       const response = await axios.get('http://localhost:5000/recommend_public_sections', {
-  //         params: { username: username } 
-  //       });
-  //       setRecommendedSections(response.data.recommended_sections);
-  //     } catch (error) {
-  //       console.error('Error fetching recommended sections:', error);
-  //     }
-  //   };
-
-  //   fetchRecommendedSections();
-  // }, []);
-
+  
+    fetchData();
+  }, [username]);
+  
   const handleSectionClick = (sectionId, collId, title, colName) => {
     localStorage.setItem('chapterId', sectionId);
     localStorage.setItem('collectionId', collId);
@@ -59,6 +58,7 @@ const HomePage = () => {
 
     navigate(`/chapter`);
   };
+  
 
   return (
     <div>
@@ -91,13 +91,19 @@ const HomePage = () => {
         </div>
 
         <p>Learning Paths For You</p>
-        <div className="cards-container">
-          {recommendedSections.map(section => (
-            <div className="card" key={section.id} onClick={() => handleSectionClick(section.id, section.collection_id, section.title, section.collName)}>
-              <div className="card-title">{section.title || 'Untitled'}</div>
-            </div>
-          ))}
-        </div>
+<div className="recommendations-text">
+  <p>{recommendedSections}</p>
+  {/* {recommendedSections.split(/\d+\./).map((recommendation, index) => {
+    // Skip empty strings
+    if (recommendation.trim() === "") return null;
+    // Render each recommendation point
+    return (
+      <div key={index}>
+        <p>{index + 1}. {recommendation.trim()}</p>
+      </div>
+    );
+  })} */}
+</div>
 
       </div>
     </div>

@@ -873,6 +873,44 @@ def delete_response():
         return jsonify({'error': str(e)}), 500
 
 
+async def get_recommendations(username, recent_sections):
+    async with SydneyClient() as sydney:
+
+        # Construct the question string
+        question = f'''Based on the user's most recently studied sections, here are their recent areas of focus: {recent_sections}. Can you find and provide 3 specific advanced topics, supplementary materials (books, articles, videos, and online resources including real-world applications) that they should explore further? Answer in this format:
+        
+        Recommended Topic 1:
+        Topic Name:
+        Topic Description:
+        Sources:
+
+        Recommended Topic 2:
+        Topic Name:
+        Topic Description:
+        Sources:
+
+        Recommended Topic 3:
+        Topic Name:
+        Topic Description:
+        Sources:
+
+        '''
+
+        # Ask the question to the language model
+        response = await sydney.ask(question, citations=True)
+        return response
+
+@app.route('/recommendations', methods=['GET'])
+def get_recommendations_endpoint():
+    username = request.args.get('username')
+    recent_sections = request.args.getlist('recentSections')
+
+    if not username:
+        return jsonify({'error': 'Username not provided'}), 400
+
+    recommendations = asyncio.run(get_recommendations(username, recent_sections))
+    return jsonify({'recommendations': recommendations})
+
 @app.route('/add_response_to_notes', methods=['POST'])
 def add_to_notes():
     data = request.get_json()
@@ -903,6 +941,23 @@ def add_to_notes():
             return jsonify({'error': 'Response not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+@app.route('/get_all_public_sections', methods=['GET'])
+def get_all_public_sections():
+    public_sections = []
+
+    try:
+        section_docs = db.collection('collections').stream()
+        for doc in section_docs:
+            section_ref = doc.reference.collection('sections').where('visibility', '==', 'public').stream()
+            for section_doc in section_ref:
+                section_data = section_doc.to_dict()
+                title = section_data.get('section_name', '')
+                public_sections.append({'id': section_doc.id, 'title': title})
+    except Exception as e:
+        print("Error fetching public sections:", e)
+        return jsonify({'error': 'Failed to fetch public sections'}), 500
+
+    return jsonify({'sections': public_sections})
 
 @app.route('/generate_qna', methods=['POST'])
 async def generate_qna():
