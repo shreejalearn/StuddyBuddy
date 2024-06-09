@@ -13,7 +13,7 @@
 //   useEffect(() => {
 //     const fetchCollections = async () => {
 //       try {
-//         const username = localStorage.getItem('userName');
+//         const username = localStorage.getItem('userName'); // Use consistent key
 //         if (!username) {
 //           throw new Error('Username not found in local storage');
 //         }
@@ -22,6 +22,7 @@
 //         setCollections(response.data.collections);
 //         setLoading(false);
 //       } catch (error) {
+//         console.error(error); // Log the error for debugging
 //         setError(error.message);
 //         setLoading(false);
 //       }
@@ -42,7 +43,7 @@
 //     }
 
 //     try {
-//       const username = localStorage.getItem('username');
+//       const username = localStorage.getItem('userName');
 //       if (!username) {
 //         throw new Error('Username not found in local storage');
 //       }
@@ -59,6 +60,7 @@
 //       setIsModalOpen(false); // Close modal after creation
 //       setError(null); // Clear any previous errors
 //     } catch (error) {
+//       console.error(error); // Log the error for debugging
 //       setError(error.message);
 //     }
 //   };
@@ -99,11 +101,11 @@
 //         />
 //       </div>
 //       <div className="category-buttons">
-//         <button className="category-btn" onClick={openModal}>
+//         <button className="create-btn" onClick={openModal}>
 //           <span className="plus-icon">+</span>
 //         </button>
 //         {collections.map(collection => (
-//           <button className="category-btn" key={collection.id} onClick={() => handleOpenCollection(collection.id, collection.title)}>
+//           <button className="create-btn" key={collection.id} onClick={() => handleOpenCollection(collection.id, collection.title)}>
 //             {collection.title || 'Untitled'}
 //           </button>
 //         ))}
@@ -131,7 +133,6 @@
 
 // export default Collections;
 
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './styles/collections.css';
@@ -147,16 +148,15 @@ const Collections = () => {
   useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const username = localStorage.getItem('userName'); // Use consistent key
+        const username = localStorage.getItem('userName');
         if (!username) {
           throw new Error('Username not found in local storage');
         }
-        console.log(username);
         const response = await axios.get(`http://localhost:5000/get_my_collections?username=${username}`);
         setCollections(response.data.collections);
         setLoading(false);
       } catch (error) {
-        console.error(error); // Log the error for debugging
+        console.error(error);
         setError(error.message);
         setLoading(false);
       }
@@ -191,10 +191,10 @@ const Collections = () => {
       setCollections(response.data.collections);
 
       setNewCollectionName('');
-      setIsModalOpen(false); // Close modal after creation
-      setError(null); // Clear any previous errors
+      setIsModalOpen(false);
+      setError(null);
     } catch (error) {
-      console.error(error); // Log the error for debugging
+      console.error(error);
       setError(error.message);
     }
   };
@@ -232,14 +232,15 @@ const Collections = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search..."
+          className="search-input" // Add this class for styling
         />
       </div>
       <div className="category-buttons">
-        <button className="category-btn" onClick={openModal}>
+        <button className="create-btn" onClick={openModal}>
           <span className="plus-icon">+</span>
         </button>
         {collections.map(collection => (
-          <button className="category-btn" key={collection.id} onClick={() => handleOpenCollection(collection.id, collection.title)}>
+          <button className="create-btn" key={collection.id} onClick={() => handleOpenCollection(collection.id, collection.title)}>
             {collection.title || 'Untitled'}
           </button>
         ))}
@@ -255,6 +256,7 @@ const Collections = () => {
               placeholder="Collection Name"
               value={newCollectionName}
               onChange={(e) => setNewCollectionName(e.target.value)}
+              className="collection-input" // Add this class for styling
             />
             <button className="create-btn" onClick={handleCreateCollection}>Create Collection</button>
             {error && <div className="error-message">{error}</div>}
