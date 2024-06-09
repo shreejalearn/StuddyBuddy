@@ -1,15 +1,14 @@
+import re
 import asyncio
 import os
-import re
 import requests
-from sydney import SydneyClient
-from dotenv import load_dotenv
-from duckduckgo_search import DDGS
-from fastcore.all import *
+import spacy
 from gtts import gTTS
 from moviepy.editor import ImageSequenceClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips
 from PIL import Image
-
+from duckduckgo_search import DDGS
+from sydney import SydneyClient
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -21,65 +20,176 @@ if bing_cookies_key is None:
 
 os.environ["BING_COOKIES"] = bing_cookies_key
 
+# Load the spaCy model
+nlp = spacy.load("en_core_web_sm")
+
 def generate_audio(text):
     tts = gTTS(text=text, lang='en')
     return tts
 
-# Function to search for images based on a given term
 def search_images(term, max_images=30):
     print(f"Searching for '{term}'")
     ddgs = DDGS()
-    return L(ddgs.images(keywords=term, max_results=max_images)).itemgot('image')
+    return [result['image'] for result in ddgs.images(keywords=term, max_results=max_images)]
 
-# Function to download an image from a URL
+
 def download_image(url, folder):
     filename = os.path.join(folder, os.path.basename(url))
-    with open(filename, 'wb') as f:
+    try:
         response = requests.get(url)
-        f.write(response.content)
-    return filename
+        response.raise_for_status()
+        with open(filename, 'wb') as f:
+            f.write(response.content)
+        # Verify the image
+        with Image.open(filename) as img:
+            img.verify()
+        return filename
+    except Exception as e:
+        print(f"Error downloading or verifying image {url}: {e}")
+        return None
 
 def resize_images(image_paths, output_folder, target_size=(1280, 720)):
     resized_paths = []
-    
-    # Create the output folder if it doesn't exist
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    
     for image_path in image_paths:
-        image = Image.open(image_path)
-        image = image.resize(target_size)  # Apply anti-aliasing here
-        resized_path = os.path.join(output_folder, os.path.basename(image_path))
-        image.save(resized_path)
-        resized_paths.append(resized_path)
-    
+        if not os.path.exists(image_path):
+            print(f"Image file {image_path} does not exist. Skipping.")
+            continue
+        try:
+            image = Image.open(image_path)
+            image = image.resize(target_size)
+            resized_path = os.path.join(output_folder, os.path.basename(image_path))
+            image.save(resized_path)
+            resized_paths.append(resized_path)
+        except Exception as e:
+            print(f"Error processing image {image_path}: {e}")
     return resized_paths
 
-def calculate_reading_time(text, wpm=200):
-    words = len(text.split())
-    reading_time_minutes = words / wpm
-    return reading_time_minutes * 60  # convert to seconds
 
-async def main() -> None:
+def extract_concepts_and_summaries(text):
+    concepts = {}
+    current_concept = None
+    current_search_phrases = []
+    current_summary = []
+
+    lines = text.strip().split('\n')
+    for line in lines:
+        line = line.strip()
+        print(f"Processing line: {line}")
+        if re.match(r'^\d+\.\s\*\*.*\*\*:$', line):  # Match lines like "1. **Creating Functions**:"
+            if current_concept:
+                concepts[current_concept] = {
+                    "search_phrases": current_search_phrases,
+                    "summary": ' '.join(current_summary)
+                }
+            current_concept = line.split('**')[1].strip()
+            current_search_phrases = []
+            current_summary = []
+            print(f"New concept detected: {current_concept}")
+        elif line.startswith("- Search phrases:"):
+            phrases = re.findall(r'"(.*?)"', line)
+            current_search_phrases.extend(phrases)
+            print(f"Search phrases found: {current_search_phrases}")
+        elif line.startswith("- Summary:"):
+            current_summary.append(line.split(":", 1)[1].strip())
+            print(f"Summary found: {current_summary}")
+        else:
+            if current_concept:
+                current_summary.append(line.strip())
+    
+    if current_concept:
+        concepts[current_concept] = {
+            "search_phrases": current_search_phrases,
+            "summary": ' '.join(current_summary)
+        }
+    
+    return concepts
+
+async def main(response) -> None:
     async with SydneyClient() as sydney:
-        response = '''
-        Sydney: [1]: https://www.freecodecamp.org/news/functions-in-python-a-beginners-guide/ ""
-        [2]: https://www.classes.cs.uchicago.edu/archive/2021/spring/11111-1/happycoding/p5js/creating-functions.html ""
-        [3]: https://happycoding.io/tutorials/processing/creating-functions ""
-        [4]: https://learn-javascript.dev/docs/functions/ ""
-        [5]: https://en.wikipedia.org/wiki/Decomposition_%28computer_science%29 ""
-        [6]: https://cs.stanford.edu/people/nick/compdocs/Decomposition_and_Style.pdf ""
-        [7]: https://www.knowitallninja.com/lessons/decomposition/ ""
-        [8]: https://jarednielsen.com/decomposition/ ""
-        [9]: https://www.geeksforgeeks.org/while-loop-in-programming/ ""
-        [10]: https://www.geeksforgeeks.org/loops-programming/ ""
-        [11]: https://en.wikipedia.org/wiki/While_loop ""
-        [12]: https://www.geeksforgeeks.org/while-loop-syntax/ ""
-        [13]: https://www.geeksforgeeks.org/for-loop-in-programming/ ""
-        [14]: https://en.wikipedia.org/wiki/For_loop ""
-        [15]: https://press.rebus.community/programmingfundamentals/chapter/for-loop/ ""
+        # Extract concepts and summaries from the response
+        concepts = extract_concepts_and_summaries(response)
 
-        Certainly! Let's break down each concept and identify key search phrases for relevant static images:
+        # Debugging: Print the extracted concepts and summaries
+        print("Extracted Concepts and Summaries:")
+        for concept, data in concepts.items():
+            print(f"Concept: {concept}")
+            print(f"Search Phrases: {data['search_phrases']}")
+            print(f"Summary: {data['summary']}")
+            print("-----")
+
+        # Exit if no concepts were extracted
+        if not concepts:
+            print("No concepts were extracted. Exiting.")
+            return
+
+        image_paths = []
+
+        for concept, data in concepts.items():
+            concept_images = []
+            for phrase in data["search_phrases"]:
+                images = search_images(phrase, max_images=1)
+                if images:
+                    concept_images.append(images[0])
+            concepts[concept]["images"] = concept_images
+
+            print(f"Downloading images for concept: {concept}")
+            concept_folder = os.path.join(os.getcwd(), "images", concept)
+            os.makedirs(concept_folder, exist_ok=True)
+            for i, image_url in enumerate(data['images']):
+                image_path = download_image(image_url, concept_folder)
+                if image_path:
+                    image_paths.append(image_path)
+                    print(f"Downloaded image {i + 1}: {image_path}")
+
+        image_paths = resize_images(image_paths, "resized_images")
+
+        concept_audio_paths = []
+        concept_video_clips = []
+
+        for concept, data in concepts.items():
+            summary = data["summary"]
+            images = data["images"]
+            image_durations = []
+            image_clips = []
+
+            tts = generate_audio(summary)
+            audio_path = f"audio_{concept}.mp3"
+            tts.save(audio_path)
+            concept_audio_paths.append(audio_path)
+
+            audio_clip = AudioFileClip(audio_path)
+            audio_duration = audio_clip.duration
+
+            duration_per_image = audio_duration / len(images)
+            for i, image in enumerate(images):
+                image_path = os.path.join("resized_images", os.path.basename(image))
+                if os.path.exists(image_path):
+                    image_clips.append((image_path, duration_per_image))
+
+            for image_path, duration in image_clips:
+                img_clip = ImageSequenceClip([image_path], durations=[duration])
+                concept_video_clips.append(img_clip)
+
+        final_video_clip = concatenate_videoclips(concept_video_clips)
+        final_audio_clip = concatenate_audioclips([AudioFileClip(p) for p in concept_audio_paths])
+        final_video_clip = final_video_clip.set_audio(final_audio_clip)
+
+        output_video_path = "output_video.mp4"
+        final_video_clip.write_videofile(output_video_path, fps=24)
+newinp = '''[1]: https://bing.com/search?q=What+is+equilibrium%3f 
+""[2]: https://www.merriam-webster.com/dictionary/equilibrium 
+""[3]: https://www.britannica.com/science/equilibrium-physics 
+""[4]: https://www.dictionary.com/browse/equilibrium 
+""[5]: http://www.oxforddictionaries.com/us/ 
+""**Equilibrium** refers to a state of balance between opposing forces or actions. Let's break it down:
+1. **Intellectual or Emotional Balance**: Equilibrium can describe a state of intellectual or emotional poise, where someone maintains stability and composure[^1^][2]. For instance, when trying to recover their equilibrium after a challenging situation.
+2. **Adjustment Between Opposing Influences**: It also represents a state of adjustment between opposing or divergent influences or elements. Imagine finding equilibrium between commercial development and the conservation of natural treasures[^1^][2].
+3. **Physical Balance**: In physics, equilibrium refers to a system where neither its motion nor its internal energy state tends to change over time. This can be either static (as in a balanced body acted upon by forces with a net resultant of zero) or dynamic (as in a reversible chemical reaction with equal rates in both directions)[^2^][3].
+4. **Symbolism**: The word "equilibrium" has roots in the Latin word "libra," meaning "weight" or "balance." As a constellation, zodiac symbol, and astrological sign, Libra is often depicted as a set of balance scales, symbolizing fairness, equality, and justice[^1^][2].Remember, equilibrium appears in various contexts, including biology, chemistry, physics, and economics, but the common thread is always the balance of competing influences[^1^][2]. 
+If you have any more questions, feel free to ask! 😊'''
+oldinp = '''Certainly! Let's break down each concept and identify key search phrases for relevant static images:
 
         1. **Creating Functions**:
             - Search phrases: "defining functions in Python," "user-defined functions," "function parameters," "return statement."
@@ -98,84 +208,6 @@ async def main() -> None:
             - Summary: For loops execute a set of statements repetitively based on a specified condition. They are commonly used when you know how many times you want to execute a block of code. The syntax includes initialization, condition, and increment (or decrement) components. Useful for iterating over sequences or performing a fixed number of tasks[^4^][13].
 
         Feel free to use these search phrases to find relevant static images that enhance student comprehension!
-        '''
-
-        # Parse the response and extract concept names, search phrases, and summaries
-        matches = re.findall(r"\*\*([^*]+)\*\*:[\s\S]*?- Search phrases:\s*\"(.*?)\"[\s\S]*?Summary: (.*?)\[\^", response)
-
-        # Create a dictionary to store the concepts, search phrases, and summaries
-        concepts = {}
-
-        # Populate the dictionary with the extracted information
-        for match in matches:
-            concept_name = match[0].strip()
-            search_phrases = match[1].strip().split('", "')
-            summary = match[2].strip()
-            concepts[concept_name] = {"search_phrases": search_phrases, "summary": summary}
-
-        # Create a list to store the paths of downloaded images
-        image_paths = []
-
-        # Fetch relevant images for each concept
-        for concept, data in concepts.items():
-            concept_images = []
-            for phrase in data["search_phrases"]:
-                images = search_images(phrase, max_images=1)
-                if images:
-                    concept_images.append(images[0])
-            concepts[concept]["images"] = concept_images
-
-            # Download images
-            print(f"Downloading images for concept: {concept}")
-            concept_folder = os.path.join(os.getcwd(), "images", concept)
-            os.makedirs(concept_folder, exist_ok=True)
-            for i, image_url in enumerate(data['images']):
-                image_path = download_image(image_url, concept_folder)
-                image_paths.append(image_path)
-                print(f"Downloaded image {i + 1}: {image_path}")
-
-        # Resize the downloaded images
-        image_paths = resize_images(image_paths, "resized_images")
-
-        # Process each concept and its summary
-        concept_audio_paths = []
-        concept_video_clips = []
-
-        for concept, data in concepts.items():
-            summary = data["summary"]
-            images = data["images"]
-            image_durations = []
-            image_clips = []
-
-            # Generate audio for the summary
-            tts = generate_audio(summary)
-            audio_path = f"audio_{concept}.mp3"
-            tts.save(audio_path)
-            concept_audio_paths.append(audio_path)
-
-            # Load the audio file to get its duration
-            audio_clip = AudioFileClip(audio_path)
-            audio_duration = audio_clip.duration
-
-            # Calculate duration for each image
-            duration_per_image = audio_duration / len(images)
-            for i, image in enumerate(images):
-                image_path = os.path.join("resized_images", os.path.basename(image))
-                image_clips.append((image_path, duration_per_image))
-
-            # Create video clips for each image with the respective duration
-            for image_path, duration in image_clips:
-                img_clip = ImageSequenceClip([image_path], durations=[duration])
-                concept_video_clips.append(img_clip)
-
-        # Concatenate all video clips and set the audio
-        final_video_clip = concatenate_videoclips(concept_video_clips)
-        final_audio_clip = concatenate_audioclips([AudioFileClip(p) for p in concept_audio_paths])
-        final_video_clip = final_video_clip.set_audio(final_audio_clip)
-
-        # Write the final video file
-        output_video_path = "output_video.mp4"
-        final_video_clip.write_videofile(output_video_path, fps=24)
-
+'''
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(newinp))
