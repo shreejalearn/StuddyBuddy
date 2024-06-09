@@ -24,6 +24,7 @@ const VideoPage = () => {
             section_id: sectionId,
           },
         });
+        console.log(response.data.videoPaths);
         setVideoPaths(response.data.videoPaths);
         console.log(response.data.videoPaths)
       } catch (error) {
@@ -47,6 +48,7 @@ const VideoPage = () => {
     fetchVideoPaths();
 
     fetchNotes();
+    
   }, [collectionId, sectionId]);
 
   const handleGenerateVideo = async () => {
@@ -94,12 +96,13 @@ const VideoPage = () => {
         {videoPaths.map((video, index) => (
           <div key={index} className="video-item">
             <video controls>
-              <source src={video.path} type="video/mp4" />
-              Your browser does not support the video tag.
+            <source src={`http://localhost:5000/videos/${video.video_path}`} type="video/mp4" />
+            Your browser does not support the video tag.
             </video>
           </div>
         ))}
       </div>
+      
       <button onClick={() => setIsModalOpen(true)} disabled={loading}>
         {loading ? 'Generating...' : 'Generate New Video'}
       </button>

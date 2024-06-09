@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -49,6 +49,8 @@ from moviepy.editor import ImageSequenceClip, AudioFileClip, concatenate_videocl
 import sys
 import json
 
+VIDEO_DIRECTORY = os.path.join(os.getcwd(), './vids')
+
 load_dotenv()
 
 bing_cookies_key = os.getenv('BING_COOKIES')
@@ -71,7 +73,6 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 ignore_warnings('ignore')
 
 qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
-
 
 async def generate_question(sentence, answer):
     text = f"context: {sentence} answer: {answer}"
@@ -166,6 +167,11 @@ firebase_admin.initialize_app(cred)
 
 # Initialize Firestore client
 db = firestore.client()
+
+@app.route('/videos/<path:filename>')
+def serve_video(filename):
+    return send_from_directory(VIDEO_DIRECTORY, filename)
+
 
 # @app.route('/get_my_collections', methods=['GET'])
 @app.route('/get_my_collections')
@@ -363,7 +369,7 @@ def generate_video_from_notes():
 
 
         output_video_path = f"{collection_id}_{section_id}_final_video_{timestamp}.mp4"
-        final_video_clip.write_videofile(f"./src/{output_video_path}", fps=24)
+        final_video_clip.write_videofile(f"./vids/{output_video_path}", fps=24)
         db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('videos').add({'video_path': output_video_path})
 
         return jsonify({'video_path': output_video_path})
