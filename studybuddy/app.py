@@ -1152,18 +1152,24 @@ def get_recommendations_endpoint():
 def process_recommendations():
     recommendations_text = request.args.get('recs')
     recommendations = []
+    print("Received recommendations text:")
+    print(recommendations_text)
+
+    # Adjusted regex pattern to match the given text structure
     pattern = re.compile(
-        r'\*\*Topic:\s*(.*?)\*\*:\s*'               # Topic Name
-        r'(?:(?!\*\*Topic\s*Name\*\*).)*?'         # Any characters not followed by "**Topic Name**:"
-        r'\*\*Description:\*\*\s*(.*?)\*\*:\s*'    # Topic Description
-        r'(?:(?!\*\*Sources\*\*).)*?'              # Any characters not followed by "**Sources**:"
-        r'\*\*Sources:\*\*:\s*'                    # Sources label
-        r'((?:- \[.*?\]\(.*?\)\s*)+)',             # One or more sources
+        r'\*\*(.*?)\*\*:\s*'                  # Topic Name
+        r'- \*\*Topic\s*Description\*\*:\s*(.*?)'  # Topic Description
+        r'- \*\*Sources\*\*:\s*'              # Sources label
+        r'((?:- \[.*?\]\(.*?\)\s*)+)',        # One or more sources
         re.DOTALL
     )
 
     matches = pattern.findall(recommendations_text)
+    print("Regex matches:")
+    print(matches)
     for match in matches:
+        print("Processing match:")
+        print(match)
         topic_name = match[0].strip()
         topic_description = match[1].strip()
         sources = re.findall(r'- \[(.*?)\]\((.*?)\)', match[2].strip())
@@ -1175,8 +1181,13 @@ def process_recommendations():
             'topicDescription': topic_description,
             'sources': sources_list
         })
-    
+
+    print("Processed recommendations:")
+    print(recommendations)
     return jsonify({'recommendations': recommendations})
+
+
+
 @app.route('/add_response_to_notes', methods=['POST'])
 def add_to_notes():
     data = request.get_json()
