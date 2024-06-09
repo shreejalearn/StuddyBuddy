@@ -959,21 +959,35 @@ async def generate_qna():
         if not all_text:
             return jsonify({'error': 'No notes found in the specified section'}), 404
 
-        keywords = await get_keywords(all_text, 't')
-        qa_pairs = []
-        answer_dict = OrderedDict()
+        # keywords = await get_keywords(all_text, 't')
+        # qa_pairs = []
+        # answer_dict = OrderedDict()
 
-        for answer, context in keywords:
-            if len(qa_pairs) >= num_questions:
-                break
-            question = await generate_question(context, answer)
-            # if answer not in answer_dict:
-            #     answer_dict[answer] = question
-            #     qa_pairs.append({'question': question, 'answer': answer})
-            answer_dict[answer] = question
-            qa_pairs.append({'question': question, 'answer': answer})
+        # for answer, context in keywords:
+        #     if len(qa_pairs) >= num_questions:
+        #         break
+        #     question = await generate_question(context, answer)
+        #     # if answer not in answer_dict:
+        #     #     answer_dict[answer] = question
+        #     #     qa_pairs.append({'question': question, 'answer': answer})
+        #     answer_dict[answer] = question
+        #     qa_pairs.append({'question': question, 'answer': answer})
 
-        return jsonify({'qa_pairs': qa_pairs}), 200
+        # return jsonify({'qa_pairs': qa_pairs}), 200
+        async with SydneyClient() as sydney:
+            question = f'''
+            Task: Generate 10 practice test questions based on the following notes. The question should cover the main topics. Ensure the question is of difficulty difficulty and is question_type.
+
+            Notes:
+            {all_text}
+
+            Question Format: Multiple Choice
+            Question: [Your question here]
+            Options: [Option 1, Option 2, Option 3, Option 4]
+            Answer: [Correct answer]
+            '''
+            response = await sydney.ask(question, citations=True)
+            return jsonify({'r': response}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
