@@ -1221,6 +1221,31 @@ def clone_section():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+
+async def practtest() -> str:  # Change the return type to str
+    notes = request.args.get('notes')
+
+    async with SydneyClient() as sydney:
+        question = f'''
+        Task: Generate 10 practice test questions based on the following notes. The question should cover the main topics. Ensure the question is of difficulty difficulty and is question_type.
+
+        Notes:
+        {notes}
+
+        Question Format: Multiple Choice
+        Question: [Your question here]
+        Options: [Option 1, Option 2, Option 3, Option 4]
+        Answer: [Correct answer]
+        '''
+        response = await sydney.ask(question, citations=True)
+    return response
+
+@app.route('/generatepracticetest', methods=['GET'])
+async def generatepracticetest():
+    response = await practtest()
+    return jsonify({'questions': response})
+
 # @app.route('/recommend_sections', methods=['GET'])
 # def recommend_sections():
 #     username = request.args.get('username')
