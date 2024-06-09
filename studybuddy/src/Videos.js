@@ -16,6 +16,20 @@ const VideoPage = () => {
   const [askSpecificResponse, setAskSpecificResponse] = useState(null);
 
   useEffect(() => {
+    const fetchVideoPaths = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/get_video_paths', {
+          params: {
+            collection_id: collectionId,
+            section_id: sectionId,
+          },
+        });
+        setVideoPaths(response.data.videoPaths);
+        console.log(response.data.videoPaths)
+      } catch (error) {
+        console.error('Error fetching video paths:', error);
+      }
+    };
     const fetchNotes = async () => {
       try {
         const response = await axios.get('http://localhost:5000/get_notes', {
@@ -29,6 +43,8 @@ const VideoPage = () => {
         console.error('Error fetching notes:', error);
       }
     };
+
+    fetchVideoPaths();
 
     fetchNotes();
   }, [collectionId, sectionId]);
@@ -47,7 +63,9 @@ const VideoPage = () => {
       console.log(askSpecificResponse.data.response)
       // Call generate_video_from_notes endpoint with the response from ask_specific
       const generateVideoResponse = await axios.post('http://localhost:5000/generate_video_from_notes', {
-        notes: askSpecificResponse.data.response
+        notes: askSpecificResponse.data.response,
+        collection_id: collectionId,
+        section_id: sectionId,
       });
       
       if (generateVideoResponse.data.video_path) {
@@ -75,7 +93,10 @@ const VideoPage = () => {
       <div className="video-list">
         {videoPaths.map((video, index) => (
           <div key={index} className="video-item">
-            <a href={video.path} target="_blank" rel="noopener noreferrer">Video {index + 1}</a>
+            <video controls>
+              <source src={video.path} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
         ))}
       </div>

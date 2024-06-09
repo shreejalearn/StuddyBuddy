@@ -34,6 +34,8 @@ from transformers import pipeline
 import uuid
 import re
 import requests
+from datetime import datetime
+
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
 from fastcore.all import *
@@ -284,6 +286,9 @@ def generate_video_from_notes():
     try:
         data = request.get_json()
         notes = data.get('notes')
+        collection_id = data.get('collection_id')
+        section_id = data.get('section_id')
+
         concepts = extract_concepts_and_summaries(notes)
 
         # Debugging: Print the extracted concepts and summaries
@@ -351,9 +356,14 @@ def generate_video_from_notes():
         final_audio_clip = concatenate_audioclips([AudioFileClip(p) for p in concept_audio_paths])
         final_video_clip = final_video_clip.set_audio(final_audio_clip)
 
-        output_video_path = "output_video.mp4"
-        final_video_clip.write_videofile(output_video_path, fps=24)
-        return jsonify({'video_path': 'final_video.mp4'})
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+
+
+        output_video_path = f"{collection_id}_{section_id}_final_video_{timestamp}.mp4"
+        final_video_clip.write_videofile(f"./src/{output_video_path}", fps=24)
+        db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('videos').add({'video_path': output_video_path})
+
+        return jsonify({'video_path': output_video_path})
 
     except Exception as e:
         print(f"Error generating video: {e}")
