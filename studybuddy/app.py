@@ -1017,7 +1017,6 @@ def create_section_from_recommendation():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 async def get_recommendations(username, recent_sections):
     async with SydneyClient() as sydney:
 
@@ -1056,29 +1055,27 @@ def get_recommendations_endpoint():
 
     recommendations = asyncio.run(get_recommendations(username, recent_sections))
     
-    structured_recommendations = process_recommendations(recommendations)
-    
-    return jsonify({'recommendations': structured_recommendations})
+    return jsonify({'recommendations': recommendations})
 
-def process_recommendations(recommendations_text):
+@app.route('/process_recommendations', methods=['GET'])
+def process_recommendations():
+    recommendations_text = request.args.get('recs')
     recommendations = []
-    print(recommendations_text)
     pattern = re.compile(
-        r'\*\*(.*?)\*\*:\s*'                # Topic Name
-        r'- \*\*Topic\s*Name\*\*:\s*(.*?)'  # Actual Topic Name (redundant)
-        r'- \*\*Topic\s*Description\*\*:\s*(.*?)'  # Topic Description
-        r'- \*\*Sources\*\*:\s*'            # Sources label
-        r'((?:- \[.*?\]\(.*?\)\s*)+)',       # One or more sources
+        r'\*\*Topic:\s*(.*?)\*\*:\s*'               # Topic Name
+        r'(?:(?!\*\*Topic\s*Name\*\*).)*?'         # Any characters not followed by "**Topic Name**:"
+        r'\*\*Description:\*\*\s*(.*?)\*\*:\s*'    # Topic Description
+        r'(?:(?!\*\*Sources\*\*).)*?'              # Any characters not followed by "**Sources**:"
+        r'\*\*Sources:\*\*:\s*'                    # Sources label
+        r'((?:- \[.*?\]\(.*?\)\s*)+)',             # One or more sources
         re.DOTALL
     )
 
     matches = pattern.findall(recommendations_text)
-    print(matches)
     for match in matches:
-        print(match)
         topic_name = match[0].strip()
-        topic_description = match[2].strip()
-        sources = re.findall(r'- \[(.*?)\]\((.*?)\)', match[3].strip())
+        topic_description = match[1].strip()
+        sources = re.findall(r'- \[(.*?)\]\((.*?)\)', match[2].strip())
 
         sources_list = [{'title': source[0], 'url': source[1]} for source in sources]
 
@@ -1088,7 +1085,7 @@ def process_recommendations(recommendations_text):
             'sources': sources_list
         })
     
-    return recommendations
+    return jsonify({'recommendations': recommendations})
 @app.route('/add_response_to_notes', methods=['POST'])
 def add_to_notes():
     data = request.get_json()
@@ -1198,6 +1195,7 @@ async def generate_qna():
             Answer: [Correct answer]
             '''
             response = await sydney.ask(question, citations=True)
+            
             return jsonify({'r': response}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

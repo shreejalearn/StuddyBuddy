@@ -279,6 +279,7 @@ const HomePage = () => {
           params: { username: username }
         });
 
+
         if (recentResponse.data.collections && recentResponse.data.collections.length > 0) {
           const recentSectionsTitles = recentResponse.data.collections.map(collection => collection.title);
           const recentSectionsString = recentSectionsTitles.join(', ');
@@ -290,10 +291,21 @@ const HomePage = () => {
             }
           });
           console.log(recommendationsResponse);
+          console.log(recommendationsResponse.data.recommendations);
 
-          setRecentSections(recentResponse.data.collections);
-          setRecommendedSections(recommendationsResponse.data.recommendations);
-          setLoading(false);
+          const recommendationss = await axios.get('http://localhost:5000/process_recommendations', {
+            params: {
+              recs: recommendationsResponse.data.recommendations
+            }
+          });
+          console.log(recommendationss.data.recommendations);
+          console.log(recommendationss);
+
+            setRecentSections(recentResponse.data.collections);
+            setRecommendedSections(recommendationss.data.recommendations);
+            setLoading(false);
+          
+         
         } else {
           console.error('No recent sections found');
           setLoading(false);
