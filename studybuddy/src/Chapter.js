@@ -598,7 +598,7 @@ const ChapterPage = () => {
             Saved Responses
           </button>
           <button className="category-btn" onClick={() => navigate('/flashcards')}>Flashcards</button>
-          <button className="category-btn" onClick={() => navigate('/video')}>
+          <button className="category-btn" onClick={() => navigate('/videos')}>
             Video
           </button>
           <button className="category-btn">Presentations</button>
