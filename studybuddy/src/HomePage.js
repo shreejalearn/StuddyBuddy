@@ -3,12 +3,57 @@ import { useNavigate } from 'react-router-dom';
 import Logo from './assets/logo (2).png';
 import axios from 'axios';
 import './styles/homepage.css';
+const CreateSectionModal = ({ recommendation, onClose }) => {
+  const [sectionName, setSectionName] = useState('');
+
+  const handleCreateSection = async () => {
+    try {
+      console.log(sectionName);
+      console.log(recommendation.topicName);
+      console.log(recommendation.sources);
+
+      const response = await axios.post('http://localhost:5000/create_section_from_recommendation', {
+        collection_name: sectionName,
+        username: localStorage.getItem('userName'),
+        section_data: {
+          topicName: recommendation.topicName,
+          sources: recommendation.sources
+        }
+      });
+      console.log(response.data);
+      onClose(); // Close the modal after successful creation
+    } catch (error) {
+      console.error('Error creating section:', error);
+    }
+  };
+
+  return (
+    <div className="modal">
+      <div className="modal-content">
+        <span className="close" onClick={onClose}>&times;</span>
+        <h2>Create New Section</h2>
+        <input
+          type="text"
+          placeholder="Enter section name"
+          value={sectionName}
+          onChange={(e) => setSectionName(e.target.value)}
+        />
+        <button onClick={handleCreateSection}>Create Section</button>
+      </div>
+    </div>
+  );
+};
 
 const RecommendationCard = ({ recommendation }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const handleExpandClick = () => {
     setIsExpanded(!isExpanded);
+  };
+
+  const handleCreateSectionClick = () => {
+    setShowModal(true);
   };
 
   return (
@@ -28,9 +73,11 @@ const RecommendationCard = ({ recommendation }) => {
               </div>
             ))}
           </div>
-          <button className="create-section-button">Create Section</button>
+          <button className="create-section-button" onClick={handleCreateSectionClick}>Create Section</button>
         </div>
       )}
+      {showModal && <CreateSectionModal recommendation={recommendation} onClose={() => setShowModal(false)} />}
+
     </div>
   );
 };
@@ -67,9 +114,7 @@ const HomePage = () => {
               recentSections: recentSectionsString,
             }
           });
-
-          // Debug: Log the fetched recommendations
-          console.log("Fetched Recommendations:", recommendationsResponse.data.recommendations);
+          console.log(recommendationsResponse);
 
           setRecentSections(recentResponse.data.collections);
           setRecommendedSections(recommendationsResponse.data.recommendations);

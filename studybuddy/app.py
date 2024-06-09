@@ -950,6 +950,60 @@ def delete_response():
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+@app.route('/create_section_from_recommendation', methods=['POST'])
+def create_section_from_recommendation():
+    data = request.get_json()
+    print(data)
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    collection_id = data.get('collection_id')
+    section_data = data.get('section_data')
+
+    if not section_data:
+        return jsonify({'error': 'Section data not provided'}), 400
+
+    try:
+        if collection_id:
+            # Add to an existing collection
+            collection_ref = db.collection('collections').document(collection_id)
+            if not collection_ref.get().exists:
+                return jsonify({'error': 'Collection not found'}), 404
+        else:
+            # Create a new collection
+            username = data.get('username')
+            if not username:
+                return jsonify({'error': 'Username not provided'}), 400
+
+            collection_name = data.get('collection_name')
+            if not collection_name:
+                return jsonify({'error': 'Collection name not provided'}), 400
+
+            collection_ref = db.collection('collections').document()
+            collection_ref.set({
+                'collectionIdentification': collection_ref.id,
+                'username': username,
+                'data': {'title': collection_name}
+            })
+
+        # Create the new section
+        new_section_ref = collection_ref.collection('sections').document()
+        new_section_ref.set({
+            'section_name': section_data['topicName'],
+            'created_at': firestore.SERVER_TIMESTAMP,
+        })
+
+        # Add sources as notes
+        for source in section_data['sources']:
+            new_note_ref = new_section_ref.collection('notes_in_section').document()
+            new_note_ref.set({
+                'notes': f"{source['title']}: {source['url']}",
+            })
+
+        return jsonify({'message': 'Section created successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 async def get_recommendations(username, recent_sections):
