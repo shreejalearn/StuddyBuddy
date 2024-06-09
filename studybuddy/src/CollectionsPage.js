@@ -147,7 +147,7 @@ const Collections = () => {
   useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const username = localStorage.getItem('username'); // Use consistent key
+        const username = localStorage.getItem('userName'); // Use consistent key
         if (!username) {
           throw new Error('Username not found in local storage');
         }

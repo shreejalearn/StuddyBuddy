@@ -13,7 +13,7 @@ const HomePage = () => {
   const [addToExisting, setAddToExisting] = useState(true); // Default to adding to existing collection
   const [selectedCollectionId, setSelectedCollectionId] = useState('');
   const [newCollectionName, setNewCollectionName] = useState('');
-
+  
   const username = localStorage.getItem('userName');
   const st = localStorage.getItem('searchTerm');
 
@@ -80,18 +80,20 @@ const HomePage = () => {
         payload = {
           sectionId: sectionId,
           addToExisting: false,
-          collectionName: newCollectionName
+          collectionName: newCollectionName,
+          username: localStorage.getItem('userName')
         };
       }
-      const res= await axios.post('http://localhost:5000/clone_section', {
-        payload
-      });
-      // await axios.post(`http://localhost:5000/clone_section`, payload);
+      console.log(payload);
+
+      const res = await axios.post('http://localhost:5000/clone_section', payload);
+      console.log(res);
       console.log('Section cloned successfully');
     } catch (error) {
       console.error('Error cloning section:', error);
     }
   };
+  
 
   return (
     <div>

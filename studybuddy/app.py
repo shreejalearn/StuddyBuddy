@@ -1021,7 +1021,6 @@ def visibility():
             return jsonify({'error': 'Section not found'}), 404
 
         return jsonify({'section': section.to_dict()})
-
 @app.route('/clone_section', methods=['POST'])
 def clone_section():
     data = request.get_json()
@@ -1033,10 +1032,18 @@ def clone_section():
         return jsonify({'error': 'Section ID not provided'}), 400
 
     try:
-        # Check if the section to clone exists
-        section_ref = db.collection('sections').document(section_id)
-        section_doc = section_ref.get()
-        if not section_doc.exists:
+        # Query all collections to find the section
+        collections = db.collection('collections').stream()
+        for collection in collections:
+            section_ref = collection.reference.collection('sections').document(section_id)
+            section_doc = section_ref.get()
+            if section_doc.exists:
+                # Section found, retrieve associated notes
+                notes_ref = section_ref.collection('notes_in_section')
+                notes = [note.to_dict() for note in notes_ref.stream()]
+                break
+        else:
+            # Section not found in any collection
             return jsonify({'error': 'Section not found'}), 404
 
         # Get the payload data
@@ -1050,29 +1057,45 @@ def clone_section():
             if not collection_id:
                 return jsonify({'error': 'Collection ID not provided'}), 400
 
+            # Check if the specified collection exists
+            collection_ref = db.collection('collections').document(collection_id)
+            if not collection_ref.get().exists:
+                return jsonify({'error': 'Collection not found'}), 404
+
             # Copy the section to the specified collection
-            new_section_ref = db.collection('collections').document(collection_id).collection('sections').document()
+            new_section_ref = collection_ref.collection('sections').document()
             new_section_ref.set(section_doc.to_dict())
+            # Copy associated notes
+            for note in notes:
+                new_note_ref = new_section_ref.collection('notes_in_section').document()
+                new_note_ref.set(note)
 
         else:
             # Create a new collection and add the section to it
+            username = data.get('username')
+            if not username:
+                return jsonify({'error': 'Username not provided'}), 400
+
             collection_name = data.get('collectionName')
             if not collection_name:
                 return jsonify({'error': 'Collection name not provided'}), 400
 
-            # Create a new collection
+            # Create a new collection with the specified username and title
             new_collection_ref = db.collection('collections').document()
-            new_collection_ref.set({'name': collection_name})
+            new_collection_ref.set({'collectionIdentification':new_collection_ref.id,'username': username, 'data': {'title': collection_name}})
 
             # Copy the section to the new collection
             new_section_ref = new_collection_ref.collection('sections').document()
             new_section_ref.set(section_doc.to_dict())
+            # Copy associated notes
+            for note in notes:
+                new_note_ref = new_section_ref.collection('notes_in_section').document()
+                new_note_ref.set(note)
 
         return jsonify({'message': 'Section cloned successfully'}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
 # @app.route('/recommend_sections', methods=['GET'])
 # def recommend_sections():
 #     username = request.args.get('username')
