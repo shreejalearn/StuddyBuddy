@@ -16,6 +16,8 @@ import os
 from sydney import SydneyClient
 from dotenv import load_dotenv
 import firebase_admin
+from transformers import pipeline
+
 from firebase_admin import auth
 import googleapiclient.discovery
 from googleapiclient.discovery import build
@@ -594,6 +596,41 @@ def get_transcript():
 
     return jsonify({'response': transcript_txt})
 
+@app.route('/add_res_to_flashcards', methods=['POST'])
+def add_res_to_flashcards():
+    data = request.json
+    question = data.get('question')
+    answer = data.get('answer')
+    collection_id = data.get('collection_id')
+    section_id = data.get('section_id')
+    parser = PlaintextParser.from_string(answer, Tokenizer("english"))
+    summarizer = LsaSummarizer()
+    tldr = summarizer(parser.document, sentences_count=3)  
+
+    tldr = " ".join(str(sentence) for sentence in tldr)
+
+    if not collection_id or not section_id or not question or not answer:
+        return jsonify({'error': 'Invalid request data. Make sure all fields are provided.'}), 400
+
+    try:
+        # Ensure Firestore client is properly initialized
+        if not db:
+            return jsonify({'error': 'Firestore is not initialized.'}), 500
+
+        # Ensure 'flashcards' collection exists (create it if not)
+        flashcards_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('flashcards')
+
+        # Add flashcard document
+        flashcard_doc_ref = flashcards_collection_ref.document()
+        flashcard_doc_ref.set({'question': question, 'answer': tldr})
+
+        return jsonify({'response': 'Flashcard uploaded successfully'}), 200
+    except Exception as e:
+        # Log the full stack trace for debugging purposes
+        import traceback
+        traceback.print_exc()
+
+        return jsonify({'error': str(e)}), 500
 @app.route('/addflashcard', methods=['POST'])
 def addflashcard():
     request_data = request.get_json()

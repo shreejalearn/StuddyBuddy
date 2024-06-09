@@ -550,6 +550,19 @@ const ChapterPage = () => {
       console.error('Error updating visibility:', error);
     }
   };
+  const addToFlashcards = async () => {
+    try {
+      const r = await axios.post('http://localhost:5000/add_res_to_flashcards', {
+        question: prompt, // Use the user's question as the flashcard question
+        answer: response, // Use the AI's response as the flashcard answer
+        collection_id: collectionId,
+        section_id: chapterId,
+      });
+      console.log('Flashcard added:', r.data);
+    } catch (error) {
+      console.error('Error adding to flashcards:', error);
+    }
+  };
 
   const handleDeleteNote = async (noteId) => {
     try {
@@ -626,6 +639,8 @@ const ChapterPage = () => {
                   <button onClick={handleSaveResponse} disabled={responseSaved}>
                     Save Response
                   </button>
+                  <button onClick={addToFlashcards}>Add to Flashcards</button>
+
                 </div>
               )}
             </div>
