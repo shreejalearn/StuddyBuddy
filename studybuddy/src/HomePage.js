@@ -3,23 +3,45 @@ import { useNavigate } from 'react-router-dom';
 import Logo from './assets/logo (2).png';
 import axios from 'axios';
 import './styles/homepage.css';
+
 const CreateSectionModal = ({ recommendation, onClose }) => {
   const [sectionName, setSectionName] = useState('');
+  const [selectedCollection, setSelectedCollection] = useState('');
+  const [collections, setCollections] = useState([]);
+  const [isNewSection, setIsNewSection] = useState(true);
+
+  useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/get_collections', {
+          params: { username: localStorage.getItem('userName') }
+        });
+        setCollections(response.data.collections);
+      } catch (error) {
+        console.error('Error fetching collections:', error);
+      }
+    };
+
+    fetchCollections();
+  }, []);
 
   const handleCreateSection = async () => {
     try {
-      console.log(sectionName);
-      console.log(recommendation.topicName);
-      console.log(recommendation.sources);
-
-      const response = await axios.post('http://localhost:5000/create_section_from_recommendation', {
-        collection_name: sectionName,
+      const data = {
         username: localStorage.getItem('userName'),
         section_data: {
           topicName: recommendation.topicName,
           sources: recommendation.sources
         }
-      });
+      };
+
+      if (isNewSection) {
+        data.collection_name = sectionName;
+      } else {
+        data.collection_id = selectedCollection;
+      }
+
+      const response = await axios.post('http://localhost:5000/create_section_from_recommendation', data);
       console.log(response.data);
       onClose(); // Close the modal after successful creation
     } catch (error) {
@@ -31,13 +53,45 @@ const CreateSectionModal = ({ recommendation, onClose }) => {
     <div className="modal">
       <div className="modal-content">
         <span className="close" onClick={onClose}>&times;</span>
-        <h2>Create New Section</h2>
-        <input
-          type="text"
-          placeholder="Enter section name"
-          value={sectionName}
-          onChange={(e) => setSectionName(e.target.value)}
-        />
+        <h2>Create New Collection</h2>
+        <div>
+          <input
+            type="radio"
+            id="newSection"
+            name="sectionType"
+            checked={isNewSection}
+            onChange={() => setIsNewSection(true)}
+          />
+          <label htmlFor="newSection">Create New Collection</label>
+        </div>
+        <div>
+          <input
+            type="radio"
+            id="existingSection"
+            name="sectionType"
+            checked={!isNewSection}
+            onChange={() => setIsNewSection(false)}
+          />
+          <label htmlFor="existingSection">Use Existing Collection</label>
+          <select
+            value={selectedCollection}
+            onChange={(e) => setSelectedCollection(e.target.value)}
+            disabled={isNewSection}
+          >
+            <option value="">Select Collection</option>
+            {collections.map(collection => (
+              <option key={collection.id} value={collection.id}>{collection.data.title}</option>
+            ))}
+          </select>
+        </div>
+        {isNewSection && (
+          <input
+            type="text"
+            placeholder="Enter section name"
+            value={sectionName}
+            onChange={(e) => setSectionName(e.target.value)}
+          />
+        )}
         <button onClick={handleCreateSection}>Create Section</button>
       </div>
     </div>

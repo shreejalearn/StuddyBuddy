@@ -990,14 +990,26 @@ def create_section_from_recommendation():
         new_section_ref = collection_ref.collection('sections').document()
         new_section_ref.set({
             'section_name': section_data['topicName'],
-            'created_at': firestore.SERVER_TIMESTAMP,
+            'visibility':'public'
         })
+        link=section_data['sources'][0]['url']
+        response = requests.get(link)
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Add sources as notes
+        # Extract text content from the webpage
+        text_content = ' '.join([p.text for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
+
+        parser = PlaintextParser.from_string(text_content, Tokenizer("english"))
+        summarizer = LsaSummarizer()
+        tldr = summarizer(parser.document, sentences_count=1)  
+
+        tldr = " ".join(str(sentence) for sentence in tldr)
+
         for source in section_data['sources']:
             new_note_ref = new_section_ref.collection('notes_in_section').document()
             new_note_ref.set({
                 'notes': f"{source['title']}: {source['url']}",
+                'tldr': tldr
             })
 
         return jsonify({'message': 'Section created successfully'}), 200
