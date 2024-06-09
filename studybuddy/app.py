@@ -1246,6 +1246,7 @@ async def generatepracticetest():
     response = await practtest()
     return jsonify({'questions': response})
 
+
 # @app.route('/recommend_sections', methods=['GET'])
 # def recommend_sections():
 #     username = request.args.get('username')

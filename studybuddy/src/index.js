@@ -68,6 +68,8 @@ import Chapter from './Chapter';
 import PracticeTest from './PracticeTest';
 import HomePage from './HomePage';
 
+import Flashcard from './Flashcard';
+
 import Login from './Login';
 import Signup from './Signup';
 import PrivateRoutes from './PrivateRoutes';
@@ -93,6 +95,7 @@ function MainApp() {
             <Route path="/practicetest" element={<PracticeTest />} />
             <Route path="/homepage" element={<HomePage />} />
             <Route path="/savedresponses" element={<SavedResponses />} />
+            <Route path="/flashcards" element={<Flashcard />} />
 
           </Route>
           <Route path="/" element={<FillerAuth />} />
