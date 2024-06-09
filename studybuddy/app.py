@@ -594,6 +594,39 @@ def get_transcript():
 
     return jsonify({'response': transcript_txt})
 
+@app.route('/addflashcard', methods=['POST'])
+def addflashcard():
+    request_data = request.get_json()
+
+    collection_id = request_data.get('collectionId')
+    section_id = request_data.get('sectionId')
+    question = request_data.get('question')
+    answer = request_data.get('answer')
+    if not collection_id or not section_id or not question or not answer:
+        return jsonify({'error': 'Invalid request data. Make sure all fields are provided.'}), 400
+
+    try:
+        # Ensure Firestore client is properly initialized
+        if not db:
+            return jsonify({'error': 'Firestore is not initialized.'}), 500
+
+        # Ensure 'flashcards' collection exists (create it if not)
+        flashcards_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('flashcards')
+
+        # Add flashcard document
+        flashcard_doc_ref = flashcards_collection_ref.document()
+        flashcard_doc_ref.set({'question': question, 'answer': answer})
+
+        return jsonify({'response': 'Flashcard uploaded successfully'}), 200
+    except Exception as e:
+        # Log the full stack trace for debugging purposes
+        import traceback
+        traceback.print_exc()
+
+        return jsonify({'error': str(e)}), 500
+
+
+
 @app.route('/process_text', methods=['POST'])
 def process_text():
     collection_id = request.form.get('collection_id')
@@ -778,6 +811,27 @@ def get_notess(collection_id, section_id):
     notes_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
     notes = [note.to_dict().get('notes', '') for note in notes_ref]
     return notes
+
+
+@app.route('/get_flashcards', methods=['GET'])
+def get_flashcards():
+    section_id = request.args.get('section_id')
+    collection_id = request.args.get('collection_id')
+
+    if not section_id or not collection_id:
+        return jsonify({'error': 'Section ID not provided'}), 400
+
+    try:
+        notes = []
+        notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('flashcards').stream()
+        for doc in notes_docs:
+            note_data = doc.to_dict()
+            note_data['id'] = doc.id
+            notes.append(note_data)
+        return jsonify({'flashcards': notes}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/get_notes', methods=['GET'])
 def get_notes():

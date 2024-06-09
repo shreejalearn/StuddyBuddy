@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './styles/flashcard.css';
 
 const FlashcardApp = () => {
@@ -6,7 +6,25 @@ const FlashcardApp = () => {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
 
-  const addFlashcard = () => {
+  useEffect(() => {
+    async function fetchFlashcards() {
+      try {
+        const response = await fetch(`http://localhost:5000/get_flashcards?collection_id=${localStorage.getItem('currentCollection')}&section_id=${localStorage.getItem('currentSection')}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch flashcards');
+        }
+        const data = await response.json();
+        setFlashcards(data.flashcards);
+      } catch (error) {
+        console.error('Error fetching flashcards:', error.message);
+        // Optionally handle error here
+      }
+    }
+
+    fetchFlashcards();
+  }, []);
+
+  const addFlashcard = async () => {
     if (question.trim() === '' || answer.trim() === '') {
       alert('Please enter both question and answer.');
       return;
@@ -15,6 +33,39 @@ const FlashcardApp = () => {
     setFlashcards([...flashcards, { question, answer }]);
     setQuestion('');
     setAnswer('');
+
+    try {
+      console.log(localStorage.getItem('currentCollection'));
+      console.log(localStorage.getItem('currentSection'));
+      console.log(question);
+      console.log(answer);
+
+
+      const response = await fetch('http://localhost:5000/addflashcard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          collectionId: localStorage.getItem('currentCollection'),
+          sectionId: localStorage.getItem('currentSection'),
+          question: question,
+          answer: answer,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(response);
+        throw new Error('Failed to add flashcard');
+
+      }
+
+      // Handle success
+      console.log('Flashcard added successfully!');
+    } catch (error) {
+      console.error('Error adding flashcard:', error.message);
+      // Optionally handle error here
+    }
   };
 
   const studyFlashcards = () => {
