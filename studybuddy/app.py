@@ -1008,7 +1008,7 @@ def create_section_from_recommendation():
         for source in section_data['sources']:
             new_note_ref = new_section_ref.collection('notes_in_section').document()
             new_note_ref.set({
-                'notes': f"{source['title']}: {source['url']}",
+                'notes': f"{text_content}",
                 'tldr': tldr
             })
 
@@ -1062,6 +1062,7 @@ def get_recommendations_endpoint():
 
 def process_recommendations(recommendations_text):
     recommendations = []
+    print(recommendations_text)
     pattern = re.compile(
         r'\*\*(.*?)\*\*:\s*'                # Topic Name
         r'- \*\*Topic\s*Name\*\*:\s*(.*?)'  # Actual Topic Name (redundant)
@@ -1072,8 +1073,9 @@ def process_recommendations(recommendations_text):
     )
 
     matches = pattern.findall(recommendations_text)
-    
+    print(matches)
     for match in matches:
+        print(match)
         topic_name = match[0].strip()
         topic_description = match[2].strip()
         sources = re.findall(r'- \[(.*?)\]\((.*?)\)', match[3].strip())
