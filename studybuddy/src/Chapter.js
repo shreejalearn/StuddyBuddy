@@ -3,7 +3,7 @@ import axios from 'axios';
 import './styles/stuff.css';
 import { useNavigate } from 'react-router-dom';
 
-const Upload = () => {
+const Upload = ({ onUploadSuccess }) => {
   const [rawText, setRawText] = useState('');
   const [response, setResponse] = useState('');
 
@@ -11,21 +11,22 @@ const Upload = () => {
     setRawText(event.target.value);
   };
 
-
   const handleSubmitText = async () => {
     try {
       const formData = new FormData();
       formData.append('raw_text', rawText);
       formData.append('collection_id', localStorage.getItem('currentCollection'));
       formData.append('section_id', localStorage.getItem('currentSection'));
-  
+
       const response = await axios.post('http://localhost:5000/process_text', formData);
       setResponse(response.data.response);
+      onUploadSuccess();
     } catch (error) {
       console.error('Error uploading text:', error);
     }
   };
 
+  
   return (
     <div>
       <textarea
@@ -42,14 +43,13 @@ const Upload = () => {
 };
 
 
-const UploadLink = () => {
+const UploadLink = ({ onUploadSuccess }) => {
   const [link, setLink] = useState('');
   const [response, setResponse] = useState('');
 
   const handleLinkChange = (event) => {
     setLink(event.target.value);
   };
-
 
   const handleUploadLink = async () => {
     try {
@@ -60,6 +60,7 @@ const UploadLink = () => {
 
       const response = await axios.post('http://localhost:5000/process_link', formData);
       setResponse(response.data.response);
+      onUploadSuccess();
     } catch (error) {
       console.error('Error uploading link:', error);
     }
@@ -80,7 +81,7 @@ const UploadLink = () => {
 };
 
 
-const UploadPDF = () => {
+const UploadPDF = ({ onUploadSuccess }) => {
   const [pdfFile, setPdfFile] = useState(null);
   const [response, setResponse] = useState('');
 
@@ -107,6 +108,7 @@ const UploadPDF = () => {
       });
 
       setResponse(response.data.response);
+      onUploadSuccess();
     } catch (error) {
       console.error('Error uploading PDF:', error);
     }
@@ -495,6 +497,7 @@ const ChapterPage = () => {
           section_id: chapterId,
         },
       });
+      
       setNotes(updatedNotesResponse.data.notes);
       closeUploadModal();
     } catch (error) {
@@ -589,7 +592,7 @@ const ChapterPage = () => {
           ))}
         </div>
       </div>
-      <div className="main-content">
+      <div className="content">
         <div className="tabs">
           <button className="category-btn" onClick={() => navigate('/savedresponses')}>
             Saved Responses

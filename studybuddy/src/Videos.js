@@ -13,43 +13,8 @@ const VideoPage = () => {
   const [notes, setNotes] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedNotes, setSelectedNotes] = useState([]);
+  const [askSpecificResponse, setAskSpecificResponse] = useState(null);
 
-  const sample = `        Sydney: [1]: https://www.freecodecamp.org/news/functions-in-python-a-beginners-guide/ ""
-        [2]: https://www.classes.cs.uchicago.edu/archive/2021/spring/11111-1/happycoding/p5js/creating-functions.html ""
-        [3]: https://happycoding.io/tutorials/processing/creating-functions ""
-        [4]: https://learn-javascript.dev/docs/functions/ ""
-        [5]: https://en.wikipedia.org/wiki/Decomposition_%28computer_science%29 ""
-        [6]: https://cs.stanford.edu/people/nick/compdocs/Decomposition_and_Style.pdf ""
-        [7]: https://www.knowitallninja.com/lessons/decomposition/ ""
-        [8]: https://jarednielsen.com/decomposition/ ""
-        [9]: https://www.geeksforgeeks.org/while-loop-in-programming/ ""
-        [10]: https://www.geeksforgeeks.org/loops-programming/ ""
-        [11]: https://en.wikipedia.org/wiki/While_loop ""
-        [12]: https://www.geeksforgeeks.org/while-loop-syntax/ ""
-        [13]: https://www.geeksforgeeks.org/for-loop-in-programming/ ""
-        [14]: https://en.wikipedia.org/wiki/For_loop ""
-        [15]: https://press.rebus.community/programmingfundamentals/chapter/for-loop/ ""
-
-        Certainly! Let's break down each concept and identify key search phrases for relevant static images:
-
-        1. **Creating Functions**:
-            - Search phrases: "defining functions in Python," "user-defined functions," "function parameters," "return statement."
-            - Summary: Functions in programming allow you to encapsulate reusable code. They take input (parameters), perform specific tasks, and optionally return a result. The syntax for defining a function in Python is straightforward: "def function_name(parameters):". The body of the function contains the code to be executed when the function is called[^1^][1].
-
-        2. **Decomposition**:
-            - Search phrases: "Algorithmic decomposition," "structured analysis," "object-oriented decomposition," "functional decomposition."
-            - Summary: Decomposition involves breaking down complex problems or systems into smaller, manageable parts. Different types of decomposition exist, including algorithmic decomposition (structured steps), structured analysis (system functions and data entities), and object-oriented decomposition (classes or objects). Functional decomposition replaces a system's functional model with subsystem models[^2^][5].
-
-        3. **While Loops**:
-            - Search phrases: "While loop in programming," "entry-controlled loops," "condition-based repetition."
-            - Summary: While loops execute a block of code repeatedly as long as a specified condition remains true. They evaluate the condition before each iteration, execute the code block if the condition is true, and terminate when the condition becomes false. Useful for uncertain or dynamically changing situations[^3^][9].
-
-        4. **For Loops**:
-            - Search phrases: "For loop in programming," "iterating over a sequence," "fixed number of iterations."
-            - Summary: For loops execute a set of statements repetitively based on a specified condition. They are commonly used when you know how many times you want to execute a block of code. The syntax includes initialization, condition, and increment (or decrement) components. Useful for iterating over sequences or performing a fixed number of tasks[^4^][13].
-
-        Feel free to use these search phrases to find relevant static images that enhance student comprehension!
-        `
   useEffect(() => {
     const fetchVideoPaths = async () => {
       try {
@@ -60,11 +25,11 @@ const VideoPage = () => {
           },
         });
         setVideoPaths(response.data.videoPaths);
+        console.log(response.data.videoPaths)
       } catch (error) {
         console.error('Error fetching video paths:', error);
       }
     };
-
     const fetchNotes = async () => {
       try {
         const response = await axios.get('http://localhost:5000/get_notes', {
@@ -80,20 +45,31 @@ const VideoPage = () => {
     };
 
     fetchVideoPaths();
+
     fetchNotes();
   }, [collectionId, sectionId]);
 
   const handleGenerateVideo = async () => {
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/generate_video_from_notes', {
+      // Call ask_specific endpoint
+      const askSpecificResponse = await axios.post('http://localhost:5000/ask_specific', {
         collection_id: collectionId,
         section_id: sectionId,
         selected_notes: selectedNotes
-        // selected_notes: sample
       });
-      if (response.data.video_path) {
-        setVideoPaths(prevPaths => [...prevPaths, { path: response.data.video_path }]);
+      // Set the response from ask_specific endpoint
+      setAskSpecificResponse(askSpecificResponse.data.response);
+      console.log(askSpecificResponse.data.response)
+      // Call generate_video_from_notes endpoint with the response from ask_specific
+      const generateVideoResponse = await axios.post('http://localhost:5000/generate_video_from_notes', {
+        notes: askSpecificResponse.data.response,
+        collection_id: collectionId,
+        section_id: sectionId,
+      });
+      
+      if (generateVideoResponse.data.video_path) {
+        setVideoPaths(prevPaths => [...prevPaths, { path: generateVideoResponse.data.video_path }]);
       }
     } catch (error) {
       console.error('Error generating video:', error);
@@ -117,7 +93,10 @@ const VideoPage = () => {
       <div className="video-list">
         {videoPaths.map((video, index) => (
           <div key={index} className="video-item">
-            <a href={video.path} target="_blank" rel="noopener noreferrer">Video {index + 1}</a>
+            <video controls>
+              <source src={video.path} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
         ))}
       </div>

@@ -34,6 +34,8 @@ from transformers import pipeline
 import uuid
 import re
 import requests
+from datetime import datetime
+
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
 from fastcore.all import *
@@ -194,96 +196,116 @@ def get_video_paths():
     video_paths_list = [video.to_dict() for video in video_paths]
     
     return jsonify({'videoPaths': video_paths_list})
+nlp = spacy.load("en_core_web_sm")
 
-def extract_main_concepts(text):
-    # Process the text with spaCy
-    doc = nlp(text)
-    
-    # Initialize an empty list to store main concepts
-    main_concepts = []
-    
-    # Iterate over each noun chunk in the document
-    for chunk in doc.noun_chunks:
-        # Extract the text of the noun chunk
-        chunk_text = chunk.text.strip()
-        # Extract only the first word as the main concept
-        main_concept = re.match(r'^\w+', chunk_text)
-        if main_concept:
-            main_concepts.append(main_concept.group())
-    
-    return main_concepts
 def generate_audio(text):
     tts = gTTS(text=text, lang='en')
     return tts
 
-# Function to search for images based on a given term
 def search_images(term, max_images=30):
     print(f"Searching for '{term}'")
     ddgs = DDGS()
-    return L(ddgs.images(keywords=term, max_results=max_images)).itemgot('image')
+    return [result['image'] for result in ddgs.images(keywords=term, max_results=max_images)]
 
-# Function to download an image from a URL
+
 def download_image(url, folder):
     filename = os.path.join(folder, os.path.basename(url))
-    with open(filename, 'wb') as f:
+    try:
         response = requests.get(url)
-        f.write(response.content)
-    return filename
+        response.raise_for_status()
+        with open(filename, 'wb') as f:
+            f.write(response.content)
+        # Verify the image
+        with Image.open(filename) as img:
+            img.verify()
+        return filename
+    except Exception as e:
+        print(f"Error downloading or verifying image {url}: {e}")
+        return None
 
 def resize_images(image_paths, output_folder, target_size=(1280, 720)):
     resized_paths = []
-    
-    # Create the output folder if it doesn't exist
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    
     for image_path in image_paths:
-        image = Image.open(image_path)
-        image = image.resize(target_size)  # Apply anti-aliasing here
-        resized_path = os.path.join(output_folder, os.path.basename(image_path))
-        image.save(resized_path)
-        resized_paths.append(resized_path)
-    
+        if not os.path.exists(image_path):
+            print(f"Image file {image_path} does not exist. Skipping.")
+            continue
+        try:
+            image = Image.open(image_path)
+            image = image.resize(target_size)
+            resized_path = os.path.join(output_folder, os.path.basename(image_path))
+            image.save(resized_path)
+            resized_paths.append(resized_path)
+        except Exception as e:
+            print(f"Error processing image {image_path}: {e}")
     return resized_paths
 
-def calculate_reading_time(text, wpm=200):
-    words = len(text.split())
-    reading_time_minutes = words / wpm
-    return reading_time_minutes * 60  # convert to seconds
+
+def extract_concepts_and_summaries(text):
+    concepts = {}
+    current_concept = None
+    current_search_phrases = []
+    current_summary = []
+
+    lines = text.strip().split('\n')
+    for line in lines:
+        line = line.strip()
+        print(f"Processing line: {line}")
+        if re.match(r'^\d+\.\s\*\*.*\*\*:$', line):  # Match lines like "1. **Creating Functions**:"
+            if current_concept:
+                concepts[current_concept] = {
+                    "search_phrases": current_search_phrases,
+                    "summary": ' '.join(current_summary)
+                }
+            current_concept = line.split('**')[1].strip()
+            current_search_phrases = []
+            current_summary = []
+            print(f"New concept detected: {current_concept}")
+        elif line.startswith("- Search phrases:"):
+            phrases = re.findall(r'"(.*?)"', line)
+            current_search_phrases.extend(phrases)
+            print(f"Search phrases found: {current_search_phrases}")
+        elif line.startswith("- Summary:"):
+            current_summary.append(line.split(":", 1)[1].strip())
+            print(f"Summary found: {current_summary}")
+        else:
+            if current_concept:
+                current_summary.append(line.strip())
+    
+    if current_concept:
+        concepts[current_concept] = {
+            "search_phrases": current_search_phrases,
+            "summary": ' '.join(current_summary)
+        }
+    
+    return concepts
 
 @app.route('/generate_video_from_notes', methods=['POST'])
 def generate_video_from_notes():
     try:
-        collection_id = request.json.get('collection_id')
-        section_id = request.json.get('section_id')
-        selected_notes = request.json.get('selected_notes')
-        
-        if not collection_id or not section_id or not selected_notes:
-            return jsonify({'error': 'Collection ID, Section ID, or Note IDs not provided'}), 400
+        data = request.get_json()
+        notes = data.get('notes')
+        collection_id = data.get('collection_id')
+        section_id = data.get('section_id')
 
-        
-        response = ""
-        for note in selected_notes:
-            response += note
-        print(f"Constructed response: {response}")
-# Parse the response and extract concept names, search phrases, and summaries
-        matches = re.findall(r"\*\*([^*]+)\*\*:.*?Search\s*phrases:\s*\"(.*?)\".*?Summary:\s*(.*?)(?:\[|$)", response)
+        concepts = extract_concepts_and_summaries(notes)
 
-        print('matches: '+str(matches))
-        # Create a dictionary to store the concepts, search phrases, and summaries
-        concepts = {}
+        # Debugging: Print the extracted concepts and summaries
+        print("Extracted Concepts and Summaries:")
+        for concept, data in concepts.items():
+            print(f"Concept: {concept}")
+            print(f"Search Phrases: {data['search_phrases']}")
+            print(f"Summary: {data['summary']}")
+            print("-----")
 
-        # Populate the dictionry with the extracted information
-        for match in matches:
-            concept_name = match[0].strip()
-            search_phrases = match[1].strip().split('", "')
-            summary = match[2].strip()
-            concepts[concept_name] = {"search_phrases": search_phrases, "summary": summary}
+        # Exit if no concepts were extracted
+        if not concepts:
+            print("No concepts were extracted. Exiting.")
+            return
 
-        # Create a list to store the paths of downloaded images
         image_paths = []
 
-        # Fetch relevant images for each concept
         for concept, data in concepts.items():
             concept_images = []
             for phrase in data["search_phrases"]:
@@ -292,19 +314,17 @@ def generate_video_from_notes():
                     concept_images.append(images[0])
             concepts[concept]["images"] = concept_images
 
-            # Download images
             print(f"Downloading images for concept: {concept}")
             concept_folder = os.path.join(os.getcwd(), "images", concept)
             os.makedirs(concept_folder, exist_ok=True)
             for i, image_url in enumerate(data['images']):
                 image_path = download_image(image_url, concept_folder)
-                image_paths.append(image_path)
-                print(f"Downloaded image {i + 1}: {image_path}")
+                if image_path:
+                    image_paths.append(image_path)
+                    print(f"Downloaded image {i + 1}: {image_path}")
 
-        # Resize the downloaded images
         image_paths = resize_images(image_paths, "resized_images")
 
-        # Process each concept and its summary
         concept_audio_paths = []
         concept_video_clips = []
 
@@ -314,37 +334,36 @@ def generate_video_from_notes():
             image_durations = []
             image_clips = []
 
-            # Generate audio for the summary
             tts = generate_audio(summary)
             audio_path = f"audio_{concept}.mp3"
             tts.save(audio_path)
             concept_audio_paths.append(audio_path)
 
-            # Load the audio file to get its duration
             audio_clip = AudioFileClip(audio_path)
             audio_duration = audio_clip.duration
 
-            # Calculate duration for each image
             duration_per_image = audio_duration / len(images)
             for i, image in enumerate(images):
                 image_path = os.path.join("resized_images", os.path.basename(image))
-                image_clips.append((image_path, duration_per_image))
+                if os.path.exists(image_path):
+                    image_clips.append((image_path, duration_per_image))
 
-            # Create video clips for each image with the respective duration
             for image_path, duration in image_clips:
                 img_clip = ImageSequenceClip([image_path], durations=[duration])
                 concept_video_clips.append(img_clip)
 
-        # Concatenate all video clips and set the audio
         final_video_clip = concatenate_videoclips(concept_video_clips)
         final_audio_clip = concatenate_audioclips([AudioFileClip(p) for p in concept_audio_paths])
         final_video_clip = final_video_clip.set_audio(final_audio_clip)
 
-        # Write the final video file
-        output_video_path = "output_video.mp4"
-        final_video_clip.write_videofile(output_video_path, fps=24)
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
-        return jsonify({'video_path': 'final_video.mp4'})
+
+        output_video_path = f"{collection_id}_{section_id}_final_video_{timestamp}.mp4"
+        final_video_clip.write_videofile(f"./src/{output_video_path}", fps=24)
+        db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('videos').add({'video_path': output_video_path})
+
+        return jsonify({'video_path': output_video_path})
 
     except Exception as e:
         print(f"Error generating video: {e}")
@@ -467,13 +486,50 @@ def delete_note():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/ask_specific', methods=['POST'])
+async def ask_specific():
+    collection_id = request.json.get('collection_id')
+    section_id = request.json.get('section_id')
+    selected_notes = request.json.get('selected_notes')
+        
+    if not collection_id or not section_id or not selected_notes:
+        return jsonify({'error': 'Collection ID, Section ID, or Note IDs not provided'}), 400
 
+    response = ""
+    for note in selected_notes:
+        response += note
+
+    loop = asyncio.get_event_loop()
+    examp = '''
+        1. **Main Concept**:
+            - Search phrases: "," "," "," "."
+            - Summary: 
+        2. **Main Concept**:
+                    - Search phrases: "," "," "," "."
+                    - Summary: 
+        3. **Main Concept**:
+                    - Search phrases: "," "," "," "."
+                    - Summary: 
+        4. **Main Concept**:
+                    - Search phrases: "," "," "," "."
+                    - Summary: 
+
+      
+    '''
+
+    response_task = await ask_sydney_with_retry("I am generating a video based on these notes that I have: " + response + ". Give me search phrases to generate meaningful pictures from the main concepts and a summary, it should have the same format as this example: " + examp)
+    # print(response_task)
+    # video_task = generate_video_from_notes(str(response_task))
+
+
+    return jsonify({'response': response_task})
 @app.route('/answer_question', methods=['GET','POST'])
 def answer_question():
     data = request.json  
     username = data.get('username')
     user_class = data.get('class')
-    question = data.get('data')
+    question = data.get('data'
+                        )
 
     if not username or not user_class:
         return jsonify({'error': 'Username or class not provided'})
@@ -542,11 +598,17 @@ def process_text():
     collection_id = request.form.get('collection_id')
     section_id = request.form.get('section_id')
     raw_text = request.form.get('raw_text')
+    parser = PlaintextParser.from_string(raw_text, Tokenizer("english"))
+    summarizer = LsaSummarizer()
+    tldr = summarizer(parser.document, sentences_count=1)  
+
+    tldr = " ".join(str(sentence) for sentence in tldr)
+
 
     try:
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
         note_ref = notes_collection_ref.document()
-        note_ref.set({'notes': raw_text, 'tldr': "Raw Text Uploaded"})
+        note_ref.set({'notes': raw_text, 'tldr': f"Raw Text: {tldr}"})
         
         return jsonify({'response': 'Raw text uploaded successfully'})
     except Exception as e:
@@ -596,11 +658,20 @@ def process_pdf():
         for page_num in range(len(pdf_reader.pages)):
             page = pdf_reader.pages[page_num]
             text_content += page.extract_text()
+            
+
+        parser = PlaintextParser.from_string(text_content, Tokenizer("english"))
+        summarizer = LsaSummarizer()
+        tldr = summarizer(parser.document, sentences_count=1)  
+
+        tldr = " ".join(str(sentence) for sentence in tldr)
+
+
         
         # Save the text content to Firestore
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
         note_ref = notes_collection_ref.document()
-        note_ref.set({'notes': text_content, 'tldr': "Text from PDF Uploaded"})
+        note_ref.set({'notes': text_content, 'tldr': f"PDF: {tldr}"})
         
         return jsonify({'response': 'PDF text uploaded successfully'}), 200
     except PyPDF2.utils.PdfReadError:
@@ -622,10 +693,16 @@ def process_link():
         # Extract text content from the webpage
         text_content = ' '.join([p.text for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
 
+        parser = PlaintextParser.from_string(text_content, Tokenizer("english"))
+        summarizer = LsaSummarizer()
+        tldr = summarizer(parser.document, sentences_count=1)  
+
+        tldr = " ".join(str(sentence) for sentence in tldr)
+
         # Save the text content to Firestore
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
         note_ref = notes_collection_ref.document()
-        note_ref.set({'notes': text_content, 'tldr': "Text from Link Uploaded"})
+        note_ref.set({'notes': text_content, 'tldr': f"Text from Link: {tldr}"})
         
         return jsonify({'response': 'Text and headings uploaded successfully'})
     except Exception as e:
@@ -716,6 +793,7 @@ def get_notes():
             for doc in notes_docs:
                 note_data = doc.to_dict()
                 note_data['id'] = doc.id
+                notes.append(note_data)
         return jsonify({'notes': notes}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -927,11 +1005,18 @@ def add_to_notes():
 
         if response_doc.exists:
             response_data = response_doc.to_dict()
+            parser = PlaintextParser.from_string(response_data['data'], Tokenizer("english"))
+            summarizer = LsaSummarizer()
+            tldr = summarizer(parser.document, sentences_count=1)  
+
+            tldr = " ".join(str(sentence) for sentence in tldr)
+
+            print(tldr)
 
             notes_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').document()
             notes_ref.set({
                 'notes': response_data['data'],
-                'tldr': response_data['Saved Response: '+'tldr']
+                'tldr': f"Sydney AI Response: {tldr}"
             })
 
             response_ref.delete()
@@ -985,21 +1070,35 @@ async def generate_qna():
         if not all_text:
             return jsonify({'error': 'No notes found in the specified section'}), 404
 
-        keywords = await get_keywords(all_text, 't')
-        qa_pairs = []
-        answer_dict = OrderedDict()
+        # keywords = await get_keywords(all_text, 't')
+        # qa_pairs = []
+        # answer_dict = OrderedDict()
 
-        for answer, context in keywords:
-            if len(qa_pairs) >= num_questions:
-                break
-            question = await generate_question(context, answer)
-            # if answer not in answer_dict:
-            #     answer_dict[answer] = question
-            #     qa_pairs.append({'question': question, 'answer': answer})
-            answer_dict[answer] = question
-            qa_pairs.append({'question': question, 'answer': answer})
+        # for answer, context in keywords:
+        #     if len(qa_pairs) >= num_questions:
+        #         break
+        #     question = await generate_question(context, answer)
+        #     # if answer not in answer_dict:
+        #     #     answer_dict[answer] = question
+        #     #     qa_pairs.append({'question': question, 'answer': answer})
+        #     answer_dict[answer] = question
+        #     qa_pairs.append({'question': question, 'answer': answer})
 
-        return jsonify({'qa_pairs': qa_pairs}), 200
+        # return jsonify({'qa_pairs': qa_pairs}), 200
+        async with SydneyClient() as sydney:
+            question = f'''
+            Task: Generate 10 practice test questions based on the following notes. The question should cover the main topics. Ensure the question is of difficulty difficulty and is question_type.
+
+            Notes:
+            {all_text}
+
+            Question Format: Multiple Choice
+            Question: [Your question here]
+            Options: [Option 1, Option 2, Option 3, Option 4]
+            Answer: [Correct answer]
+            '''
+            response = await sydney.ask(question, citations=True)
+            return jsonify({'r': response}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1047,7 +1146,6 @@ def visibility():
             return jsonify({'error': 'Section not found'}), 404
 
         return jsonify({'section': section.to_dict()})
-
 @app.route('/clone_section', methods=['POST'])
 def clone_section():
     data = request.get_json()
@@ -1059,10 +1157,18 @@ def clone_section():
         return jsonify({'error': 'Section ID not provided'}), 400
 
     try:
-        # Check if the section to clone exists
-        section_ref = db.collection('sections').document(section_id)
-        section_doc = section_ref.get()
-        if not section_doc.exists:
+        # Query all collections to find the section
+        collections = db.collection('collections').stream()
+        for collection in collections:
+            section_ref = collection.reference.collection('sections').document(section_id)
+            section_doc = section_ref.get()
+            if section_doc.exists:
+                # Section found, retrieve associated notes
+                notes_ref = section_ref.collection('notes_in_section')
+                notes = [note.to_dict() for note in notes_ref.stream()]
+                break
+        else:
+            # Section not found in any collection
             return jsonify({'error': 'Section not found'}), 404
 
         # Get the payload data
@@ -1076,29 +1182,45 @@ def clone_section():
             if not collection_id:
                 return jsonify({'error': 'Collection ID not provided'}), 400
 
+            # Check if the specified collection exists
+            collection_ref = db.collection('collections').document(collection_id)
+            if not collection_ref.get().exists:
+                return jsonify({'error': 'Collection not found'}), 404
+
             # Copy the section to the specified collection
-            new_section_ref = db.collection('collections').document(collection_id).collection('sections').document()
+            new_section_ref = collection_ref.collection('sections').document()
             new_section_ref.set(section_doc.to_dict())
+            # Copy associated notes
+            for note in notes:
+                new_note_ref = new_section_ref.collection('notes_in_section').document()
+                new_note_ref.set(note)
 
         else:
             # Create a new collection and add the section to it
+            username = data.get('username')
+            if not username:
+                return jsonify({'error': 'Username not provided'}), 400
+
             collection_name = data.get('collectionName')
             if not collection_name:
                 return jsonify({'error': 'Collection name not provided'}), 400
 
-            # Create a new collection
+            # Create a new collection with the specified username and title
             new_collection_ref = db.collection('collections').document()
-            new_collection_ref.set({'name': collection_name})
+            new_collection_ref.set({'collectionIdentification':new_collection_ref.id,'username': username, 'data': {'title': collection_name}})
 
             # Copy the section to the new collection
             new_section_ref = new_collection_ref.collection('sections').document()
             new_section_ref.set(section_doc.to_dict())
+            # Copy associated notes
+            for note in notes:
+                new_note_ref = new_section_ref.collection('notes_in_section').document()
+                new_note_ref.set(note)
 
         return jsonify({'message': 'Section cloned successfully'}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
 # @app.route('/recommend_sections', methods=['GET'])
 # def recommend_sections():
 #     username = request.args.get('username')
