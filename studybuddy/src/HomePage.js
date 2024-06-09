@@ -4,11 +4,42 @@ import Logo from './assets/logo (2).png';
 import axios from 'axios';
 import './styles/homepage.css';
 
+const RecommendationCard = ({ recommendation }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleExpandClick = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  return (
+    <div className="recommendation-card">
+      <div className="card-title" onClick={handleExpandClick}>
+        {recommendation.topicName}
+      </div>
+      {isExpanded && (
+        <div className="card-content">
+          <p>{recommendation.topicDescription}</p>
+          <div className="sources">
+            {recommendation.sources.map((source, index) => (
+              <div key={index}>
+                <a href={source.url} target="_blank" rel="noopener noreferrer">
+                  {source.title}
+                </a>
+              </div>
+            ))}
+          </div>
+          <button className="create-section-button">Create Section</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const HomePage = () => {
   const navigate = useNavigate();
   const [recentSections, setRecentSections] = useState([]);
-  const [recommendedSections, setRecommendedSections] = useState('');
-  const [loading, setLoading] = useState(true); // Loading state
+  const [recommendedSections, setRecommendedSections] = useState([]);
+  const [loading, setLoading] = useState(true);
   const username = localStorage.getItem('userName');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -17,43 +48,45 @@ const HomePage = () => {
       localStorage.setItem('searchTerm', searchTerm);
       navigate(`/publicsections`);
     }
-  }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const recentResponse = await axios.get('http://localhost:5000/get_my_sections_recent', {
-          params: { username: username } 
+          params: { username: username }
         });
-  
+
         if (recentResponse.data.collections && recentResponse.data.collections.length > 0) {
           const recentSectionsTitles = recentResponse.data.collections.map(collection => collection.title);
           const recentSectionsString = recentSectionsTitles.join(', ');
-          console.log(recentSectionsString);
-  
+
           const recommendationsResponse = await axios.get('http://localhost:5000/recommendations', {
-            params: { 
+            params: {
               username: username,
               recentSections: recentSectionsString,
-            } 
+            }
           });
-  
+
+          // Debug: Log the fetched recommendations
+          console.log("Fetched Recommendations:", recommendationsResponse.data.recommendations);
+
           setRecentSections(recentResponse.data.collections);
           setRecommendedSections(recommendationsResponse.data.recommendations);
-          setLoading(false); // Set loading to false when data is fetched
+          setLoading(false);
         } else {
           console.error('No recent sections found');
-          setLoading(false); // Set loading to false even if no recent sections found
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        setLoading(false); // Set loading to false on error
+        setLoading(false);
       }
     };
-  
+
     fetchData();
   }, [username]);
-  
+
   const handleSectionClick = (sectionId, collId, title, colName) => {
     localStorage.setItem('chapterId', sectionId);
     localStorage.setItem('collectionId', collId);
@@ -62,7 +95,6 @@ const HomePage = () => {
 
     navigate(`/chapter`);
   };
-  
 
   return (
     <div>
@@ -85,7 +117,7 @@ const HomePage = () => {
       </nav>
       <div className="main">
         <h1>Study Buddy</h1>
-        {loading ? ( // Render loading spinner if loading is true
+        {loading ? (
           <div className="loading-spinner"></div>
         ) : (
           <>
@@ -99,8 +131,10 @@ const HomePage = () => {
             </div>
 
             <p>Learning Paths For You</p>
-            <div className="recommendations-text">
-              <p>{recommendedSections}</p>
+            <div className="recommendations-container">
+              {recommendedSections.map((rec, index) => (
+                <RecommendationCard key={index} recommendation={rec} />
+              ))}
             </div>
           </>
         )}

@@ -978,6 +978,7 @@ async def get_recommendations(username, recent_sections):
         response = await sydney.ask(question, citations=True)
         return response
 
+
 @app.route('/recommendations', methods=['GET'])
 def get_recommendations_endpoint():
     username = request.args.get('username')
@@ -987,8 +988,38 @@ def get_recommendations_endpoint():
         return jsonify({'error': 'Username not provided'}), 400
 
     recommendations = asyncio.run(get_recommendations(username, recent_sections))
-    return jsonify({'recommendations': recommendations})
+    
+    structured_recommendations = process_recommendations(recommendations)
+    
+    return jsonify({'recommendations': structured_recommendations})
 
+def process_recommendations(recommendations_text):
+    recommendations = []
+    pattern = re.compile(
+        r'\*\*(.*?)\*\*:\s*'                # Topic Name
+        r'- \*\*Topic\s*Name\*\*:\s*(.*?)'  # Actual Topic Name (redundant)
+        r'- \*\*Topic\s*Description\*\*:\s*(.*?)'  # Topic Description
+        r'- \*\*Sources\*\*:\s*'            # Sources label
+        r'((?:- \[.*?\]\(.*?\)\s*)+)',       # One or more sources
+        re.DOTALL
+    )
+
+    matches = pattern.findall(recommendations_text)
+    
+    for match in matches:
+        topic_name = match[0].strip()
+        topic_description = match[2].strip()
+        sources = re.findall(r'- \[(.*?)\]\((.*?)\)', match[3].strip())
+
+        sources_list = [{'title': source[0], 'url': source[1]} for source in sources]
+
+        recommendations.append({
+            'topicName': topic_name,
+            'topicDescription': topic_description,
+            'sources': sources_list
+        })
+    
+    return recommendations
 @app.route('/add_response_to_notes', methods=['POST'])
 def add_to_notes():
     data = request.get_json()
