@@ -1340,10 +1340,23 @@ async def generate_qna():
             Answer: [Correct answer]
             '''
             response = await sydney.ask(question, citations=True)
-            
-            return jsonify({'r': response}), 200
+         
+         
+            question_pattern = re.compile(r"\d+\.\s\*\*Question\*\*:\s(.*?)\n((?:\s+-\s.*?\n)*?)\s+-\s\*\*Answer\*\*:\s(.*?)\n", re.DOTALL)
+
+            matches = question_pattern.findall(response)
+
+            qna_pairs = []
+            for match in matches:
+                question = match[0].strip()
+                options = [option.strip() for option in match[1].strip().split("\n")]
+                answer = match[2].strip()
+                qna_pairs.append({"question": question, "options": options, "answer": answer})
+
+            return jsonify({'r': qna_pairs}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/section_visibility', methods=['GET', 'POST'])

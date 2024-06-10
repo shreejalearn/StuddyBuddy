@@ -17,29 +17,12 @@ const QuizComponent = () => {
             const response = await axios.post('http://localhost:5000/generate_qna', {
                 collection_id: collectionId,
                 section_id: chapterId,
-                num_questions: numQuestions // Use selected number of questions
+                num_questions: 10 
             });
             console.log(response);
             console.log(response.data.r);
-            const qnaPairs = [];
-            const regex = /- Question: (.*?)(?=\n\s*- Answer:|$)/gs;
-            const answerRegex = /- Answer: (.*?)(?=\n\s*-|$)/gs;
-            let match;
-            let index = 1;
 
-            while ((match = regex.exec(response.data.r)) !== null) {
-                const question = match[0].trim();
-                const answerMatch = answerRegex.exec(response.data.r);
-                const answer = answerMatch ? answerMatch[1].trim() : 'No answer provided';
-                qnaPairs.push({ question, answer });
-                index++;
-                console.log(question, answer);
-                if (index > numQuestions) break; // Stop iterating when desired number of questions is reached
-            }
-            
-            console.log(qnaPairs);
-
-            setQuestions(qnaPairs);
+            setQuestions(response.data.r);
             setShowResults(false);
             setUserAnswers({});
             setCorrectAnswers({});
@@ -48,6 +31,7 @@ const QuizComponent = () => {
             console.error('Error fetching questions:', error);
         }
     };
+
 
     const handleAnswerChange = (e, index) => {
         setUserAnswers({
@@ -68,25 +52,27 @@ const QuizComponent = () => {
     return (
         <div>
             <h1>Practice Test</h1>
-            <label>
-                Number of Questions:
-                <input
-                    type="number"
-                    value={numQuestions}
-                    onChange={(e) => setNumQuestions(parseInt(e.target.value))}
-                />
-            </label>
+         
             <button onClick={fetchQuestions}>Generate Questions</button>
             {questions.length > 0 && (
                 <div>
                     {questions.map((q, index) => (
                         <div key={index}>
                             <p>{q.question}</p>
-                            <input
-                                type="text"
-                                value={userAnswers[index] || ''}
-                                onChange={(e) => handleAnswerChange(e, index)}
-                            />
+                            {q.options && q.options.map((option, optionIndex) => (
+                                <div key={optionIndex}>
+                                    <label>
+                                        <input
+                                            type="radio"
+                                            name={`question-${index}`}
+                                            value={option}
+                                            checked={userAnswers[index] === option}
+                                            onChange={(e) => handleAnswerChange(e, index)}
+                                        />
+                                        {option}
+                                    </label>
+                                </div>
+                            ))}
                         </div>
                     ))}
                     <button onClick={handleSubmit}>Submit</button>
@@ -99,8 +85,8 @@ const QuizComponent = () => {
                         <div key={index}>
                             <p>{q.question}</p>
                             <p>Your answer: {userAnswers[index]}</p>
-                            <p>Correct answer: {correctAnswers[index]}</p>
-                            <p>{userAnswers[index] && userAnswers[index].toLowerCase().includes(correctAnswers[index].toLowerCase()) ? 'Correct' : 'Incorrect'}</p>
+                            <p>Correct answer: {q.answer}</p>
+                            <p>{userAnswers[index] && userAnswers[index].toLowerCase().includes(q.answer.toLowerCase()) ? 'Correct' : 'Incorrect'}</p>
                         </div>
                     ))}
                 </div>
