@@ -5,6 +5,7 @@ const FlashcardApp = () => {
   const [flashcards, setFlashcards] = useState([]);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
+  const [suggestedFlashcards, setSuggestedFlashcards] = useState([]);
 
   useEffect(() => {
     async function fetchFlashcards() {
@@ -20,8 +21,33 @@ const FlashcardApp = () => {
         // Optionally handle error here
       }
     }
+    const suggestFlashcards = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/suggestflashcards', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            collectionId: localStorage.getItem('currentCollection'),
+            sectionId: localStorage.getItem('currentSection'),
+          }),
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to suggest flashcards');
+        }
+  
+        const data = await response.json();
+        setSuggestedFlashcards(data.flashcards);
 
+        console.log('Suggested flashcards:', data.response);
+      } catch (error) {
+        console.error('Error suggesting flashcards:', error.message);
+      }
+    };
     fetchFlashcards();
+    suggestFlashcards();
   }, []);
 
   const addFlashcard = async () => {
@@ -60,6 +86,33 @@ const FlashcardApp = () => {
 
       }
 
+      // Handle success
+      console.log('Flashcard added successfully!');
+    } catch (error) {
+      console.error('Error adding flashcard:', error.message);
+      // Optionally handle error here
+    }
+  };
+  const addSuggestedFlashcard = async (question, answer) => {
+    try {
+      const response = await fetch('http://localhost:5000/addflashcard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          collectionId: localStorage.getItem('currentCollection'),
+          sectionId: localStorage.getItem('currentSection'),
+          question: question,
+          answer: answer,
+        }),
+      });
+  
+      if (!response.ok) {
+        console.error(response);
+        throw new Error('Failed to add flashcard');
+      }
+  
       // Handle success
       console.log('Flashcard added successfully!');
     } catch (error) {
@@ -113,6 +166,26 @@ const FlashcardApp = () => {
         ))}
       </div>
       <button onClick={studyFlashcards}>Study Flashcards</button>
+      <h2>Suggested Flashcards</h2>
+        <div className="flashcards-container">
+          {suggestedFlashcards.map((flashcard, index) => (
+            <div key={index} className="flashcard">
+              <div className="card-inner">
+                <div className="card-front">
+                  <div className="question">{flashcard.question}</div>
+                  <button className="flip-button">Show Answer</button>
+                </div>
+                <div className="card-back">
+                  <div className="answer">{flashcard.answer}</div>
+                  <button className="flip-button">Show Question</button>
+                </div>
+              </div>
+              <button onClick={() => addSuggestedFlashcard(flashcard.question, flashcard.answer)}>
+                +
+              </button>
+            </div>
+          ))}
+        </div>
     </div>
   );
 };

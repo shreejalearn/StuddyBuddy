@@ -637,6 +637,43 @@ def add_res_to_flashcards():
         traceback.print_exc()
 
         return jsonify({'error': str(e)}), 500
+    
+@app.route('/suggestflashcards', methods=['POST'])
+async def suggestflashcards():
+    request_data = request.get_json()
+    collection_id = request_data.get('collectionId')
+    section_id = request_data.get('sectionId')
+    notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
+    all_text = ''
+    for doc in notes_docs:
+        note_data = doc.to_dict().get('notes', '')
+        all_text += note_data + ' '
+    question = f'''
+        Task: Generate 10 flashcards based on the following notes. The target is to help the student learn and remember key aspects of the notes.
+
+        Notes:
+        {all_text}
+
+        Format: 
+        Question: [Your question here]
+        Answer: [Your answer here]
+        
+    '''
+    flashcards=[]
+    response_task = await ask_sydney_with_retry(question)
+    pattern = r'\*\*(.*?)\*\*:\n((?:   - .*?\n)*)'
+    pairs = re.findall(pattern, response_task, re.MULTILINE)
+
+    for pair in pairs:
+        question = pair[0].strip()
+        answer = '\n'.join(bullet.strip() for bullet in pair[1].strip().split('\n'))
+        flashcards.append({'question': question, 'answer': answer})
+
+    return jsonify({'response': flashcards}), 200
+
+
+    
+
 @app.route('/addflashcard', methods=['POST'])
 def addflashcard():
     request_data = request.get_json()
