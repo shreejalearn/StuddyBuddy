@@ -136,7 +136,6 @@ const Collections = () => {
             <button onClick={() => handleOpenCollection(collection.id, collection.title)} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '10px 20px', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', ':hover': { backgroundColor: '#63828b' } }}>
               {collection.title || 'Untitled'}
             </button>
-            <FontAwesomeIcon icon={faTrash} onClick={() => handleDeleteCollection(collection.id)} style={{ color: 'red', marginLeft: '10px', cursor: 'pointer' }} />
           </div>
         ))}
 </div>
