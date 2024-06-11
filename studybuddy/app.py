@@ -492,6 +492,22 @@ def delete_collection():
         return jsonify({'message': 'Note deleted successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+@app.route('/delete_section', methods=['DELETE'])
+def delete_section():
+    data = request.get_json()
+
+    section_id = data.get('section_id')
+    collection_id = data.get('collection_id')
+
+    if not collection_id or not section_id:
+        return jsonify({'error': 'something not provided'}), 400
+
+    try:
+        note_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id)
+        note_ref.delete()
+        return jsonify({'message': 'Note deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/delete_note', methods=['DELETE'])

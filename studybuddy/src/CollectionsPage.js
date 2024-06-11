@@ -72,13 +72,10 @@ const Collections = () => {
 
     try {
       const username = localStorage.getItem('userName');
-      if (!username) {
-        throw new Error('Username not found in local storage');
-      }
+      
 
-      await axios.post('http://localhost:5000/delete_collection', {
-        collection_id: collectionId,
-        username: username
+      await axios.delete('http://localhost:5000/delete_collection', {
+        data: { collection_id: collectionId }
       });
 
       const response = await axios.get(`http://localhost:5000/get_my_collections?username=${username}`);
@@ -128,17 +125,18 @@ const Collections = () => {
           />
       </div>
       <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '5%' }}>
-  <button id="create-btn" onClick={openModal} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '3%', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', ':hover': { backgroundColor: '#63828b' } }}>
-    <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>+</span>
-  </button>
-  {collections.map(collection => (
-          <div key={collection.id} style={{ display: 'flex', alignItems: 'center' }}>
-            <button onClick={() => handleOpenCollection(collection.id, collection.title)} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '10px 20px', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', ':hover': { backgroundColor: '#63828b' } }}>
+        <button id="create-btn" onClick={openModal} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '3%', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s' }}>
+          <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>+</span>
+        </button>
+        {collections.map(collection => (
+          <div key={collection.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
+            <button onClick={() => handleOpenCollection(collection.id, collection.title)} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '3%', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', flexGrow: 1 }}>
               {collection.title || 'Untitled'}
             </button>
+            <FontAwesomeIcon icon={faTrash} onClick={() => handleDeleteCollection(collection.id)} style={{ color: 'red', marginLeft: '10px', cursor: 'pointer' }} />
           </div>
         ))}
-</div>
+      </div>
 
       {isModalOpen && (
         <div id="modal">

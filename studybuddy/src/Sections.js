@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './styles/sections.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
@@ -74,6 +73,26 @@ const Sections = () => {
     }
     
   };
+  const handleDeleteSection = async (sectionId) => {
+    const confirmDelete = window.confirm('Are you sure you want to delete this section?');
+    if (!confirmDelete) return;
+
+    try {
+      const username = localStorage.getItem('userName');
+      
+
+      await axios.delete('http://localhost:5000/delete_collection', {
+        data: { collection_id: collectionId }
+      });
+
+      const response = await axios.get(`http://localhost:5000/get_sections?collection_id=${collectionId}`);
+      setSections(response.data.sections);
+      setError(null);
+    } catch (error) {
+      console.error(error);
+      setError(error.message);
+    }
+  };
 
 
   const closeModal = () => {
@@ -94,7 +113,6 @@ const Sections = () => {
       <div className="header" >
         <div className = "flex">
         <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%', marginRight: '10px' }}>Sections in {collectionName}</h2>
-        <FontAwesomeIcon icon={faTrash} onClick={() => deleteCollection()} style={{ color: 'red', cursor: 'pointer' }} />
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -110,19 +128,19 @@ const Sections = () => {
               
           </div>
           <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '5%' }}>
-          <button id="create-btn" onClick={openModal} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '3%', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', ':hover': { backgroundColor: '#63828b' } }}>
+          <button id="create-btn" onClick={openModal} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '3%', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s' }}>
           <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>+</span>
       </button>
        
         {sections.map(section => (
-          <button key={section.id} className="category-btn" onClick={() => handleSectionClick(section)}>
-            {section.section_name}
-          </button>
-        ))}
-        <button className="category-btn" onClick={openModal}>
-          <span className="plus-icon">+</span> New Section
-        </button>
+          <div key={section.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
+            <button onClick={() => handleSectionClick(section)} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '10px 20px', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', ':hover': { backgroundColor: '#63828b' } }}>
+              {section.section_name || 'Untitled'}
+            </button>
+            <FontAwesomeIcon icon={faTrash} onClick={() => handleDeleteSection(section.id)} style={{ color: 'red', marginLeft: '10px', cursor: 'pointer' }} />
 
+          </div>
+        ))}
       {isModalOpen && (
         <div className="modal">
           <div className="modal-content">
