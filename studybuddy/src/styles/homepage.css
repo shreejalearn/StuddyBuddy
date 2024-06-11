@@ -116,3 +116,67 @@ nav button:hover {
     100% { transform: rotate(360deg); }
   }
   
+
+  .card,
+.recommendation-card {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 8px;
+  cursor: pointer;
+  transition: transform 0.3s;
+  width: 20%;
+  align-items: center;
+}
+
+.card:hover,
+.recommendation-card:hover {
+  transform: scale(1.05);
+}
+
+.card-title,
+.recommendation-card .card-title {
+  font-size: 1.2em;
+}
+
+.recommendation-card .card-content {
+  margin-top: 8px;
+}
+
+.recommendation-card {
+    background-color: rgba(255, 255, 255, 0.6); /* Set a semi-transparent background */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    width: 200px;
+    height:100px;
+    text-align: center; /* Center the text horizontally */
+    display: flex; /* Use flexbox */
+    flex-direction: column; /* Align items vertically */
+    justify-content: center; /* Center items vertically */
+    transition: transform 0.2s;
+    backdrop-filter: blur(10px); /* Add a blur effect */
+
+}
+
+.create-section-button {
+  margin-top: 8px;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.create-section-button:hover {
+  background-color: #0056b3;
+}
+
+.recommendations-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
