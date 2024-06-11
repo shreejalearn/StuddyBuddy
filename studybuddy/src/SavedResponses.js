@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './styles/stuff.css';
+import './styles/e.css';
 
 const SavedResponsesPage = () => {
   const chapterId = localStorage.getItem('currentSection');
@@ -89,15 +89,8 @@ const SavedResponsesPage = () => {
 
   return (
     <div className="container">
-      <h1>Saved Responses</h1>
-      {savedResponses.map((savedResponse) => (
-        <div key={savedResponse.id} className="response">
-          <p>{savedResponse.tldr}</p>
-          <button onClick={() => openModal(savedResponse)}>Expand</button>
-          <button onClick={() => deleteResponse(savedResponse.id)}>Delete</button>
-          <button onClick={() => addToNotesAndDelete(savedResponse)}>Add to Notes</button>
-        </div>
-      ))}
+      <h2 className="header" style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Saved Responses</h2>
+      
       {modalIsOpen && (
         <div className="modal">
           <div className="modal-content">
@@ -109,6 +102,25 @@ const SavedResponsesPage = () => {
           </div>
         </div>
       )}
+      
+      <div className="flashcards-container">
+          {savedResponses.map((savedResponse) => (
+            <div key={savedResponse.id} className="flashcard">
+                <div className="card-front">
+                  
+                  <div className="question">{savedResponse.tldr}</div>
+                  <div className="button-group">
+                    <button onClick={() => openModal(savedResponse)}>Expand</button>
+                    <button onClick={() => deleteResponse(savedResponse.id)}>Delete</button>
+                    <button onClick={() => addToNotesAndDelete(savedResponse)}>Add to Notes</button>
+                  </div>
+                </div>
+                
+            </div>
+            
+          ))}
+  
+        </div>
     </div>
   );
 };

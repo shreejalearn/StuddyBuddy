@@ -587,6 +587,7 @@ const ChapterPage = () => {
 
   return (
     <div className="container">
+        <div className="main-content">
       <div className="sidebar">
         <h2>
           {collName} - {chapterName}
@@ -605,7 +606,7 @@ const ChapterPage = () => {
           ))}
         </div>
       </div>
-      <div className="content">
+      <div className="main-content">
         <div className="tabs">
           <button className="category-btn" onClick={() => navigate('/savedresponses')}>
             Saved Responses
@@ -697,6 +698,7 @@ const ChapterPage = () => {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };
