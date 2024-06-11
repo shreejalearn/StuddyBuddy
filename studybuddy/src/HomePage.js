@@ -131,7 +131,6 @@ const RecommendationCard = ({ recommendation }) => {
         </div>
       )}
       {showModal && <CreateSectionModal recommendation={recommendation} onClose={() => setShowModal(false)} />}
-
     </div>
   );
 };
@@ -176,7 +175,6 @@ const HomePage = () => {
               recentSections: recentSectionsString,
             }
           });
-          console.log(recommendationsResponse.data.recommendations)
 
           if (recommendationsResponse.data.recommendations && recommendationsResponse.data.recommendations.length > 0) {
             const recommendationss = await axios.get('http://localhost:5000/process_recommendations', {
@@ -184,7 +182,7 @@ const HomePage = () => {
                 recs: recommendationsResponse.data.recommendations
               }
             });
-            console.log(recommendationss.data.recommendations)
+
             setRecommendedSections(recommendationss.data.recommendations);
           }
 
@@ -239,7 +237,7 @@ const HomePage = () => {
           <>
             <p>Recently Viewed</p>
             <div className="cards-container">
-              {recentSections.map(section => (
+              {recentSections.slice(0, 4).map(section => (  // Show only the top 4 recently viewed sections
                 <div className="card" key={section.id} onClick={() => handleSectionClick(section.id, section.collection_id, section.title, section.collName)}>
                   <div className="card-title">{section.title || 'Untitled'}</div>
                 </div>
