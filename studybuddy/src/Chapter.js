@@ -1,127 +1,126 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import './styles/stuff.css';
-import { useNavigate } from 'react-router-dom';
+// import React, { useState, useEffect } from 'react';
+// import axios from 'axios';
+// import { useNavigate } from 'react-router-dom';
 
-const Upload = ({ onUploadSuccess }) => {
-  const [rawText, setRawText] = useState('');
-  const [response, setResponse] = useState('');
+// const Upload = ({ onUploadSuccess }) => {
+//   const [rawText, setRawText] = useState('');
+//   const [response, setResponse] = useState('');
 
-  const handleTextChange = (event) => {
-    setRawText(event.target.value);
-  };
+//   const handleTextChange = (event) => {
+//     setRawText(event.target.value);
+//   };
 
-  const handleSubmitText = async () => {
-    try {
-      const formData = new FormData();
-      formData.append('raw_text', rawText);
-      formData.append('collection_id', localStorage.getItem('currentCollection'));
-      formData.append('section_id', localStorage.getItem('currentSection'));
+//   const handleSubmitText = async () => {
+//     try {
+//       const formData = new FormData();
+//       formData.append('raw_text', rawText);
+//       formData.append('collection_id', localStorage.getItem('currentCollection'));
+//       formData.append('section_id', localStorage.getItem('currentSection'));
 
-      const response = await axios.post('http://localhost:5000/process_text', formData);
-      setResponse(response.data.response);
-      onUploadSuccess();
-    } catch (error) {
-      console.error('Error uploading text:', error);
-    }
-  };
+//       const response = await axios.post('http://localhost:5000/process_text', formData);
+//       setResponse(response.data.response);
+//       onUploadSuccess();
+//     } catch (error) {
+//       console.error('Error uploading text:', error);
+//     }
+//   };
 
   
-  return (
-    <div>
-      <textarea
-        rows="4"
-        cols="50"
-        value={rawText}
-        onChange={handleTextChange}
-        placeholder="Enter your text here..."
-      />
-      <button onClick={handleSubmitText}>Upload Text</button>
-      {response && <p>{response}</p>}
-    </div>
-  );
-};
+//   return (
+//     <div>
+//       <textarea
+//         rows="4"
+//         cols="50"
+//         value={rawText}
+//         onChange={handleTextChange}
+//         placeholder="Enter your text here..."
+//       />
+//       <button onClick={handleSubmitText}>Upload Text</button>
+//       {response && <p>{response}</p>}
+//     </div>
+//   );
+// };
 
 
-const UploadLink = ({ onUploadSuccess }) => {
-  const [link, setLink] = useState('');
-  const [response, setResponse] = useState('');
+// const UploadLink = ({ onUploadSuccess }) => {
+//   const [link, setLink] = useState('');
+//   const [response, setResponse] = useState('');
 
-  const handleLinkChange = (event) => {
-    setLink(event.target.value);
-  };
+//   const handleLinkChange = (event) => {
+//     setLink(event.target.value);
+//   };
 
-  const handleUploadLink = async () => {
-    try {
-      const formData = new FormData();
-      formData.append('link', link);
-      formData.append('collection_id', localStorage.getItem('currentCollection'));
-      formData.append('section_id', localStorage.getItem('currentSection'));
+//   const handleUploadLink = async () => {
+//     try {
+//       const formData = new FormData();
+//       formData.append('link', link);
+//       formData.append('collection_id', localStorage.getItem('currentCollection'));
+//       formData.append('section_id', localStorage.getItem('currentSection'));
 
-      const response = await axios.post('http://localhost:5000/process_link', formData);
-      setResponse(response.data.response);
-      onUploadSuccess();
-    } catch (error) {
-      console.error('Error uploading link:', error);
-    }
-  };
+//       const response = await axios.post('http://localhost:5000/process_link', formData);
+//       setResponse(response.data.response);
+//       onUploadSuccess();
+//     } catch (error) {
+//       console.error('Error uploading link:', error);
+//     }
+//   };
 
-  return (
-    <div>
-      <input
-        type="text"
-        value={link}
-        onChange={handleLinkChange}
-        placeholder="Enter website link here..."
-      />
-      <button onClick={handleUploadLink}>Upload Link</button>
-      {response && <p>{response}</p>}
-    </div>
-  );
-};
+//   return (
+//     <div>
+//       <input
+//         type="text"
+//         value={link}
+//         onChange={handleLinkChange}
+//         placeholder="Enter website link here..."
+//       />
+//       <button onClick={handleUploadLink}>Upload Link</button>
+//       {response && <p>{response}</p>}
+//     </div>
+//   );
+// };
 
 
-const UploadPDF = ({ onUploadSuccess }) => {
-  const [pdfFile, setPdfFile] = useState(null);
-  const [response, setResponse] = useState('');
+// const UploadPDF = ({ onUploadSuccess }) => {
+//   const [pdfFile, setPdfFile] = useState(null);
+//   const [response, setResponse] = useState('');
 
-  const handleFileChange = (event) => {
-    setPdfFile(event.target.files[0]);
-  };
+//   const handleFileChange = (event) => {
+//     setPdfFile(event.target.files[0]);
+//   };
 
-  const handleSubmitPDF = async () => {
-    if (!pdfFile) {
-      alert("Please select a PDF file to upload");
-      return;
-    }
+//   const handleSubmitPDF = async () => {
+//     if (!pdfFile) {
+//       alert("Please select a PDF file to upload");
+//       return;
+//     }
 
-    try {
-      const formData = new FormData();
-      formData.append('pdf_file', pdfFile);
-      formData.append('collection_id', localStorage.getItem('currentCollection'));
-      formData.append('section_id', localStorage.getItem('currentSection'));
+//     try {
+//       const formData = new FormData();
+//       formData.append('pdf_file', pdfFile);
+//       formData.append('collection_id', localStorage.getItem('currentCollection'));
+//       formData.append('section_id', localStorage.getItem('currentSection'));
 
-      const response = await axios.post('http://localhost:5000/process_pdf', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+//       const response = await axios.post('http://localhost:5000/process_pdf', formData, {
+//         headers: {
+//           'Content-Type': 'multipart/form-data',
+//         },
+//       });
 
-      setResponse(response.data.response);
-      onUploadSuccess();
-    } catch (error) {
-      console.error('Error uploading PDF:', error);
-    }
-  };
+//       setResponse(response.data.response);
+//       onUploadSuccess();
+//     } catch (error) {
+//       console.error('Error uploading PDF:', error);
+//     }
+//   };
 
-  return (
-    <div>
-      <input type="file" accept="application/pdf" onChange={handleFileChange} />
-      <button onClick={handleSubmitPDF}>Upload PDF</button>
-      {response && <p>{response}</p>}
-    </div>
-  );
-};
+//   return (
+//     <div>
+//       <input type="file" accept="application/pdf" onChange={handleFileChange} />
+//       <button onClick={handleSubmitPDF}>Upload PDF</button>
+//       {response && <p>{response}</p>}
+//     </div>
+//   );
+// };
 
 // const ChapterPage = () => {
 //   const navigate = useNavigate();
@@ -196,6 +195,8 @@ const UploadPDF = ({ onUploadSuccess }) => {
 //       formData.append('raw_text', event.target.value);
 //     } else if (uploadType === 'link') {
 //       formData.append('link', event.target.value);
+//     } else if (uploadType === 'pdf') {
+//       formData.append('pdf_file', event.target.files[0]);
 //     }
 //     formData.append('collection_id', collectionId);
 //     formData.append('section_id', chapterId);
@@ -214,6 +215,12 @@ const UploadPDF = ({ onUploadSuccess }) => {
 //         response = await axios.post('http://localhost:5000/process_text', formData);
 //       } else if (uploadType === 'link') {
 //         response = await axios.post('http://localhost:5000/process_link', formData);
+//       } else if (uploadType === 'pdf') {
+//         response = await axios.post('http://localhost:5000/process_pdf', formData, {
+//           headers: {
+//             'Content-Type': 'multipart/form-data',
+//           },
+//         });
 //       }
 //       const updatedNotesResponse = await axios.get('http://localhost:5000/get_notes', {
 //         params: {
@@ -221,6 +228,7 @@ const UploadPDF = ({ onUploadSuccess }) => {
 //           section_id: chapterId,
 //         },
 //       });
+      
 //       setNotes(updatedNotesResponse.data.notes);
 //       closeUploadModal();
 //     } catch (error) {
@@ -273,6 +281,19 @@ const UploadPDF = ({ onUploadSuccess }) => {
 //       console.error('Error updating visibility:', error);
 //     }
 //   };
+//   const addToFlashcards = async () => {
+//     try {
+//       const r = await axios.post('http://localhost:5000/add_res_to_flashcards', {
+//         question: prompt, // Use the user's question as the flashcard question
+//         answer: response, // Use the AI's response as the flashcard answer
+//         collection_id: collectionId,
+//         section_id: chapterId,
+//       });
+//       console.log('Flashcard added:', r.data);
+//     } catch (error) {
+//       console.error('Error adding to flashcards:', error);
+//     }
+//   };
 
 //   const handleDeleteNote = async (noteId) => {
 //     try {
@@ -297,8 +318,11 @@ const UploadPDF = ({ onUploadSuccess }) => {
 
 //   return (
 //     <div className="container">
+//         <div className="main-content">
 //       <div className="sidebar">
-//         <h2>{collName} - {chapterName}</h2>
+//         <h2>
+//           {collName} - {chapterName}
+//         </h2>
 //         <div className="upload-source-btn">
 //           <button onClick={openUploadModal}>Upload Source</button>
 //         </div>
@@ -315,11 +339,17 @@ const UploadPDF = ({ onUploadSuccess }) => {
 //       </div>
 //       <div className="main-content">
 //         <div className="tabs">
-//           <button className="category-btn" onClick={() => navigate('/savedresponses')}>Saved Responses</button>
-//           <button className="category-btn">Flashcards</button>
-//           <button className="category-btn" onClick={() => navigate('/videos')}>Video</button>
+//           <button className="category-btn" onClick={() => navigate('/savedresponses')}>
+//             Saved Responses
+//           </button>
+//           <button className="category-btn" onClick={() => navigate('/flashcards')}>Flashcards</button>
+//           <button className="category-btn" onClick={() => navigate('/videos')}>
+//             Video
+//           </button>
 //           <button className="category-btn">Presentations</button>
-//           <button className="category-btn" onClick={() => navigate('/practicetest')}>Practice Test</button>
+//           <button className="category-btn" onClick={() => navigate('/practicetest')}>
+//             Practice Test
+//           </button>
 //           <button className="category-btn">Game</button>
 //         </div>
 //         <div className="content">
@@ -338,21 +368,31 @@ const UploadPDF = ({ onUploadSuccess }) => {
 //                 <div>
 //                   <h2>Response:</h2>
 //                   <p>{response}</p>
-//                   <button onClick={handleSaveResponse} disabled={responseSaved}>Save Response</button>
+//                   <button onClick={handleSaveResponse} disabled={responseSaved}>
+//                     Save Response
+//                   </button>
+//                   <button onClick={addToFlashcards}>Add to Flashcards</button>
+
 //                 </div>
 //               )}
 //             </div>
 //           </div>
 //           <div className="toggle-container">
-//             <span className={isPublic ? 'toggle-active' : ''} onClick={toggleVisibility}>Public</span>
-//             <span className={!isPublic ? 'toggle-active' : ''} onClick={toggleVisibility}>Private</span>
+//             <span className={isPublic ? 'toggle-active' : ''} onClick={toggleVisibility}>
+//               Public
+//             </span>
+//             <span className={!isPublic ? 'toggle-active' : ''} onClick={toggleVisibility}>
+//               Private
+//             </span>
 //           </div>
 //         </div>
 //       </div>
 //       {selectedSourceNotes && (
 //         <div className="modal">
 //           <div className="modal-content">
-//             <span className="close" onClick={() => setSelectedSourceNotes('')}>&times;</span>
+//             <span className="close" onClick={() => setSelectedSourceNotes('')}>
+//               &times;
+//             </span>
 //             <h2>Full Source</h2>
 //             <p>{selectedSourceNotes}</p>
 //           </div>
@@ -361,13 +401,16 @@ const UploadPDF = ({ onUploadSuccess }) => {
 //       {uploadModalOpen && (
 //         <div className="modal">
 //           <div className="modal-content">
-//             <span className="close" onClick={closeUploadModal}>&times;</span>
+//             <span className="close" onClick={closeUploadModal}>
+//               &times;
+//             </span>
 //             <h2>Upload Source</h2>
 //             <div className="upload-options">
 //               <button onClick={() => handleUploadType('image')}>Upload Image</button>
 //               <button onClick={() => handleUploadType('video')}>Upload Video</button>
 //               <button onClick={() => handleUploadType('text')}>Upload Text</button>
 //               <button onClick={() => handleUploadType('link')}>Upload Link</button>
+//               <button onClick={() => handleUploadType('pdf')}>Upload PDF</button>
 //             </div>
 //             {uploadType && (
 //               <div className="upload-form">
@@ -375,6 +418,8 @@ const UploadPDF = ({ onUploadSuccess }) => {
 //                   <Upload />
 //                 ) : uploadType === 'link' ? (
 //                   <UploadLink />
+//                 ) : uploadType === 'pdf' ? (
+//                   <UploadPDF />
 //                 ) : (
 //                   <input type={uploadType === 'image' ? 'file' : 'text'} onChange={handleUpload} />
 //                 )}
@@ -385,11 +430,134 @@ const UploadPDF = ({ onUploadSuccess }) => {
 //         </div>
 //       )}
 //     </div>
+//     </div>
 //   );
 // };
 
 // export default ChapterPage;
 
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+const Upload = ({ onUploadSuccess }) => {
+  const [rawText, setRawText] = useState('');
+  const [response, setResponse] = useState('');
+
+  const handleTextChange = (event) => {
+    setRawText(event.target.value);
+  };
+
+  const handleSubmitText = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('raw_text', rawText);
+      formData.append('collection_id', localStorage.getItem('currentCollection'));
+      formData.append('section_id', localStorage.getItem('currentSection'));
+
+      const response = await axios.post('http://localhost:5000/process_text', formData);
+      setResponse(response.data.response);
+      onUploadSuccess();
+    } catch (error) {
+      console.error('Error uploading text:', error);
+    }
+  };
+
+  return (
+    <div style={styles.uploadContainer}>
+      <textarea
+        rows="4"
+        cols="50"
+        value={rawText}
+        onChange={handleTextChange}
+        placeholder="Enter your text here..."
+        style={styles.textarea}
+      />
+      <button onClick={handleSubmitText} style={styles.button}>Upload Text</button>
+      {response && <p style={styles.response}>{response}</p>}
+    </div>
+  );
+};
+
+const UploadLink = ({ onUploadSuccess }) => {
+  const [link, setLink] = useState('');
+  const [response, setResponse] = useState('');
+
+  const handleLinkChange = (event) => {
+    setLink(event.target.value);
+  };
+
+  const handleUploadLink = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('link', link);
+      formData.append('collection_id', localStorage.getItem('currentCollection'));
+      formData.append('section_id', localStorage.getItem('currentSection'));
+
+      const response = await axios.post('http://localhost:5000/process_link', formData);
+      setResponse(response.data.response);
+      onUploadSuccess();
+    } catch (error) {
+      console.error('Error uploading link:', error);
+    }
+  };
+
+  return (
+    <div style={styles.uploadContainer}>
+      <input
+        type="text"
+        value={link}
+        onChange={handleLinkChange}
+        placeholder="Enter website link here..."
+        style={styles.input}
+      />
+      <button onClick={handleUploadLink} style={styles.button}>Upload Link</button>
+      {response && <p style={styles.response}>{response}</p>}
+    </div>
+  );
+};
+
+const UploadPDF = ({ onUploadSuccess }) => {
+  const [pdfFile, setPdfFile] = useState(null);
+  const [response, setResponse] = useState('');
+
+  const handleFileChange = (event) => {
+    setPdfFile(event.target.files[0]);
+  };
+
+  const handleSubmitPDF = async () => {
+    if (!pdfFile) {
+      alert("Please select a PDF file to upload");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('pdf_file', pdfFile);
+      formData.append('collection_id', localStorage.getItem('currentCollection'));
+      formData.append('section_id', localStorage.getItem('currentSection'));
+
+      const response = await axios.post('http://localhost:5000/process_pdf', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setResponse(response.data.response);
+      onUploadSuccess();
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+    }
+  };
+
+  return (
+    <div style={styles.uploadContainer}>
+      <input type="file" accept="application/pdf" onChange={handleFileChange} style={styles.input} />
+      <button onClick={handleSubmitPDF} style={styles.button}>Upload PDF</button>
+      {response && <p style={styles.response}>{response}</p>}
+    </div>
+  );
+};
 
 const ChapterPage = () => {
   const navigate = useNavigate();
@@ -550,6 +718,7 @@ const ChapterPage = () => {
       console.error('Error updating visibility:', error);
     }
   };
+
   const addToFlashcards = async () => {
     try {
       const r = await axios.post('http://localhost:5000/add_res_to_flashcards', {
@@ -586,44 +755,37 @@ const ChapterPage = () => {
   };
 
   return (
-    <div className="container">
-        <div className="main-content">
-      <div className="sidebar">
-        <h2>
+    <div style={styles.container}>
+      <div style={styles.sidebar}>
+        <h2 style={styles.header}>
           {collName} - {chapterName}
         </h2>
-        <div className="upload-source-btn">
-          <button onClick={openUploadModal}>Upload Source</button>
+        <div style={styles.uploadSourceBtn}>
+          <button onClick={openUploadModal} style={styles.button}>Upload Source</button>
         </div>
-        <div className="notes">
+        <div style={styles.notes}>
           <h3>Notes</h3>
           {notes.map((note) => (
-            <div key={note.id} className="note">
+            <div key={note.id} style={styles.note}>
               <p>{note.tldr}</p>
-              <button onClick={() => setSelectedSourceNotes(note.notes)}>View Source</button>
-              <button onClick={() => handleDeleteNote(note.id)}>Delete</button>
+              <button onClick={() => setSelectedSourceNotes(note.notes)} style={styles.button}>View Source</button>
+              <button onClick={() => handleDeleteNote(note.id)} style={styles.button}>Delete</button>
             </div>
           ))}
         </div>
       </div>
-      <div className="main-content">
-        <div className="tabs">
-          <button className="category-btn" onClick={() => navigate('/savedresponses')}>
-            Saved Responses
-          </button>
-          <button className="category-btn" onClick={() => navigate('/flashcards')}>Flashcards</button>
-          <button className="category-btn" onClick={() => navigate('/videos')}>
-            Video
-          </button>
-          <button className="category-btn">Presentations</button>
-          <button className="category-btn" onClick={() => navigate('/practicetest')}>
-            Practice Test
-          </button>
-          <button className="category-btn">Game</button>
+      <div style={styles.mainContent}>
+        <div style={styles.tabs}>
+          <button style={styles.categoryBtn} onClick={() => navigate('/savedresponses')}>Saved Responses</button>
+          <button style={styles.categoryBtn} onClick={() => navigate('/flashcards')}>Flashcards</button>
+          <button style={styles.categoryBtn} onClick={() => navigate('/videos')}>Video</button>
+          <button style={styles.categoryBtn}>Presentations</button>
+          <button style={styles.categoryBtn} onClick={() => navigate('/practicetest')}>Practice Test</button>
+          <button style={styles.categoryBtn}>Game</button>
         </div>
-        <div className="content">
-          <div className="section ai-communication">
-            <div className="ask-question">
+        <div style={styles.content}>
+          <div style={styles.aiCommunication}>
+            <div style={styles.askQuestion}>
               <h3>Ask A Question</h3>
               <textarea
                 rows="4"
@@ -631,76 +793,187 @@ const ChapterPage = () => {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Enter your prompt here..."
+                style={styles.textarea}
               />
-              <button onClick={handleSubmitQuestion}>Submit</button>
+              <button onClick={handleSubmitQuestion} style={styles.button}>Submit</button>
               {response && (
                 <div>
                   <h2>Response:</h2>
                   <p>{response}</p>
-                  <button onClick={handleSaveResponse} disabled={responseSaved}>
+                  <button onClick={handleSaveResponse} disabled={responseSaved} style={styles.button}>
                     Save Response
                   </button>
-                  <button onClick={addToFlashcards}>Add to Flashcards</button>
-
+                  <button onClick={addToFlashcards} style={styles.button}>Add to Flashcards</button>
                 </div>
               )}
             </div>
           </div>
-          <div className="toggle-container">
-            <span className={isPublic ? 'toggle-active' : ''} onClick={toggleVisibility}>
-              Public
-            </span>
-            <span className={!isPublic ? 'toggle-active' : ''} onClick={toggleVisibility}>
-              Private
-            </span>
+          <div style={styles.toggleContainer}>
+            <span style={isPublic ? styles.toggleActive : styles.toggleInactive} onClick={toggleVisibility}>Public</span>
+            <span style={!isPublic ? styles.toggleActive : styles.toggleInactive} onClick={toggleVisibility}>Private</span>
           </div>
         </div>
       </div>
       {selectedSourceNotes && (
-        <div className="modal">
-          <div className="modal-content">
-            <span className="close" onClick={() => setSelectedSourceNotes('')}>
-              &times;
-            </span>
+        <div style={styles.modal}>
+          <div style={styles.modalContent}>
+            <span style={styles.close} onClick={() => setSelectedSourceNotes('')}>&times;</span>
             <h2>Full Source</h2>
             <p>{selectedSourceNotes}</p>
           </div>
         </div>
       )}
       {uploadModalOpen && (
-        <div className="modal">
-          <div className="modal-content">
-            <span className="close" onClick={closeUploadModal}>
-              &times;
-            </span>
+        <div style={styles.modal}>
+          <div style={styles.modalContent}>
+            <span style={styles.close} onClick={closeUploadModal}>&times;</span>
             <h2>Upload Source</h2>
-            <div className="upload-options">
-              <button onClick={() => handleUploadType('image')}>Upload Image</button>
-              <button onClick={() => handleUploadType('video')}>Upload Video</button>
-              <button onClick={() => handleUploadType('text')}>Upload Text</button>
-              <button onClick={() => handleUploadType('link')}>Upload Link</button>
-              <button onClick={() => handleUploadType('pdf')}>Upload PDF</button>
+            <div style={styles.uploadOptions}>
+              <button onClick={() => handleUploadType('image')} style={styles.button}>Upload Image</button>
+              <button onClick={() => handleUploadType('video')} style={styles.button}>Upload Video</button>
+              <button onClick={() => handleUploadType('text')} style={styles.button}>Upload Text</button>
+              <button onClick={() => handleUploadType('link')} style={styles.button}>Upload Link</button>
+              <button onClick={() => handleUploadType('pdf')} style={styles.button}>Upload PDF</button>
             </div>
             {uploadType && (
-              <div className="upload-form">
+              <div style={styles.uploadForm}>
                 {uploadType === 'text' ? (
-                  <Upload />
+                  <Upload onUploadSuccess={closeUploadModal} />
                 ) : uploadType === 'link' ? (
-                  <UploadLink />
+                  <UploadLink onUploadSuccess={closeUploadModal} />
                 ) : uploadType === 'pdf' ? (
-                  <UploadPDF />
+                  <UploadPDF onUploadSuccess={closeUploadModal} />
                 ) : (
-                  <input type={uploadType === 'image' ? 'file' : 'text'} onChange={handleUpload} />
+                  <input type={uploadType === 'image' ? 'file' : 'text'} onChange={handleUpload} style={styles.input} />
                 )}
               </div>
             )}
-            <div className="section source-uploading"></div>
+            <div style={styles.sourceUploading}></div>
           </div>
         </div>
       )}
     </div>
-    </div>
   );
+};
+
+const styles = {
+  container: {
+    display: 'flex',
+    flexDirection: 'row',
+    height: '100vh',
+  },
+  sidebar: {
+    width: '250px',
+    padding: '20px',
+    backgroundColor: '#f4f4f4',
+    borderRight: '1px solid #ccc',
+  },
+  header: {
+    fontSize: '24px',
+    marginBottom: '20px',
+  },
+  uploadSourceBtn: {
+    marginBottom: '20px',
+  },
+  notes: {
+    marginTop: '20px',
+  },
+  note: {
+    marginBottom: '10px',
+  },
+  mainContent: {
+    flex: 1,
+    padding: '20px',
+  },
+  tabs: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '20px',
+  },
+  categoryBtn: {
+    padding: '10px 20px',
+    cursor: 'pointer',
+  },
+  content: {
+    flex: 1,
+  },
+  aiCommunication: {
+    marginBottom: '20px',
+  },
+  askQuestion: {
+    marginBottom: '20px',
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px',
+    marginBottom: '10px',
+  },
+  button: {
+    padding: '10px 20px',
+    cursor: 'pointer',
+  },
+  response: {
+    marginTop: '10px',
+  },
+  toggleContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginTop: '20px',
+  },
+  toggleActive: {
+    cursor: 'pointer',
+    padding: '10px 20px',
+    backgroundColor: '#007bff',
+    color: '#fff',
+  },
+  toggleInactive: {
+    cursor: 'pointer',
+    padding: '10px 20px',
+    backgroundColor: '#ccc',
+  },
+  modal: {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: '20px',
+    borderRadius: '5px',
+    width: '500px',
+    textAlign: 'center',
+  },
+  close: {
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    fontSize: '24px',
+    cursor: 'pointer',
+  },
+  uploadOptions: {
+    marginBottom: '20px',
+  },
+  uploadForm: {
+    marginBottom: '20px',
+  },
+  input: {
+    padding: '10px',
+    marginBottom: '10px',
+  },
+  sourceUploading: {
+    marginTop: '20px',
+  },
+  uploadContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
 };
 
 export default ChapterPage;
