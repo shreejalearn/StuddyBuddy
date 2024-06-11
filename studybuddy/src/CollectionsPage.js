@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 // import './styles/collections.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
 const Collections = () => {
   const [collections, setCollections] = useState([]);
@@ -64,11 +66,36 @@ const Collections = () => {
     }
   };
 
+  const handleDeleteCollection = async (collectionId) => {
+    const confirmDelete = window.confirm('Are you sure you want to delete this collection?');
+    if (!confirmDelete) return;
+
+    try {
+      const username = localStorage.getItem('userName');
+      if (!username) {
+        throw new Error('Username not found in local storage');
+      }
+
+      await axios.post('http://localhost:5000/delete_collection', {
+        collection_id: collectionId,
+        username: username
+      });
+
+      const response = await axios.get(`http://localhost:5000/get_my_collections?username=${username}`);
+      setCollections(response.data.collections);
+      setError(null);
+    } catch (error) {
+      console.error(error);
+      setError(error.message);
+    }
+  };
+
   const handleOpenCollection = (collectionId, collectionName) => {
     localStorage.setItem('currentCollection', collectionId);
     localStorage.setItem('collectionName', collectionName);
     window.location.href = "/sections";
   };
+  
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -105,10 +132,13 @@ const Collections = () => {
     <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>+</span>
   </button>
   {collections.map(collection => (
-    <button key={collection.id} onClick={() => handleOpenCollection(collection.id, collection.title)} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '10px 20px', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', ':hover': { backgroundColor: '#63828b' } }}>
-      {collection.title || 'Untitled'}
-    </button>
-  ))}
+          <div key={collection.id} style={{ display: 'flex', alignItems: 'center' }}>
+            <button onClick={() => handleOpenCollection(collection.id, collection.title)} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '10px 20px', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', ':hover': { backgroundColor: '#63828b' } }}>
+              {collection.title || 'Untitled'}
+            </button>
+            <FontAwesomeIcon icon={faTrash} onClick={() => handleDeleteCollection(collection.id)} style={{ color: 'red', marginLeft: '10px', cursor: 'pointer' }} />
+          </div>
+        ))}
 </div>
 
       {isModalOpen && (
@@ -116,6 +146,7 @@ const Collections = () => {
           <div id="modal-content">
             <span id="close" onClick={closeModal}>&times;</span>
             <h2>Create New Collection</h2>
+
             <input
               type="text"
               placeholder="Collection Name"

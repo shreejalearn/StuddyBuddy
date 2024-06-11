@@ -477,6 +477,21 @@ def update_access_time():
         return jsonify({'message': 'Access time updated successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+@app.route('/delete_collection', methods=['DELETE'])
+def delete_collection():
+    data = request.get_json()
+
+    collection_id = data.get('collection_id')
+
+    if not collection_id:
+        return jsonify({'error': 'Collection ID'}), 400
+
+    try:
+        note_ref = db.collection('collections').document(collection_id)
+        note_ref.delete()
+        return jsonify({'message': 'Note deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/delete_note', methods=['DELETE'])
