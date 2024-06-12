@@ -441,8 +441,8 @@ const ChapterPage = () => {
             </div>
           </div>
           <div style={styles.toggleContainer}>
-            <span style={isPublic ? styles.toggleActive : styles.toggleInactive} onClick={toggleVisibility}>Public</span>
-            <span style={!isPublic ? styles.toggleActive : styles.toggleInactive} onClick={toggleVisibility}>Private</span>
+            <span  style={isPublic ? { ...styles.toggleActive, ...styles.button } : { ...styles.toggleInactive, ...styles.button }} onClick={toggleVisibility}>Public</span>
+            <span style={!isPublic ? { ...styles.toggleActive, ...styles.button } : { ...styles.toggleInactive, ...styles.button }} onClick={toggleVisibility}>Private</span>
           </div>
         </div>
       </div>
@@ -557,13 +557,13 @@ const styles = {
   toggleActive: {
     cursor: 'pointer',
     padding: '10px 20px',
-    backgroundColor: '#007bff',
-    color: '#fff',
+    backgroundColor: '#92C7CF',
+    color: '',
   },
   toggleInactive: {
     cursor: 'pointer',
     padding: '10px 20px',
-    backgroundColor: '#ccc',
+    backgroundColor: '#cfcdca',
   },
   modal: {
     position: 'fixed',
