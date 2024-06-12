@@ -411,9 +411,7 @@ const ChapterPage = () => {
           <button style={styles.categoryBtn} onClick={() => navigate('/savedresponses')}>Saved Responses</button>
           <button style={styles.categoryBtn} onClick={() => navigate('/flashcards')}>Flashcards</button>
           <button style={styles.categoryBtn} onClick={() => navigate('/videos')}>Video</button>
-          <button style={styles.categoryBtn}>Presentations</button>
           <button style={styles.categoryBtn} onClick={() => navigate('/practicetest')}>Practice Test</button>
-          <button style={styles.categoryBtn}>Game</button>
         </div>
         <div style={styles.content}>
           <div style={styles.aiCommunication}>

@@ -3,16 +3,16 @@ import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
-
 const Sections = () => {
   const collectionId = localStorage.getItem('currentCollection');
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-
   const [newSectionName, setNewSectionName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [draggedSectionId, setDraggedSectionId] = useState(null);
+  const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
   const collectionName = localStorage.getItem('collectionName');
 
   useEffect(() => {
@@ -44,7 +44,7 @@ const Sections = () => {
       const response = await axios.get(`http://localhost:5000/get_sections?collection_id=${collectionId}`);
       setSections(response.data.sections);
       setNewSectionName('');
-      setIsModalOpen(false); // Close modal after creation
+      setIsModalOpen(false);
     } catch (error) {
       setError(error.message);
     }
@@ -53,35 +53,24 @@ const Sections = () => {
   const handleSectionClick = (section) => {
     localStorage.setItem('currentSection', section.id);
     localStorage.setItem('currentSectionName', section.section_name);
-    window.location.href = "/chapter"; // Redirect to the chapter page
+    window.location.href = "/chapter";
   };
 
   const openModal = () => {
     setIsModalOpen(true);
   };
-  // const deleteCollection = async () => {
-  //   const confirmDelete = window.confirm('Are you sure you want to delete this collection?');
-  //   if (!confirmDelete) return;
 
-  //   try{
-  //     await axios.delete('http://localhost:5000/delete_collection', {
-  //       data: { collection_id: collectionId }
-  //     });
-  //     window.location.href = "/mygallery";
-  //   } catch(error){
-  //     setError(error.message);
-  //   }
-    
-  // };
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setNewSectionName('');
+    setError(null);
+  };
 
-  
   const handleDeleteSection = async (sectionId) => {
     const confirmDelete = window.confirm('Are you sure you want to delete this section?');
     if (!confirmDelete) return;
 
     try {
-      
-
       await axios.delete('http://localhost:5000/delete_section', {
         data: { collection_id: collectionId, section_id: sectionId }
       });
@@ -95,73 +84,184 @@ const Sections = () => {
     }
   };
 
+  const handleDragStart = (sectionId) => {
+    setDraggedSectionId(sectionId);
+  };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setNewSectionName('');
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDraggingOverTrash(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDraggingOverTrash(false);
+  };
+
+  const handleDrop = () => {
+    if (draggedSectionId) {
+      handleDeleteSection(draggedSectionId);
+      setDraggedSectionId(null);
+      setIsDraggingOverTrash(false);
+    }
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="loading-spinner" style={{
+      border: '8px solid white', 
+      borderTop: '8px solid #6DC5D1', 
+      borderRadius: '50%', 
+      width: '50px', 
+      height: '50px', 
+      animation: 'spin 1s linear infinite', 
+      margin: '20px auto'
+    }} />;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div style={{ color: 'red', textAlign: 'center', marginTop: '20px' }}>Error: {error}</div>;
   }
 
   return (
-    <div id="collections-main" >
-      <div className="header" >
-        <div className = "flex">
-        <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%', marginRight: '10px' }}>Sections in {collectionName}</h2>
+    <div id="sections-main" style={{ padding: '20px' }}>
+      <div className="header">
+        <div className="flex">
+          <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%', marginRight: '10px' }}>
+            Sections in {collectionName}
+          </h2>
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-
-            <input
-            
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search..."
-              style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderColor: 'gray', borderRadius: '5px', margin: '0 auto' }}
-              />
-              
-          </div>
-          <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '5%' }}>
-          <button id="create-btn" onClick={openModal} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '3%', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s' }}>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search..."
+          style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderRadius: '5px', margin: '0 auto' }}
+        />
+      </div>
+      <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '5%' }}>
+        <button id="create-btn" onClick={openModal} style={{ 
+            backgroundColor: 'rgba(136, 177, 184, 0.8)',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '3%',
+            color: '#fff',
+            fontSize: '1.3rem',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease, transform 0.3s',
+            opacity: 0.7,
+        }}>
           <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>+</span>
-      </button>
-       
+        </button>
         {sections.map(section => (
-          <div key={section.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
-            <button onClick={() => handleSectionClick(section)} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '10px 20px', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', ':hover': { backgroundColor: '#63828b' } }}>
+          <div key={section.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', marginBottom: '10px' }}>
+            <button
+              draggable
+              onDragStart={() => handleDragStart(section.id)}
+              onClick={() => handleSectionClick(section)}
+              style={{ 
+                backgroundColor: 'rgba(136, 177, 184, 0.8)', 
+                border: 'none', 
+                borderRadius: '4px', 
+                padding: '10px 20px', 
+                color: '#fff', 
+                fontSize: '1.3rem', 
+                cursor: 'pointer', 
+                transition: 'background-color 0.3s ease, transform 0.3s', 
+                height: '120%',
+                marginRight: '10px' 
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
               {section.section_name || 'Untitled'}
             </button>
-            <FontAwesomeIcon icon={faTrash} onClick={() => handleDeleteSection(section.id)} style={{ color: 'red', marginLeft: '10px', cursor: 'pointer' }} />
-
           </div>
         ))}
+      </div>
+
+      <div
+        id="trash-icon"
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onDragLeave={handleDragLeave}
+        style={{
+          position: 'fixed',
+          bottom: '10%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          cursor: 'pointer',
+          color: isDraggingOverTrash ? '#A34343' : '#FF6969',
+          fontSize: '4rem',
+          zIndex: '1000',
+          transition: 'color 0.3s'
+        }}
+      >
+        <FontAwesomeIcon icon={faTrash} />
+      </div>
+
       {isModalOpen && (
-        <div className="modal">
-          <div className="modal-content">
-            <span className="close" onClick={closeModal}>&times;</span>
-            <h2>Create New Section</h2>
+        <div className="modal" style={{
+          padding: '0.5rem',
+          width: '100%',
+          boxSizing: 'border-box',
+          marginBottom: '1rem',
+          borderRadius: '5px', // Rounded corners for input
+          border: '1px solid #ccc', // Light border color for better appearance
+          outline: 'none', // Remove outline on focus
+  }}>
+          <div className="modal-content" style={{
+            backgroundColor: '#fefefe',
+            margin: '15% auto',
+            padding: '20px',
+            border: '1px solid #888',
+            width: '80%',
+            maxWidth: '500px',
+            borderRadius: '8px'
+          }}>
+            <span className="close" onClick={closeModal} style={{
+              color: '#aaa',
+              float: 'right',
+              fontSize: '28px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}>&times;</span>
+            <h2 style={{ textAlign: 'left', marginBottom: '1rem', color: '#a2acb0' }}>Create New Section</h2>
             <input
               type="text"
               placeholder="Section Name"
               value={newSectionName}
               onChange={(e) => setNewSectionName(e.target.value)}
+              style={{
+                padding: '0.5rem',
+                width: '100%',
+                boxSizing: 'border-box',
+                marginBottom: '1rem',
+                borderRadius: '5px',
+                border: '1px solid #ccc',
+                outline: 'none'
+              }}
             />
-            <button className="create-btn" onClick={handleCreateSection}>Create Section</button>
+            <button className="create-btn" onClick={handleCreateSection} style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#88B1B8',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'background-color 0.3s'
+            }}>Create Section</button>
+            {error && <div id="error-message" style={{
+              color: 'red',
+              marginBottom: '1rem',
+              textAlign: 'center',
+              fontWeight: 'bold',
+            }}>{error}</div>}
           </div>
         </div>
       )}
-    </div>
     </div>
   );
 };
 
 export default Sections;
-
-
