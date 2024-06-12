@@ -102,3 +102,29 @@
 .upload-options button {
   margin-right: 10px;
 }
+.video-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+
+.video-item {
+  margin: 10px; /* Adjust margin as needed */
+}
+.video-stuff {
+  width: 2000px;
+  height: 1500px;
+  display: flex;
+
+}
+.video-item video {
+  width: 100%;
+  max-width: 300px; /* Adjust max-width as needed */
+  height: auto;
+}
+.generate-button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}

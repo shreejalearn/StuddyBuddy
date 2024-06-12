@@ -24,13 +24,12 @@ const VideoPage = () => {
             section_id: sectionId,
           },
         });
-        console.log(response.data.videoPaths);
         setVideoPaths(response.data.videoPaths);
-        console.log(response.data.videoPaths)
       } catch (error) {
         console.error('Error fetching video paths:', error);
       }
     };
+
     const fetchNotes = async () => {
       try {
         const response = await axios.get('http://localhost:5000/get_notes', {
@@ -46,9 +45,7 @@ const VideoPage = () => {
     };
 
     fetchVideoPaths();
-
     fetchNotes();
-    
   }, [collectionId, sectionId]);
 
   const handleGenerateVideo = async () => {
@@ -60,9 +57,10 @@ const VideoPage = () => {
         section_id: sectionId,
         selected_notes: selectedNotes
       });
+
       // Set the response from ask_specific endpoint
       setAskSpecificResponse(askSpecificResponse.data.response);
-      console.log(askSpecificResponse.data.response)
+
       // Call generate_video_from_notes endpoint with the response from ask_specific
       const generateVideoResponse = await axios.post('http://localhost:5000/generate_video_from_notes', {
         notes: askSpecificResponse.data.response,
@@ -91,21 +89,24 @@ const VideoPage = () => {
 
   return (
     <div className="video-page">
-      <h2>Video Page</h2>
-      <div className="video-list">
+      <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Video Page</h2>
+      <div className="generate-button-container"> {}
+        <button onClick={() => setIsModalOpen(true)} disabled={loading}>
+          {loading ? 'Generating...' : 'Generate New Video'}
+        </button>
+      </div>
+      <div className="generate-button-container">
         {videoPaths.map((video, index) => (
-          <div key={index} className="video-item">
-            <video controls>
-            <source src={`http://localhost:5000/videos/${video.video_path}`} type="video/mp4" />
-            Your browser does not support the video tag.
+          <div key={index} onClick={() => window.location.href = `http://localhost:3000/videoplayer/${video.video_path}`} className="video-item">
+            <video preload="metadata" autoPlay={false}>
+              <source src={`http://localhost:5000/videos/${video.video_path}`} type="video/mp4" />
+              Your browser does not support the video tag.
             </video>
           </div>
         ))}
       </div>
       
-      <button onClick={() => setIsModalOpen(true)} disabled={loading}>
-        {loading ? 'Generating...' : 'Generate New Video'}
-      </button>
+     
 
       <Modal
         isOpen={isModalOpen}
