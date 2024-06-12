@@ -58,6 +58,7 @@ import Fill from './Fill';
 import SavedResponses from './SavedResponses';
 import PublicSections from './PublicSectionsPage';
 import Videos from './Videos';
+import VideoPlayer from './VideoPlayer';
 
 import AskQuestion from './AskQuestion';
 import Home from './Home';
@@ -96,6 +97,7 @@ function MainApp() {
             <Route path="/homepage" element={<HomePage />} />
             <Route path="/savedresponses" element={<SavedResponses />} />
             <Route path="/flashcards" element={<Flashcard />} />
+            <Route path="/videoplayer/:videoPath" element={<VideoPlayer />} />
 
           </Route>
           <Route path="/" element={<FillerAuth />} />
