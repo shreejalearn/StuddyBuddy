@@ -1259,6 +1259,35 @@ def process_recommendations():
         r'((?:- \[.*?\]\(.*?\)\s*)+)',        # One or more sources
         re.DOTALL
     )
+    pattern1 = re.compile(
+        r'\*\*Topic\s*Name\*\*:\s*(.*?)\n'           # Topic Name
+        r'\*\*Topic\s*Description\*\*:\s*(.*?)\n'    # Topic Description
+        r'\*\*Sources\*\*:\s*'                       # Sources label
+        r'((?:- \[.*?\]\(.*?\)\n)+)',                # One or more sources
+        re.DOTALL
+    )
+    pattern2 = re.compile(
+        r'\d+\.\s\*\*(.*?)\*\*:\s*'           # Topic Title
+        r'- \*\*Topic Name\*\*:\s*(.*?)\n'     # Topic Name
+        r'- \*\*Topic Description\*\*:\s*(.*?)\n'  # Topic Description
+        r'- \*\*Sources\*\*:\s*'               # Sources label
+        r'((?:- \[.*?\]\(.*?\)\n)+)'           # One or more sources
+    )
+    pattern3 = re.compile(
+        r'\*\*(.*?)\*\*:\s*'                  # Topic Title
+        r'- \*\*Topic\s*Name\*\*:\s*(.*?)\n'  # Topic Name
+        r'- \*\*Topic\s*Description\*\*:\s*(.*?)\n'  # Topic Description
+        r'- \*\*Sources\*\*:\s*'               # Sources label
+        r'((?:- \[.*?\]\(.*?\)\n)+)'           # One or more sources
+    )
+    pattern4 = re.compile(
+        r'\d+\.\s\*\*(.*?)\*\*:\s*'                  # Topic Title
+        r'- \*\*Topic\s*Name\*\*:\s*(.*?)\s*'         # Topic Name
+        r'- \*\*Topic\s*Description\*\*:\s*(.*?)\s*'  # Topic Description
+        r'- \*\*Sources\*\*:\s*'                      # Sources label
+        r'((?:- \[.*?\]\(.*?\)\s*)+)',                # One or more sources
+        re.DOTALL
+    )
 
     matches = pattern.findall(recommendations_text)
     print("Regex matches:")
@@ -1277,6 +1306,84 @@ def process_recommendations():
             'topicDescription': topic_description,
             'sources': sources_list
         })
+    if(len(recommendations)==0):
+        matches = pattern1.findall(recommendations_text)
+        print("Regex matches:")
+        print(matches)
+        for match in matches:
+            print("Processing match:")
+            print(match)
+            topic_name = match[0].strip()
+            topic_description = match[1].strip()
+            sources = re.findall(r'- \[(.*?)\]\((.*?)\)\n', match[2].strip())
+
+            sources_list = [{'title': source[0], 'url': source[1]} for source in sources]
+
+            recommendations.append({
+                'topicName': topic_name,
+                'topicDescription': topic_description,
+                'sources': sources_list
+            })
+    if(len(recommendations)==0):
+        matches = pattern2.findall(recommendations_text)
+        print("Regex matches:")
+        print(matches)
+        for match in matches:
+            print("Processing match:")
+            print(match)
+            topic_title = match[0].strip()
+            topic_name = match[1].strip()
+            topic_description = match[2].strip()
+            sources = re.findall(r'- \[(.*?)\]\((.*?)\)\n', match[3].strip())
+
+            sources_list = [{'title': source[0], 'url': source[1]} for source in sources]
+
+            recommendations.append({
+                'topicTitle': topic_title,
+                'topicName': topic_name,
+                'topicDescription': topic_description,
+                'sources': sources_list
+            })
+    if(len(recommendations)==0):
+        matches = pattern3.findall(recommendations_text)
+        print("Regex matches:")
+        print(matches)
+        for match in matches:
+            print("Processing match:")
+            print(match)
+            topic_title = match[0].strip()
+            topic_name = match[1].strip()
+            topic_description = match[2].strip()
+            sources = re.findall(r'- \[(.*?)\]\((.*?)\)\n', match[3].strip())
+
+            sources_list = [{'title': source[0], 'url': source[1]} for source in sources]
+
+            recommendations.append({
+                'topicTitle': topic_title,
+                'topicName': topic_name,
+                'topicDescription': topic_description,
+                'sources': sources_list
+            })
+    if(len(recommendations)==0):
+        matches = pattern4.findall(recommendations_text)
+        print("Regex matches:")
+        print(matches)
+        for match in matches:
+            print("Processing match:")
+            print(match)
+            topic_title = match[0].strip()
+            topic_name = match[1].strip()
+            topic_description = match[2].strip()
+            sources = re.findall(r'- \[(.*?)\]\((.*?)\)\s*', match[3].strip())
+
+            sources_list = [{'title': source[0], 'url': source[1]} for source in sources]
+
+            recommendations.append({
+                'topicTitle': topic_title,
+                'topicName': topic_name,
+                'topicDescription': topic_description,
+                'sources': sources_list
+            })
 
     print("Processed recommendations:")
     print(recommendations)
