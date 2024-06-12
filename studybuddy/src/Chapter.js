@@ -119,6 +119,7 @@ const UploadLink = ({ onUploadSuccess }) => {
     </div>
   );
 };
+
 const UploadImage = ({ onUploadSuccess }) => {
   const [image, setImage] = useState('');
   const [response, setResponse] = useState('');
@@ -427,8 +428,13 @@ const ChapterPage = () => {
               <FontAwesomeIcon icon={faTrash} style={styles.deleteIcon} onClick={() => handleDeleteNote(note.id)} />
             </div>
           ))}
+          <div style={styles.toggleContainer}>
+            <span  style={isPublic ? { ...styles.toggleActive, ...styles.button } : { ...styles.toggleInactive, ...styles.button }} onClick={toggleVisibility}>Public</span>
+            <span style={!isPublic ? { ...styles.toggleActive, ...styles.button } : { ...styles.toggleInactive, ...styles.button }} onClick={toggleVisibility}>Private</span>
+          </div>
         </div>
       </div>
+      
       <div style={styles.mainContent}>
         <div style={styles.tabs}>
           <button style={styles.categoryBtn} onClick={() => navigate('/savedresponses')}>Saved Responses</button>
@@ -439,7 +445,7 @@ const ChapterPage = () => {
         <div style={styles.content}>
           <div style={styles.aiCommunication}>
             <div style={styles.askQuestion}>
-              <h3>Ask A Question</h3>
+              <h3 style={{color: '#839196'}}>Ask A Question</h3>
               <textarea
                 rows="4"
                 cols="50"
@@ -478,25 +484,19 @@ const ChapterPage = () => {
               )}
             </div>
           </div>
-          <div style={styles.toggleContainer}>
-            <span  style={isPublic ? { ...styles.toggleActive, ...styles.button } : { ...styles.toggleInactive, ...styles.button }} onClick={toggleVisibility}>Public</span>
-            <span style={!isPublic ? { ...styles.toggleActive, ...styles.button } : { ...styles.toggleInactive, ...styles.button }} onClick={toggleVisibility}>Private</span>
-          </div>
         </div>
       </div>
       {selectedSourceNotes && (
-        <div style={styles.modal}>
-          <div style={styles.modalContent}>
-            <span style={styles.close} onClick={() => setSelectedSourceNotes('')}>&times;</span>
-            <h2>Full Source</h2>
+        <div style={styles.modal} onClick={() => setSelectedSourceNotes('')}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ textAlign: 'center', color: 'gray', fontSize: '2rem', marginBottom: '3%' }}>Full Source</h2>
             <p>{selectedSourceNotes}</p>
           </div>
         </div>
       )}
       {uploadModalOpen && (
-        <div style={styles.modal}>
-          <div style={styles.modalContent}>
-            <span style={styles.close} onClick={closeUploadModal}>&times;</span>
+        <div style={styles.modal} onClick={closeUploadModal}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h2>Upload Source</h2>
             <div style={styles.uploadOptions}>
               <button onClick={() => handleUploadType('image')} style={styles.button}>Upload Image</button>
@@ -604,7 +604,6 @@ const styles = {
   },
   toggleContainer: {
     display: 'flex',
-    justifyContent: 'center',
     marginTop: '20px',
   },
   toggleActive: {
@@ -628,6 +627,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'auto',
   },
   modalContent: {
     backgroundColor: '#fff',
@@ -636,11 +636,13 @@ const styles = {
     width: '500px',
     textAlign: 'center',
     overflow: 'auto',
+    width: '80%',
+    maxWidth: '80%',
+    maxHeight: '80%',
   },
   close: {
-    position: 'absolute',
     top: '10px',
-    right: '10px',
+    right: '50%',
     fontSize: '24px',
     cursor: 'pointer',
   },
