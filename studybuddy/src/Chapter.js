@@ -398,7 +398,7 @@ const ChapterPage = () => {
           <button onClick={openUploadModal} style={styles.button}>Upload Source</button>
         </div>
         <div style={styles.notes}>
-          <h3>Notes</h3>
+          <h3 style={styles.header}>Notes</h3>
           {notes.map((note) => (
             <div key={note.id} style={styles.note}>
               <p>{note.tldr}</p>
@@ -505,6 +505,7 @@ const styles = {
   header: {
     fontSize: '24px',
     marginBottom: '20px',
+    color: '#909191',
   },
   uploadSourceBtn: {
     marginBottom: '20px',
@@ -521,12 +522,21 @@ const styles = {
   },
   tabs: {
     display: 'flex',
-    justifyContent: 'space-around',
+    backgroundColor: '#dadde0', // Changed to a more muted teal
+    borderRadius: '4px',
+    padding: '10px 0',
     marginBottom: '20px',
   },
   categoryBtn: {
     padding: '10px 20px',
     cursor: 'pointer',
+    color: 'white', // Changed to white for better contrast
+    textDecoration: 'none',
+    backgroundColor: '#bacbd4', // Changed to a darker gray
+    border: 'none',
+    borderRadius: '4px',
+    transition: 'background-color 0.3s',
+    marginLeft: '20px',
   },
   content: {
     flex: 1,
@@ -538,11 +548,13 @@ const styles = {
     marginBottom: '20px',
   },
   textarea: {
-    width: '100%',
+    width: '90%',
+    height: '300px',
     padding: '10px',
     marginBottom: '10px',
   },
   button: {
+    marginLeft: '3px',
     padding: '10px 20px',
     cursor: 'pointer',
   },
@@ -600,6 +612,7 @@ const styles = {
   input: {
     padding: '10px',
     marginBottom: '10px',
+    width: '80%',
   },
   sourceUploading: {
     marginTop: '20px',

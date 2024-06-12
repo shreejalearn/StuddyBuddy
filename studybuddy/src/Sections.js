@@ -251,7 +251,7 @@ const Sections = () => {
       {isReviewModalOpen && (
   <div className="modal">
     <div className="modal-content">
-      <h2>Create Review</h2>
+      <h2 style={{ textAlign: 'left', marginTop: '5%', color: '#99aab0', marginBottom: '3%' }}>Create Review</h2>
       <div>
        <input
               type="text"
@@ -281,7 +281,7 @@ const Sections = () => {
         ))}
       </div>
       <button onClick={handleSubmitReview}>Submit</button>
-      <button onClick={closeReviewModal}>Cancel</button>
+      <button onClick={closeReviewModal} style={{ marginTop: '10px', marginLeft: '10px'  }}>Cancel</button>
     </div>
   </div>
 )}
