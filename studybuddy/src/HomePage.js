@@ -4,6 +4,17 @@ import Logo from './assets/logo (2).png';
 import axios from 'axios';
 import './styles/homepage.css';
 
+const RecommendationDetailsModal = ({ recommendation, onClose }) => {
+  return (
+    <div className="modal">
+      <div className="modal-content">
+        <span className="close" onClick={onClose}>&times;</span>
+        <p>{recommendation.topicDescription}</p>
+      </div>
+    </div>
+  );
+};
+
 const CreateSectionModal = ({ recommendation, onClose }) => {
   const [sectionName, setSectionName] = useState('');
   const [selectedCollection, setSelectedCollection] = useState('');
@@ -50,11 +61,11 @@ const CreateSectionModal = ({ recommendation, onClose }) => {
   };
 
   return (
-    <div className="modal">
-      <div className="modal-content">
-        <span className="close" onClick={onClose}>&times;</span>
-        <h2>Create New Collection</h2>
-        <div>
+    <div className="modal" style={{ textAlign: 'center' }}>
+      <div className="modal-content" style={{ padding: '20px' }}>
+        <span className="close" onClick={onClose} style={{ cursor: 'pointer', float: 'right', fontSize: '20px' }}>&times;</span>
+        <h2 style={{ marginBottom: '20px' }}>Create New Collection</h2>
+        <div style={{ marginBottom: '10px' }}>
           <input
             type="radio"
             id="newSection"
@@ -62,9 +73,9 @@ const CreateSectionModal = ({ recommendation, onClose }) => {
             checked={isNewSection}
             onChange={() => setIsNewSection(true)}
           />
-          <label htmlFor="newSection">Create New Collection</label>
+          <label htmlFor="newSection" style={{ marginLeft: '5px' }}>Create New Collection</label>
         </div>
-        <div>
+        <div style={{ marginBottom: '10px' }}>
           <input
             type="radio"
             id="existingSection"
@@ -72,11 +83,12 @@ const CreateSectionModal = ({ recommendation, onClose }) => {
             checked={!isNewSection}
             onChange={() => setIsNewSection(false)}
           />
-          <label htmlFor="existingSection">Use Existing Collection</label>
+          <label htmlFor="existingSection" style={{ marginLeft: '5px' }}>Use Existing Collection</label>
           <select
             value={selectedCollection}
             onChange={(e) => setSelectedCollection(e.target.value)}
             disabled={isNewSection}
+            style={{ marginLeft: '10px' }}
           >
             <option value="">Select Collection</option>
             {collections.map(collection => (
@@ -87,27 +99,27 @@ const CreateSectionModal = ({ recommendation, onClose }) => {
         {isNewSection && (
           <input
             type="text"
-            placeholder="Enter section name"
+            placeholder="Enter collection name"
             value={sectionName}
             onChange={(e) => setSectionName(e.target.value)}
+            style={{ marginBottom: '10px', padding: '5px', width: '100%' }}
           />
         )}
-        <button onClick={handleCreateSection}>Create Section</button>
+        <button onClick={handleCreateSection} style={{ padding: '10px 20px', backgroundColor: '#92a8d1', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Create</button>
       </div>
     </div>
   );
+  
 };
 
 const RecommendationCard = ({ recommendation }) => {
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showCreateSectionModal, setShowCreateSectionModal] = useState(false);
 
   const handleExpandClick = () => {
     setIsExpanded(!isExpanded);
-  };
-
-  const handleCreateSectionClick = () => {
-    setShowModal(true);
   };
 
   return (
@@ -116,21 +128,17 @@ const RecommendationCard = ({ recommendation }) => {
         {recommendation.topicName}
       </div>
       {isExpanded && (
-        <div className="card-content">
-          <p>{recommendation.topicDescription}</p>
-          <div className="sources">
-            {recommendation.sources.map((source, index) => (
-              <div key={index}>
-                <a href={source.url} target="_blank" rel="noopener noreferrer">
-                  {source.title}
-                </a>
-              </div>
-            ))}
+        <div className="card-content" style={{ justifyContent: 'space-between' }}>
+          <button onClick={() => setShowDetailsModal(true)} style={{ marginBottom: '10px', width: '50%' }}>View Details</button>
+          <button className="create-section-button" onClick={() => { setShowCreateSectionModal(true)} }>Create</button>
           </div>
-          <button className="create-section-button" onClick={handleCreateSectionClick}>Create Section</button>
-        </div>
       )}
-      {showModal && <CreateSectionModal recommendation={recommendation} onClose={() => setShowModal(false)} />}
+      {showDetailsModal && (
+        <RecommendationDetailsModal recommendation={recommendation} onClose={() => setShowDetailsModal(false)} />
+      )}
+      {showCreateSectionModal && (
+        <CreateSectionModal recommendation={recommendation} onClose={() => setShowCreateSectionModal(false)} />
+      )}
     </div>
   );
 };
@@ -150,9 +158,6 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const username = localStorage.getItem('userName');
   const [searchTerm, setSearchTerm] = useState('');
-  const click = () => {
-    window.alert("clicked");
-  }
 
   const handleKeyPress = (event) => {
     if (event.key === 'Enter') {
@@ -190,13 +195,12 @@ const HomePage = () => {
           }
 
           setRecentSections(recentResponse.data.collections);
-          setLoading(false);
         } else {
           console.error('No recent sections found');
-          setLoading(false);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+      } finally {
         setLoading(false);
       }
     };
@@ -217,11 +221,11 @@ const HomePage = () => {
     <div>
       <nav>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-        <img 
-          onClick={() => navigate(`/homepage`)} 
-          src={Logo} 
-          alt="Logo" 
-        />
+          <img 
+            onClick={() => navigate(`/homepage`)} 
+            src={Logo} 
+            alt="Logo" 
+          />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center', borderRadius: '7px' }}>
           <input 
