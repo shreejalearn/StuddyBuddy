@@ -312,16 +312,12 @@ const ChapterPage = () => {
   };
 
   const formatBingResponse = (response) => {
-    // Split the response by newline characters
     const paragraphs = response.split('\n');
     
-    // Format each paragraph
     const formattedParagraphs = paragraphs.map((paragraph, index) => {
-      // Check for bold formatting **text**
       const boldRegex = /\*\*(.*?)\*\*/g;
       let formattedParagraph = paragraph.replace(boldRegex, '<strong>$1</strong>');
   
-      // Replace URLs with anchor tags
       formattedParagraph = formattedParagraph.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
   
       return <p key={index} dangerouslySetInnerHTML={{ __html: formattedParagraph }} />;
