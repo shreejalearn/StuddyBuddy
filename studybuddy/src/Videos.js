@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Modal from 'react-modal';
 import './styles/stuff.css';
+import Navbar from './Navbar';
 
 Modal.setAppElement('#root');
 
@@ -89,6 +90,7 @@ const VideoPage = () => {
 
   return (
     <div className="video-page">
+      <Navbar/>
       <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Video Page</h2>
       <div className="generate-button-container"> {}
         <button onClick={() => setIsModalOpen(true)} disabled={loading}>

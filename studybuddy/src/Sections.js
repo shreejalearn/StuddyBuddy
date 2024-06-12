@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import Navbar from './Navbar';
 
 const Sections = () => {
   const collectionId = localStorage.getItem('currentCollection');
@@ -157,6 +158,9 @@ const Sections = () => {
   }
 
   return (
+    <div>      
+      <Navbar/>
+
     <div id="sections-main" style={{ padding: '20px' }}>
       <div className="header">
         <div className="flex">
@@ -345,6 +349,7 @@ const Sections = () => {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import "./styles/loading.css";
+import Navbar from './Navbar';
 
 const Collections = () => {
   const [collections, setCollections] = useState([]);
@@ -133,6 +134,7 @@ const Collections = () => {
 
   return (
     <div id="collections-main">
+      <Navbar/>
       <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Your Collections</h2>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <input

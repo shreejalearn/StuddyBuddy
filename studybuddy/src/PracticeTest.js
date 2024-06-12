@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import Navbar from './Navbar';
 
 const QuizComponent = () => {
     const [questions, setQuestions] = useState([]);
@@ -51,6 +52,7 @@ const QuizComponent = () => {
 
     return (
         <div>
+            <Navbar/>
             <h1>Practice Test</h1>
          
             <button onClick={fetchQuestions}>Generate Questions</button>
