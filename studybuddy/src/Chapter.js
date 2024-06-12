@@ -479,6 +479,45 @@ const Upload = ({ onUploadSuccess }) => {
   );
 };
 
+const UploadVideo = ({ onUploadSuccess }) => {
+  const [video, setVideo] = useState('');
+  const [response, setResponse] = useState('');
+
+  const handleTextChange = (event) => {
+    setVideo(event.target.value);
+  };
+
+  const handleSubmitText = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('url', video);
+      formData.append('collection_id', localStorage.getItem('currentCollection'));
+      formData.append('section_id', localStorage.getItem('currentSection'));
+
+      const response = await axios.post('http://localhost:5000/get_transcript', formData);
+      setResponse(response.data.response);
+      onUploadSuccess();
+    } catch (error) {
+      console.error('Error uploading text:', error);
+    }
+  };
+
+  return (
+    <div style={styles.uploadContainer}>
+      <textarea
+        rows="4"
+        cols="50"
+        value={video}
+        onChange={handleTextChange}
+        placeholder="Enter your URL here..."
+        style={styles.textarea}
+      />
+      <button onClick={handleSubmitText} style={styles.button}>Upload Url</button>
+      {response && <p style={styles.response}>{response}</p>}
+    </div>
+  );
+};
+
 const UploadLink = ({ onUploadSuccess }) => {
   const [link, setLink] = useState('');
   const [response, setResponse] = useState('');
@@ -512,6 +551,37 @@ const UploadLink = ({ onUploadSuccess }) => {
         style={styles.input}
       />
       <button onClick={handleUploadLink} style={styles.button}>Upload Link</button>
+      {response && <p style={styles.response}>{response}</p>}
+    </div>
+  );
+};
+const UploadImage = ({ onUploadSuccess }) => {
+  const [image, setImage] = useState('');
+  const [response, setResponse] = useState('');
+
+  const handleImageChange = (event) => {
+    setImage(event.target.files[0]);
+  };
+
+  const handleUploadImage = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('image', image);
+      formData.append('collection_id', localStorage.getItem('currentCollection'));
+      formData.append('section_id', localStorage.getItem('currentSection'));
+
+      const response = await axios.post('http://localhost:5000/recognize', formData);
+      setResponse(response.data.response);
+      onUploadSuccess();
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    }
+  };
+
+  return (
+    <div style={styles.uploadContainer}>
+      <input type="file" onChange={handleImageChange} style={styles.input} />
+      <button onClick={handleUploadImage} style={styles.button}>Upload Image</button>
       {response && <p style={styles.response}>{response}</p>}
     </div>
   );
@@ -843,9 +913,11 @@ const ChapterPage = () => {
                   <UploadLink onUploadSuccess={closeUploadModal} />
                 ) : uploadType === 'pdf' ? (
                   <UploadPDF onUploadSuccess={closeUploadModal} />
-                ) : (
-                  <input type={uploadType === 'image' ? 'file' : 'text'} onChange={handleUpload} style={styles.input} />
-                )}
+                ) :uploadType === 'image' ? (
+                  <UploadImage onUploadSuccess={closeUploadModal} />
+                ) : uploadType === 'video' ? (
+                  <UploadVideo onUploadSuccess={closeUploadModal} />
+                ) : null}
               </div>
             )}
             <div style={styles.sourceUploading}></div>
