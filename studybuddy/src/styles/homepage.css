@@ -29,6 +29,11 @@ nav input {
     border: 1px solid gray;
 }
 
+.centered-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 nav button {
     padding: 0.5rem 1rem;
     background-color: #92C7CF;
