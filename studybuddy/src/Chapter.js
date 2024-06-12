@@ -211,6 +211,7 @@ const ChapterPage = () => {
   const [responseSaved, setResponseSaved] = useState(false);
   const [notes, setNotes] = useState([]);
   const [selectedSourceNotes, setSelectedSourceNotes] = useState('');
+  const [flashcardSaved, setFlashcardSaved] = useState(false);
 
   useEffect(() => {
     const updateAccessTime = async () => {
@@ -318,7 +319,7 @@ const ChapterPage = () => {
       const boldRegex = /\*\*(.*?)\*\*/g;
       let formattedParagraph = paragraph.replace(boldRegex, '<strong>$1</strong>');
   
-      formattedParagraph = formattedParagraph.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+      formattedParagraph = formattedParagraph.replace(/\[(.*?)\]\((.*?)\)/g, '\n<a href="$2">$1</a>');
   
       return <p key={index} dangerouslySetInnerHTML={{ __html: formattedParagraph }} />;
     });
@@ -377,6 +378,8 @@ const ChapterPage = () => {
         collection_id: collectionId,
         section_id: chapterId,
       });
+      setFlashcardSaved(true);
+
       console.log('Flashcard added:', r.data);
     } catch (error) {
       console.error('Error adding to flashcards:', error);
@@ -448,10 +451,27 @@ const ChapterPage = () => {
                 <div>
                   <h2>Response:</h2>
                   <p>{formatBingResponse(response)}</p>
-                  <button onClick={handleSaveResponse} disabled={responseSaved} style={styles.button}>
-                    Save Response
+                  <button
+                    onClick={handleSaveResponse}
+                    disabled={responseSaved}
+                    style={{
+                      ...styles.button,
+                      ...(responseSaved && { backgroundColor: '#ccc', cursor: 'not-allowed' }),
+                    }}
+                  >
+                    {responseSaved ? 'Saved!' : 'Save Response'}
                   </button>
-                  <button onClick={addToFlashcards} style={styles.button}>Add to Flashcards</button>
+
+                  <button
+                    onClick={addToFlashcards}
+                    disabled={flashcardSaved}
+                    style={{
+                      ...styles.button,
+                      ...(flashcardSaved && { backgroundColor: '#ccc', cursor: 'not-allowed' }),
+                    }}
+                  >
+                    {flashcardSaved ? 'Saved!' : 'Add to Flashcards'}
+                  </button>
                 </div>
               )}
             </div>
