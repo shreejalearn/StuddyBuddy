@@ -90,11 +90,15 @@ const VideoPage = () => {
   return (
     <div className="video-page">
       <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Video Page</h2>
-
+      <div className="generate-button-container"> {}
+        <button onClick={() => setIsModalOpen(true)} disabled={loading}>
+          {loading ? 'Generating...' : 'Generate New Video'}
+        </button>
+      </div>
       <div className="video-list">
         {videoPaths.map((video, index) => (
-          <div key={index} className="video-item" onClick={() => window.location.href = `http://localhost:3000/videoplayer/${video.video_path}`}>
-            <video controls>
+          <div key={index} onClick={() => window.location.href = `http://localhost:3000/videoplayer/${video.video_path}`} className="video-item">
+            <video preload="metadata" autoPlay={false}>
               <source src={`http://localhost:5000/videos/${video.video_path}`} type="video/mp4" />
               Your browser does not support the video tag.
             </video>
@@ -102,9 +106,7 @@ const VideoPage = () => {
         ))}
       </div>
       
-      <button onClick={() => setIsModalOpen(true)} disabled={loading}>
-        {loading ? 'Generating...' : 'Generate New Video'}
-      </button>
+     
 
       <Modal
         isOpen={isModalOpen}

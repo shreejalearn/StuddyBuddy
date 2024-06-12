@@ -102,3 +102,26 @@
 .upload-options button {
   margin-right: 10px;
 }
+.video-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Adjust minmax value as needed */
+  grid-gap: 10px;
+  justify-content: center; /* Center the videos horizontally */
+}
+
+.video-item {
+  width: 200px;
+  height: 150px;
+  overflow: hidden;
+}
+
+.video-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.generate-button-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px; /* Adjust as needed */
+}
