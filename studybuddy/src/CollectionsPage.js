@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import "./styles/loading.css";
 
 const Collections = () => {
   const [collections, setCollections] = useState([]);
@@ -10,6 +11,8 @@ const Collections = () => {
   const [newCollectionName, setNewCollectionName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [draggedCollectionId, setDraggedCollectionId] = useState(null);
+  const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
 
   useEffect(() => {
     const fetchCollections = async () => {
@@ -25,6 +28,7 @@ const Collections = () => {
         console.error(error);
         setError(error.message);
         setLoading(false);
+        setIsModalOpen(true); // Open modal to show the error
       }
     };
 
@@ -82,6 +86,7 @@ const Collections = () => {
     } catch (error) {
       console.error(error);
       setError(error.message);
+      setIsModalOpen(true); // Open modal to show the error
     }
   };
 
@@ -101,12 +106,29 @@ const Collections = () => {
     setError(null);
   };
 
-  if (loading) {
-    return <div id="loading">Loading...</div>;
-  }
+  const handleDragStart = (collectionId) => {
+    setDraggedCollectionId(collectionId);
+  };
 
-  if (error) {
-    return <div id="error">Error: {error}</div>;
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDraggingOverTrash(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDraggingOverTrash(false);
+  };
+
+  const handleDrop = () => {
+    if (draggedCollectionId) {
+      handleDeleteCollection(draggedCollectionId);
+      setDraggedCollectionId(null);
+      setIsDraggingOverTrash(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="loading-spinner"></div>;
   }
 
   return (
@@ -122,32 +144,106 @@ const Collections = () => {
         />
       </div>
       <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '5%' }}>
-        <button id="create-btn" onClick={openModal} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '3%', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s' }}>
+        <button
+          id="create-btn"
+          onClick={openModal}
+          style={{
+            backgroundColor: 'rgba(136, 177, 184, 0.8)',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '3%',
+            color: '#fff',
+            fontSize: '1.3rem',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease, transform 0.3s',
+            opacity: 0.7,
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
           <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>+</span>
         </button>
         {collections.map(collection => (
-          <div key={collection.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
-            <button onClick={() => handleOpenCollection(collection.id, collection.title)} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '3%', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', flexGrow: 1 }}>
+          <div key={collection.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', marginBottom: '10px' }}>
+            <button
+              draggable
+              onDragStart={() => handleDragStart(collection.id)}
+              onClick={() => handleOpenCollection(collection.id, collection.title)}
+              style={{
+                backgroundColor: 'rgba(136, 177, 184, 0.8)',
+                border: 'none',
+                height: '120%',
+                borderRadius: '4px',
+                padding: '3%',
+                color: '#fff',
+                fontSize: '1.3rem',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s ease, transform 0.3s',
+                width: '200px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
               {collection.title || 'Untitled'}
             </button>
-            <FontAwesomeIcon icon={faTrash} onClick={() => handleDeleteCollection(collection.id)} style={{ color: 'red', marginLeft: '10px', cursor: 'pointer' }} />
           </div>
         ))}
+      </div>
+
+      <div
+        id="trash-icon"
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onDragLeave={handleDragLeave}
+        style={{
+          position: 'fixed',
+          bottom: '10%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          cursor: 'pointer',
+          color: isDraggingOverTrash ? '#A34343' : '#FF6969',
+          fontSize: '4rem',
+          zIndex: '1000',
+          transition: 'color 0.3s'
+        }}
+      >
+        <FontAwesomeIcon icon={faTrash} />
       </div>
 
       {isModalOpen && (
         <div className="modal">
           <div className="modal-content">
             <span className="close" onClick={closeModal}>&times;</span>
-            <h2>Create New Collection</h2>
+            <h2 style={{ textAlign: 'left', marginBottom: '1rem', color: '#a2acb0' }}>Create New Collection</h2>
             <input
               type="text"
               placeholder="Collection Name"
               value={newCollectionName}
               onChange={(e) => setNewCollectionName(e.target.value)}
+              style={{
+                padding: '0.5rem',
+                width: '100%',
+                boxSizing: 'border-box',
+                marginBottom: '1rem',
+                borderRadius: '5px', // Rounded corners for input
+                border: '1px solid #ccc', // Light border color for better appearance
+                outline: 'none', // Remove outline on focus
+              }}
             />
-            <button className="create-btn" onClick={handleCreateCollection}>Create Collection</button>
-            {error && <div id="error-message">{error}</div>}
+            {error && <div id="error-message" style={{
+              color: 'red',
+              marginBottom: '1rem',
+              textAlign: 'center',
+            }}>{error}</div>}
+            <button className="create-btn" onClick={handleCreateCollection} style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#88B1B8',
+              color: 'white', // Changed button text color to gray
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'background-color 0.3s',
+            }}>Create Collection</button>
           </div>
         </div>
       )}

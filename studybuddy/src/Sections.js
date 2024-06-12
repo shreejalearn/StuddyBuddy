@@ -73,6 +73,8 @@ const Sections = () => {
   //   }
     
   // };
+
+  
   const handleDeleteSection = async (sectionId) => {
     const confirmDelete = window.confirm('Are you sure you want to delete this section?');
     if (!confirmDelete) return;
