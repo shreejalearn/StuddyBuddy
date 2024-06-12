@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
 const Upload = ({ onUploadSuccess }) => {
   const [rawText, setRawText] = useState('');
@@ -401,7 +403,7 @@ const ChapterPage = () => {
             <div key={note.id} style={styles.note}>
               <p>{note.tldr}</p>
               <button onClick={() => setSelectedSourceNotes(note.notes)} style={styles.button}>View Source</button>
-              <button onClick={() => handleDeleteNote(note.id)} style={styles.button}>Delete</button>
+              <FontAwesomeIcon icon={faTrash} style={styles.deleteIcon} onClick={() => handleDeleteNote(note.id)} />
             </div>
           ))}
         </div>
@@ -606,6 +608,11 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+  },
+  deleteIcon: {
+    cursor: 'pointer',
+    marginLeft: '10px',
+    color: '#EE4E4E',
   },
 };
 
