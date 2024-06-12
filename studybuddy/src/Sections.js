@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './styles/sections.css';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
+
 
 const Sections = () => {
   const collectionId = localStorage.getItem('currentCollection');
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
   const [newSectionName, setNewSectionName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const collectionName = localStorage.getItem('collectionName');
@@ -55,6 +59,40 @@ const Sections = () => {
   const openModal = () => {
     setIsModalOpen(true);
   };
+  // const deleteCollection = async () => {
+  //   const confirmDelete = window.confirm('Are you sure you want to delete this collection?');
+  //   if (!confirmDelete) return;
+
+  //   try{
+  //     await axios.delete('http://localhost:5000/delete_collection', {
+  //       data: { collection_id: collectionId }
+  //     });
+  //     window.location.href = "/mygallery";
+  //   } catch(error){
+  //     setError(error.message);
+  //   }
+    
+  // };
+  const handleDeleteSection = async (sectionId) => {
+    const confirmDelete = window.confirm('Are you sure you want to delete this section?');
+    if (!confirmDelete) return;
+
+    try {
+      
+
+      await axios.delete('http://localhost:5000/delete_section', {
+        data: { collection_id: collectionId, section_id: sectionId }
+      });
+
+      const response = await axios.get(`http://localhost:5000/get_sections?collection_id=${collectionId}`);
+      setSections(response.data.sections);
+      setError(null);
+    } catch (error) {
+      console.error(error);
+      setError(error.message);
+    }
+  };
+
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -70,19 +108,38 @@ const Sections = () => {
   }
 
   return (
-    <div className="study-buddy">
-      <h2>Sections in {collectionName}</h2>
-      <div className="category-buttons">
-        {sections.map(section => (
-          <button key={section.id} className="category-btn" onClick={() => handleSectionClick(section)}>
-            {section.section_name}
-          </button>
-        ))}
-        <button className="category-btn" onClick={openModal}>
-          <span className="plus-icon">+</span> New Section
-        </button>
+    <div id="collections-main" >
+      <div className="header" >
+        <div className = "flex">
+        <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%', marginRight: '10px' }}>Sections in {collectionName}</h2>
+        </div>
       </div>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
 
+            <input
+            
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search..."
+              style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderColor: 'gray', borderRadius: '5px', margin: '0 auto' }}
+              />
+              
+          </div>
+          <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '5%' }}>
+          <button id="create-btn" onClick={openModal} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '3%', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s' }}>
+          <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>+</span>
+      </button>
+       
+        {sections.map(section => (
+          <div key={section.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
+            <button onClick={() => handleSectionClick(section)} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '10px 20px', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s', ':hover': { backgroundColor: '#63828b' } }}>
+              {section.section_name || 'Untitled'}
+            </button>
+            <FontAwesomeIcon icon={faTrash} onClick={() => handleDeleteSection(section.id)} style={{ color: 'red', marginLeft: '10px', cursor: 'pointer' }} />
+
+          </div>
+        ))}
       {isModalOpen && (
         <div className="modal">
           <div className="modal-content">
@@ -98,6 +155,7 @@ const Sections = () => {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

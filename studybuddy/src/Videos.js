@@ -70,8 +70,8 @@ const VideoPage = () => {
         section_id: sectionId,
       });
       
-      if (generateVideoResponse.data.video_path) {
-        setVideoPaths(prevPaths => [...prevPaths, { path: generateVideoResponse.data.video_path }]);
+      if (generateVideoResponse.video_path) {
+        setVideoPaths(prevPaths => [...prevPaths, { path: generateVideoResponse.video_path }]);
       }
     } catch (error) {
       console.error('Error generating video:', error);

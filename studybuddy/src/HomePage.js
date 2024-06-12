@@ -150,6 +150,9 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const username = localStorage.getItem('userName');
   const [searchTerm, setSearchTerm] = useState('');
+  const click = () => {
+    window.alert("clicked");
+  }
 
   const handleKeyPress = (event) => {
     if (event.key === 'Enter') {
@@ -214,7 +217,11 @@ const HomePage = () => {
     <div>
       <nav>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src={Logo} alt="Logo" />
+        <img 
+          onClick={() => navigate(`/homepage`)} 
+          src={Logo} 
+          alt="Logo" 
+        />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center', borderRadius: '7px' }}>
           <input 

@@ -477,6 +477,37 @@ def update_access_time():
         return jsonify({'message': 'Access time updated successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+@app.route('/delete_collection', methods=['DELETE'])
+def delete_collection():
+    data = request.get_json()
+
+    collection_id = data.get('collection_id')
+
+    if not collection_id:
+        return jsonify({'error': 'Collection ID'}), 400
+
+    try:
+        note_ref = db.collection('collections').document(collection_id)
+        note_ref.delete()
+        return jsonify({'message': 'Note deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+@app.route('/delete_section', methods=['DELETE'])
+def delete_section():
+    data = request.get_json()
+
+    section_id = data.get('section_id')
+    collection_id = data.get('collection_id')
+
+    if not collection_id or not section_id:
+        return jsonify({'error': 'something not provided'}), 400
+
+    try:
+        note_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id)
+        note_ref.delete()
+        return jsonify({'message': 'Note deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/delete_note', methods=['DELETE'])
@@ -1050,7 +1081,7 @@ def save_response():
         'data': response,
         'tldr': tldr
     })
-    return jsonify({'success'}), 200
+    return jsonify({'success':'success'}), 200
 
 @app.route('/get_saved_responses', methods=['GET'])
 def get_saved_responses():
@@ -1340,9 +1371,11 @@ async def generate_qna():
             Answer: [Correct answer]
             '''
             response = await sydney.ask(question, citations=True)
-         
+            print(response)
          
             question_pattern = re.compile(r"\d+\.\s\*\*Question\*\*:\s(.*?)\n((?:\s+-\s.*?\n)*?)\s+-\s\*\*Answer\*\*:\s(.*?)\n", re.DOTALL)
+            question_pattern1 = re.compile(r"(\d+)\. \*\*Question\*\*: (.+?)\n((?:\s+- [A-D]\) .+?\n)+)\n\[\d+\]\s+\*\*Answer\*\*: ([A-D]\)) (.+?)\n", re.MULTILINE)
+            question_pattern2 = r'\d+\.\s+\*\*Question\*\*: (.+?)\n\s+-\s+A\)\s(.+?)\n\s+-\s+B\)\s(.+?)\n\s+-\s+C\)\s(.+?)\n\s+-\s+D\)\s(.+?)\n\s+\*\*Answer\*\*: (.+?)\n\n'
 
             matches = question_pattern.findall(response)
 
@@ -1353,7 +1386,30 @@ async def generate_qna():
                 answer = match[2].strip()
                 qna_pairs.append({"question": question, "options": options, "answer": answer})
 
-            return jsonify({'r': qna_pairs}), 200
+            if(len(qna_pairs)==0):
+                matches = question_pattern1.findall(response)
+
+                for match in matches:
+                    question_text = match[1].strip()
+                    options = [option.strip() for option in match[2].strip().split("\n")]
+                    answer = match[4].strip()
+                    qna_pairs.append({"question": question_text, "options": options, "answer": answer})
+            if(len(qna_pairs)==0):
+                matches = re.findall(question_pattern2, response, re.DOTALL)
+
+                # Extract questions, options, and answers into separate lists
+                questions = [match[0] for match in matches]
+                options = [[match[i] for i in range(1, 5)] for match in matches]
+                answers = [match[5] for match in matches]
+
+                # Print the extracted questions, options, and answers
+                for i in range(len(questions)):
+                    print(f"Question {i+1}: {questions[i]}")
+                    print(f"Options: {options[i]}")
+                    print(f"Answer: {answers[i]}")
+                    print()
+            
+            return jsonify({'r': qna_pairs, 'res':response}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
