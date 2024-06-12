@@ -95,7 +95,7 @@ const VideoPage = () => {
           {loading ? 'Generating...' : 'Generate New Video'}
         </button>
       </div>
-      <div className="video-list">
+      <div className="generate-button-container">
         {videoPaths.map((video, index) => (
           <div key={index} onClick={() => window.location.href = `http://localhost:3000/videoplayer/${video.video_path}`} className="video-item">
             <video preload="metadata" autoPlay={false}>

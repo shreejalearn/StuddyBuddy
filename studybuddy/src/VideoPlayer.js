@@ -7,7 +7,7 @@ const VideoPlayer = () => {
 
   return (
     <div className="video-list">
-      <div className="video-item">
+      <div className="video-stuff">
         <video controls>
           <source src={`http://localhost:5000/videos/${videoPath}`} type="video/mp4" />
           Your browser does not support the video tag.
