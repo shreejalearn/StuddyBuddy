@@ -38,6 +38,7 @@ import re
 import requests
 from datetime import datetime
 from nltk.tokenize import sent_tokenize
+from sumy.summarizers.text_rank import TextRankSummarizer
 
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
@@ -150,6 +151,7 @@ async def ask_sydney_with_retry(question, max_retries=3):
         try:
             return await ask_sydney(question)
         except Exception as e:
+            print(e)
             print(f"Request throttled. Retrying in {2**retries} seconds...")
             await asyncio.sleep(2**retries)
             retries += 1
@@ -679,17 +681,7 @@ async def suggestflashcards():
     for doc in notes_docs:
         note_data = doc.to_dict().get('notes', '')
         all_text += note_data + ' '
-    question = f'''
-        Task: Generate 10 flashcards based on the following notes. The target is to help the student learn and remember key aspects of the notes.
-
-        Notes:
-        {all_text}
-
-        Format: 
-        Question: [Your question here]
-        Answer: [Your answer here]
-        
-    '''
+    question = f"Task: Generate 10 flashcards based on the following notes. The target is to help the student learn and remember key aspects of the notes. Notes: {all_text} Format: Question: [Your question here] Answer: [Your answer here]"
     flashcards=[]
     response_task = await ask_sydney_with_retry(question)
     pattern = r'\*\*(.*?)\*\*:\n((?:   - .*?\n)*)'

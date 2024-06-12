@@ -39,7 +39,7 @@ const FlashcardApp = () => {
         }
   
         const data = await response.json();
-        setSuggestedFlashcards(data.flashcards);
+        setSuggestedFlashcards(data.response);
 
         console.log('Suggested flashcards:', data.response);
       } catch (error) {
@@ -93,7 +93,8 @@ const FlashcardApp = () => {
       // Optionally handle error here
     }
   };
-  const addSuggestedFlashcard = async (question, answer) => {
+  
+  const addSuggestedFlashcard = async (question, answer, index) => {
     try {
       const response = await fetch('http://localhost:5000/addflashcard', {
         method: 'POST',
@@ -112,6 +113,11 @@ const FlashcardApp = () => {
         console.error(response);
         throw new Error('Failed to add flashcard');
       }
+
+      // Remove the suggested flashcard from the array
+      const updatedSuggestions = [...suggestedFlashcards];
+      updatedSuggestions.splice(index, 1);
+      setSuggestedFlashcards(updatedSuggestions);
   
       // Handle success
       console.log('Flashcard added successfully!');
@@ -168,7 +174,7 @@ const FlashcardApp = () => {
       <button onClick={studyFlashcards}>Study Flashcards</button>
       <h2>Suggested Flashcards</h2>
         <div className="flashcards-container">
-          {suggestedFlashcards.map((flashcard, index) => (
+          {suggestedFlashcards && suggestedFlashcards.map((flashcard, index) => (
             <div key={index} className="flashcard">
               <div className="card-inner">
                 <div className="card-front">
@@ -180,8 +186,8 @@ const FlashcardApp = () => {
                   <button className="flip-button">Show Question</button>
                 </div>
               </div>
-              <button onClick={() => addSuggestedFlashcard(flashcard.question, flashcard.answer)}>
-                +
+              <button className="add-button" onClick={() => addSuggestedFlashcard(flashcard.question, flashcard.answer, index)}>
+                Add
               </button>
             </div>
           ))}
