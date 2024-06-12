@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import Navbar from './Navbar';
 
 const Upload = ({ onUploadSuccess }) => {
   const [rawText, setRawText] = useState('');
@@ -408,6 +409,8 @@ const ChapterPage = () => {
   };
 
   return (
+    <div>
+      <Navbar/>
     <div style={styles.container}>
       <div style={styles.sidebar}>
         <h2 style={styles.header}>
@@ -521,6 +524,7 @@ const ChapterPage = () => {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

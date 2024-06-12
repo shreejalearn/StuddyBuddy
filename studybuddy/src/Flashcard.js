@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './styles/flashcard.css';
+import Navbar from './Navbar';
 
 const FlashcardApp = () => {
   const [flashcards, setFlashcards] = useState([]);
@@ -133,7 +134,11 @@ const FlashcardApp = () => {
   };
 
   return (
+    <div>
+      <Navbar/>
+
     <div className="container">
+    
       <h1>Flashcard App</h1>
       <form
         onSubmit={(e) => {
@@ -192,6 +197,7 @@ const FlashcardApp = () => {
             </div>
           ))}
         </div>
+    </div>
     </div>
   );
 };

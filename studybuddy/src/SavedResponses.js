@@ -131,6 +131,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './styles/e.css';
+import Navbar from './Navbar';
+
 
 const SavedResponsesPage = () => {
   const chapterId = localStorage.getItem('currentSection');
@@ -218,7 +220,11 @@ const SavedResponsesPage = () => {
   };
 
   return (
+    <div>
+      <Navbar/>
+   
     <div className="container">
+     
       <h2 className="header" style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Saved Responses</h2>
       
       {modalIsOpen && (
@@ -251,6 +257,7 @@ const SavedResponsesPage = () => {
           ))
         )}
       </div>
+    </div>
     </div>
   );
 };
