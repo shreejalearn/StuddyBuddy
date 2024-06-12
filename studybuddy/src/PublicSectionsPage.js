@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Logo from './assets/logo (2).png';
+import Navbar from './Navbar';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -119,24 +120,7 @@ const HomePage = () => {
 
   return (
     <div>
-      <nav style={{ backgroundColor: 'lightblue', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src={Logo} onClick={() => navigate(`/homepage`)} alt="Logo" style={{ height: '100px', marginRight: '1rem' }} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center' }}>
-          <input 
-            type="text" 
-            placeholder="Search public sets..." 
-            style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderColor: 'gray' }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={handleKeyPress} 
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button onClick={() => navigate('/mygallery')} style={{ padding: '0.5rem 1rem' }}>Your Collections</button>
-        </div>
-      </nav>
+      <Navbar/>
       <div className="landing-content">
         <p>Search Results</p>
         {publicSections.length === 0 ? (
