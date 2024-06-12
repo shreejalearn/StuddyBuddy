@@ -948,6 +948,7 @@ const styles = {
     borderRadius: '5px',
     width: '500px',
     textAlign: 'center',
+    overflow: 'auto',
   },
   close: {
     position: 'absolute',

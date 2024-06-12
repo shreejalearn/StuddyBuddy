@@ -57,10 +57,10 @@ const QuizComponent = () => {
             {questions.length > 0 && (
                 <div>
                     {questions.map((q, index) => (
-                        <div key={index}>
+                        <div key={index} style={{backgroundColor: showResults ? (userAnswers[index] && userAnswers[index].toLowerCase().includes(q.answer.toLowerCase()) ? '#78B38F' : '#B37879') : '#E8ECEF'}}>
                             <p>{q.question}</p>
                             {q.options && q.options.map((option, optionIndex) => (
-                                <div key={optionIndex}>
+                                <div key={optionIndex} style={{backgroundColor: showResults && userAnswers[index] && userAnswers[index].toLowerCase() === option.toLowerCase() && option.toLowerCase().includes(q.answer.toLowerCase()) ? '#78B38F' : (showResults && userAnswers[index] && userAnswers[index].toLowerCase() === option.toLowerCase() ? '#B37879' : '#E8ECEF')}}>
                                     <label>
                                         <input
                                             type="radio"
@@ -73,22 +73,10 @@ const QuizComponent = () => {
                                     </label>
                                 </div>
                             ))}
+                            
                         </div>
                     ))}
                     <button onClick={handleSubmit}>Submit</button>
-                </div>
-            )}
-            {showResults && (
-                <div>
-                    <h2>Results</h2>
-                    {questions.map((q, index) => (
-                        <div key={index}>
-                            <p>{q.question}</p>
-                            <p>Your answer: {userAnswers[index]}</p>
-                            <p>Correct answer: {q.answer}</p>
-                            <p>{userAnswers[index] && userAnswers[index].toLowerCase().includes(q.answer.toLowerCase()) ? 'Correct' : 'Incorrect'}</p>
-                        </div>
-                    ))}
                 </div>
             )}
         </div>

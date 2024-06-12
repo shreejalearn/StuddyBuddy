@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-// import './styles/collections.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
@@ -72,7 +71,6 @@ const Collections = () => {
 
     try {
       const username = localStorage.getItem('userName');
-      
 
       await axios.delete('http://localhost:5000/delete_collection', {
         data: { collection_id: collectionId }
@@ -92,7 +90,6 @@ const Collections = () => {
     localStorage.setItem('collectionName', collectionName);
     window.location.href = "/sections";
   };
-  
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -113,7 +110,7 @@ const Collections = () => {
   }
 
   return (
-    <div id="collections-main" >
+    <div id="collections-main">
       <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Your Collections</h2>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <input
@@ -122,7 +119,7 @@ const Collections = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search..."
           style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderColor: 'gray', borderRadius: '5px', margin: '0 auto' }}
-          />
+        />
       </div>
       <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '5%' }}>
         <button id="create-btn" onClick={openModal} style={{ backgroundColor: 'rgba(136, 177, 184, 0.8)', border: 'none', borderRadius: '4px', padding: '3%', color: '#fff', fontSize: '1.3rem', cursor: 'pointer', transition: 'background-color 0.3s ease, transform 0.3s' }}>
@@ -139,19 +136,17 @@ const Collections = () => {
       </div>
 
       {isModalOpen && (
-        <div id="modal">
-          <div id="modal-content">
-            <span id="close" onClick={closeModal}>&times;</span>
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={closeModal}>&times;</span>
             <h2>Create New Collection</h2>
-
             <input
               type="text"
               placeholder="Collection Name"
               value={newCollectionName}
               onChange={(e) => setNewCollectionName(e.target.value)}
-              id="collection-input" // Add this class for styling
             />
-            <button id="create-btn" onClick={handleCreateCollection}>Create Collection</button>
+            <button className="create-btn" onClick={handleCreateCollection}>Create Collection</button>
             {error && <div id="error-message">{error}</div>}
           </div>
         </div>

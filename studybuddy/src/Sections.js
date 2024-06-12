@@ -59,30 +59,29 @@ const Sections = () => {
   const openModal = () => {
     setIsModalOpen(true);
   };
-  const deleteCollection = async () => {
-    const confirmDelete = window.confirm('Are you sure you want to delete this collection?');
-    if (!confirmDelete) return;
+  // const deleteCollection = async () => {
+  //   const confirmDelete = window.confirm('Are you sure you want to delete this collection?');
+  //   if (!confirmDelete) return;
 
-    try{
-      await axios.delete('http://localhost:5000/delete_collection', {
-        data: { collection_id: collectionId }
-      });
-      window.location.href = "/mygallery";
-    } catch(error){
-      setError(error.message);
-    }
+  //   try{
+  //     await axios.delete('http://localhost:5000/delete_collection', {
+  //       data: { collection_id: collectionId }
+  //     });
+  //     window.location.href = "/mygallery";
+  //   } catch(error){
+  //     setError(error.message);
+  //   }
     
-  };
+  // };
   const handleDeleteSection = async (sectionId) => {
     const confirmDelete = window.confirm('Are you sure you want to delete this section?');
     if (!confirmDelete) return;
 
     try {
-      const username = localStorage.getItem('userName');
       
 
-      await axios.delete('http://localhost:5000/delete_collection', {
-        data: { collection_id: collectionId }
+      await axios.delete('http://localhost:5000/delete_section', {
+        data: { collection_id: collectionId, section_id: sectionId }
       });
 
       const response = await axios.get(`http://localhost:5000/get_sections?collection_id=${collectionId}`);
