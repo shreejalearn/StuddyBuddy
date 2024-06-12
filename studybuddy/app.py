@@ -479,6 +479,36 @@ def update_access_time():
         return jsonify({'message': 'Access time updated successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+@app.route('/create_review', methods=['POST'])
+def create_review():
+    try:
+        data = request.get_json()
+        collection_id = data.get('collection_id')
+        section_ids = data.get('section_ids')
+        name = data.get('name')
+        username = data.get('username')
+        if not collection_id or not section_ids or not name or not username:
+            return jsonify({'error': 'Missing required parameters'}), 400
+
+        new_section_ref = db.collection('collections').document(collection_id).collection('sections').document()
+        new_section_ref.set({'section_name': name, 'visibility': 'public'})  # Set section name
+
+        for section_id in section_ids:
+            # Get the section document
+            section_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id)
+            section_doc = section_ref.get()
+            if not section_doc.exists:
+                return jsonify({'error': 'Section not found'}), 404
+
+            # Copy notes from the existing section to the new section
+            notes_ref = section_ref.collection('notes_in_section')
+            for note in notes_ref.stream():
+                new_note_ref = new_section_ref.collection('notes_in_section').document()
+                new_note_ref.set(note.to_dict())
+
+        return jsonify({'message': 'Review created successfully'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 @app.route('/delete_collection', methods=['DELETE'])
 def delete_collection():
     data = request.get_json()

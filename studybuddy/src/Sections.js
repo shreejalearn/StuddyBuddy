@@ -10,10 +10,13 @@ const Sections = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [newSectionName, setNewSectionName] = useState('');
+  const [newReviewName, setNewReviewName] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draggedSectionId, setDraggedSectionId] = useState(null);
   const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
   const collectionName = localStorage.getItem('collectionName');
+  const [selectedSections, setSelectedSections] = useState([]);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchSections = async () => {
@@ -96,6 +99,14 @@ const Sections = () => {
   const handleDragLeave = () => {
     setIsDraggingOverTrash(false);
   };
+  const closeReviewModal = () => {
+    setIsReviewModalOpen(false);
+    setSelectedSections([]); 
+  }
+  const openReviewModal = () => {
+    setIsReviewModalOpen(true);
+  }
+  
 
   const handleDrop = () => {
     if (draggedSectionId) {
@@ -105,14 +116,38 @@ const Sections = () => {
     }
   };
 
+  const handleCheckboxChange = (sectionId) => {
+    setSelectedSections(prevSelectedSections => {
+      if (prevSelectedSections.includes(sectionId)) {
+        return prevSelectedSections.filter(id => id !== sectionId);
+      } else {
+        return [...prevSelectedSections, sectionId];
+      }
+    });
+  };
+
+  const handleSubmitReview = async () => {
+    try {
+      await axios.post('http://localhost:5000/create_review', {
+        collection_id: collectionId,
+        section_ids: selectedSections,
+        name: newReviewName,
+        username: localStorage.getItem('userName')
+      });
+      closeReviewModal();
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
   if (loading) {
     return <div className="loading-spinner" style={{
-      border: '8px solid white', 
-      borderTop: '8px solid #6DC5D1', 
-      borderRadius: '50%', 
-      width: '50px', 
-      height: '50px', 
-      animation: 'spin 1s linear infinite', 
+      border: '8px solid white',
+      borderTop: '8px solid #6DC5D1',
+      borderRadius: '50%',
+      width: '50px',
+      height: '50px',
+      animation: 'spin 1s linear infinite',
       margin: '20px auto'
     }} />;
   }
@@ -151,7 +186,20 @@ const Sections = () => {
             transition: 'background-color 0.3s ease, transform 0.3s',
             opacity: 0.7,
         }}>
-          <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>+</span>
+          <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>New Section</span>
+        </button>
+        <button id="create-btn" onClick={openReviewModal} style={{ 
+            backgroundColor: 'rgba(136, 177, 184, 0.8)',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '3%',
+            color: '#fff',
+            fontSize: '1.3rem',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease, transform 0.3s',
+            opacity: 0.7,
+        }}>
+          <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>New Review</span>
         </button>
         {sections.map(section => (
           <div key={section.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', marginBottom: '10px' }}>
@@ -200,6 +248,43 @@ const Sections = () => {
         <FontAwesomeIcon icon={faTrash} />
       </div>
 
+      {isReviewModalOpen && (
+  <div className="modal">
+    <div className="modal-content">
+      <h2>Create Review</h2>
+      <div>
+       <input
+              type="text"
+              placeholder="Review Name"
+              value={newReviewName}
+              onChange={(e) => setNewReviewName(e.target.value)}
+              style={{
+                padding: '0.5rem',
+                width: '100%',
+                boxSizing: 'border-box',
+                marginBottom: '1rem',
+                borderRadius: '5px',
+                border: '1px solid #ccc',
+                outline: 'none'
+              }}
+            />
+        {sections.map(section => (
+          <div key={section.id}>
+            <input
+              type="checkbox"
+              id={`section-${section.id}`}
+              checked={selectedSections.includes(section.id)}
+              onChange={() => handleCheckboxChange(section.id)}
+            />
+            <label htmlFor={`section-${section.id}`}>{section.section_name}</label>
+          </div>
+        ))}
+      </div>
+      <button onClick={handleSubmitReview}>Submit</button>
+      <button onClick={closeReviewModal}>Cancel</button>
+    </div>
+  </div>
+)}
       {isModalOpen && (
         <div className="modal" style={{
           padding: '0.5rem',
