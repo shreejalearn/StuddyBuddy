@@ -311,6 +311,26 @@ const ChapterPage = () => {
     setUploadType(type);
   };
 
+  const formatBingResponse = (response) => {
+    // Split the response by newline characters
+    const paragraphs = response.split('\n');
+    
+    // Format each paragraph
+    const formattedParagraphs = paragraphs.map((paragraph, index) => {
+      // Check for bold formatting **text**
+      const boldRegex = /\*\*(.*?)\*\*/g;
+      let formattedParagraph = paragraph.replace(boldRegex, '<strong>$1</strong>');
+  
+      // Replace URLs with anchor tags
+      formattedParagraph = formattedParagraph.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+  
+      return <p key={index} dangerouslySetInnerHTML={{ __html: formattedParagraph }} />;
+    });
+  
+    return formattedParagraphs;
+  };
+  
+
   const handleSubmitQuestion = async () => {
     try {
       const res = await axios.post('http://localhost:5000/answer_question', {
@@ -431,7 +451,7 @@ const ChapterPage = () => {
               {response && (
                 <div>
                   <h2>Response:</h2>
-                  <p>{response}</p>
+                  <p>{formatBingResponse(response)}</p>
                   <button onClick={handleSaveResponse} disabled={responseSaved} style={styles.button}>
                     Save Response
                   </button>
