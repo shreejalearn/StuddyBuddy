@@ -533,18 +533,20 @@ const styles = {
   container: {
     display: 'flex',
     flexDirection: 'row',
-    height: '100vh',
+    height: '100%',
   },
   sidebar: {
-    width: '250px',
+    width: '20%',
     padding: '20px',
     backgroundColor: '#f4f4f4',
     borderRight: '1px solid #ccc',
+    height: '100%',
   },
   header: {
     fontSize: '24px',
     marginBottom: '20px',
     color: '#909191',
+    height: '100%',
   },
   uploadSourceBtn: {
     marginBottom: '20px',
@@ -595,7 +597,7 @@ const styles = {
   button: {
     marginLeft: '3px',
     padding: '10px 20px',
-    cursor: 'pointer',
+    cursor: 'pointer'
   },
   response: {
     marginTop: '10px',
