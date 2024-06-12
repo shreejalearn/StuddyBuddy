@@ -68,13 +68,12 @@ const UploadVideo = ({ onUploadSuccess }) => {
 
   return (
     <div style={styles.uploadContainer}>
-      <textarea
-        rows="4"
-        cols="50"
+      <input
+        type="text"
         value={video}
         onChange={handleTextChange}
-        placeholder="Enter your URL here..."
-        style={styles.textarea}
+        placeholder="Enter URL here..."
+        style={styles.input}
       />
       <button onClick={handleSubmitText} style={styles.button}>Upload Url</button>
       {response && <p style={styles.response}>{response}</p>}

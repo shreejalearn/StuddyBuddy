@@ -176,6 +176,7 @@ const HomePage = () => {
               recentSections: recentSectionsString,
             }
           });
+          console.log(recommendationsResponse.data.recommendations);
 
           if (recommendationsResponse.data.recommendations && recommendationsResponse.data.recommendations.length > 0) {
             const recommendationss = await axios.get('http://localhost:5000/process_recommendations', {
@@ -183,6 +184,7 @@ const HomePage = () => {
                 recs: recommendationsResponse.data.recommendations
               }
             });
+            console.log(recommendationss);
 
             setRecommendedSections(recommendationss.data.recommendations);
           }
