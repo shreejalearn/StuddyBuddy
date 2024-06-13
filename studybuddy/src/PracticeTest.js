@@ -15,15 +15,19 @@ const QuizComponent = () => {
 
     const fetchQuestions = async () => {
         try {
-            const response = await axios.post('http://localhost:5000/generate_qna', {
+            const response = await axios.post('http://localhost:5000/generate_questions', {
                 collection_id: collectionId,
                 section_id: chapterId,
-                num_questions: 10 
+                num_questions: 10
             });
-            console.log(response);
-            console.log(response.data.r);
+            console.log(response.data.response);
 
-            setQuestions(response.data.r);
+            const parseResponse = await axios.post('http://localhost:5000/parse_questions', {
+                response: response.data.response
+            });
+            console.log(parseResponse.data.r)
+
+            setQuestions(parseResponse.data.r);
             setShowResults(false);
             setUserAnswers({});
             setCorrectAnswers({});

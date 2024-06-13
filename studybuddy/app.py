@@ -1446,8 +1446,8 @@ def get_all_public_sections():
 
     return jsonify({'sections': public_sections})
 
-@app.route('/generate_qna', methods=['POST'])
-async def generate_qna():
+@app.route('/generate_questions', methods=['POST'])
+async def generate_questions():
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
@@ -1472,21 +1472,6 @@ async def generate_qna():
         if not all_text:
             return jsonify({'error': 'No notes found in the specified section'}), 404
 
-        # keywords = await get_keywords(all_text, 't')
-        # qa_pairs = []
-        # answer_dict = OrderedDict()
-
-        # for answer, context in keywords:
-        #     if len(qa_pairs) >= num_questions:
-        #         break
-        #     question = await generate_question(context, answer)
-        #     # if answer not in answer_dict:
-        #     #     answer_dict[answer] = question
-        #     #     qa_pairs.append({'question': question, 'answer': answer})
-        #     answer_dict[answer] = question
-        #     qa_pairs.append({'question': question, 'answer': answer})
-
-        # return jsonify({'qa_pairs': qa_pairs}), 200
         async with SydneyClient() as sydney:
             question = f'''
             Task: Generate 10 practice test questions based on the following notes. The question should cover the main topics. Ensure the question is of difficulty difficulty and is question_type.
@@ -1500,8 +1485,21 @@ async def generate_qna():
             Answer: [Correct answer]
             '''
             response = await sydney.ask(question, citations=True)
-            print(response)
-         
+            return jsonify({'response': response}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/parse_questions', methods=['POST'])
+async def parse_questions():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    response = data.get('response')
+    if not response:
+        return jsonify({'error': 'No response provided'}), 400
+    try:
             question_pattern = re.compile(r"\d+\.\s\*\*Question\*\*:\s(.*?)\n((?:\s+-\s.*?\n)*?)\s+-\s\*\*Answer\*\*:\s(.*?)\n", re.DOTALL)
             question_pattern1 = re.compile(r"(\d+)\. \*\*Question\*\*: (.+?)\n((?:\s+- [A-D]\) .+?\n)+)\n\[\d+\]\s+\*\*Answer\*\*: ([A-D]\)) (.+?)\n", re.MULTILINE)
             question_pattern2 = r'\d+\.\s+\*\*Question\*\*: (.+?)\n\s+-\s+A\)\s(.+?)\n\s+-\s+B\)\s(.+?)\n\s+-\s+C\)\s(.+?)\n\s+-\s+D\)\s(.+?)\n\s+\*\*Answer\*\*: (.+?)\n\n'
@@ -1601,95 +1599,95 @@ async def generate_qna():
                     ],
                     "answer": ("B", "A way to solve problems by breaking them down into smaller instances.")
                 }, {
-        "question": "What is the base case in recursion?",
-        "options": [
-            ("A", "The case where the function stops calling itself."),
-            ("B", "The smallest instance of the problem that can be solved directly."),
-            ("C", "A recursive function."),
-            ("D", "An iterative solution.")
-        ],
-        "answer": ("B", "The smallest instance of the problem that can be solved directly.")
-    },
-    {
-        "question": "What happens if a recursive function does not have a base case?",
-        "options": [
-            ("A", "The function will cause a stack overflow."),
-            ("B", "The function will run forever."),
-            ("C", "The function will return incorrect results."),
-            ("D", "All of the above.")
-        ],
-        "answer": ("D", "All of the above.")
-    },
-    {
-        "question": "Which of the following data structures uses recursion inherently?",
-        "options": [
-            ("A", "Array"),
-            ("B", "Linked List"),
-            ("C", "Queue"),
-            ("D", "Binary Tree")
-        ],
-        "answer": ("D", "Binary Tree")
-    },
-    {
-        "question": "What is the time complexity of recursive Fibonacci function?",
-        "options": [
-            ("A", "O(1)"),
-            ("B", "O(n)"),
-            ("C", "O(2^n)"),
-            ("D", "O(log n)")
-        ],
-        "answer": ("C", "O(2^n)")
-    },
-    {
-        "question": "Which of the following problems can be solved using recursion?",
-        "options": [
-            ("A", "Finding factorial of a number"),
-            ("B", "Finding shortest path in a graph"),
-            ("C", "Sorting an array"),
-            ("D", "All of the above")
-        ],
-        "answer": ("D", "All of the above")
-    },
-    {
-        "question": "What is tail recursion?",
-        "options": [
-            ("A", "A type of recursion that uses an explicit stack."),
-            ("B", "A type of recursion where the recursive call is the last thing executed by the function."),
-            ("C", "A type of recursion that involves multiple recursive calls."),
-            ("D", "A type of recursion that is slower than iterative solutions.")
-        ],
-        "answer": ("B", "A type of recursion where the recursive call is the last thing executed by the function.")
-    },
-    {
-        "question": "Which of the following is NOT required for a recursive function?",
-        "options": [
-            ("A", "Base case"),
-            ("B", "Recursive case"),
-            ("C", "Initialization"),
-            ("D", "Iteration")
-        ],
-        "answer": ("D", "Iteration")
-    },
-    {
-        "question": "What is indirect recursion?",
-        "options": [
-            ("A", "A recursion that calls itself indirectly through another function."),
-            ("B", "A recursion that does not have a base case."),
-            ("C", "A recursion that is faster than direct recursion."),
-            ("D", "A recursion that has only one recursive call.")
-        ],
-        "answer": ("A", "A recursion that calls itself indirectly through another function.")
-    },
-    {
-        "question": "Which of the following algorithms uses recursion?",
-        "options": [
-            ("A", "Merge Sort"),
-            ("B", "Bubble Sort"),
-            ("C", "Insertion Sort"),
-            ("D", "Selection Sort")
-        ],
-        "answer": ("A", "Merge Sort")
-    })
+                "question": "What is the base case in recursion?",
+                "options": [
+                    ("A", "The case where the function stops calling itself."),
+                    ("B", "The smallest instance of the problem that can be solved directly."),
+                    ("C", "A recursive function."),
+                    ("D", "An iterative solution.")
+                ],
+                "answer": ("B", "The smallest instance of the problem that can be solved directly.")
+            },
+            {
+                "question": "What happens if a recursive function does not have a base case?",
+                "options": [
+                    ("A", "The function will cause a stack overflow."),
+                    ("B", "The function will run forever."),
+                    ("C", "The function will return incorrect results."),
+                    ("D", "All of the above.")
+                ],
+                "answer": ("D", "All of the above.")
+            },
+            {
+                "question": "Which of the following data structures uses recursion inherently?",
+                "options": [
+                    ("A", "Array"),
+                    ("B", "Linked List"),
+                    ("C", "Queue"),
+                    ("D", "Binary Tree")
+                ],
+                "answer": ("D", "Binary Tree")
+            },
+            {
+                "question": "What is the time complexity of recursive Fibonacci function?",
+                "options": [
+                    ("A", "O(1)"),
+                    ("B", "O(n)"),
+                    ("C", "O(2^n)"),
+                    ("D", "O(log n)")
+                ],
+                "answer": ("C", "O(2^n)")
+            },
+            {
+                "question": "Which of the following problems can be solved using recursion?",
+                "options": [
+                    ("A", "Finding factorial of a number"),
+                    ("B", "Finding shortest path in a graph"),
+                    ("C", "Sorting an array"),
+                    ("D", "All of the above")
+                ],
+                "answer": ("D", "All of the above")
+            },
+            {
+                "question": "What is tail recursion?",
+                "options": [
+                    ("A", "A type of recursion that uses an explicit stack."),
+                    ("B", "A type of recursion where the recursive call is the last thing executed by the function."),
+                    ("C", "A type of recursion that involves multiple recursive calls."),
+                    ("D", "A type of recursion that is slower than iterative solutions.")
+                ],
+                "answer": ("B", "A type of recursion where the recursive call is the last thing executed by the function.")
+            },
+            {
+                "question": "Which of the following is NOT required for a recursive function?",
+                "options": [
+                    ("A", "Base case"),
+                    ("B", "Recursive case"),
+                    ("C", "Initialization"),
+                    ("D", "Iteration")
+                ],
+                "answer": ("D", "Iteration")
+            },
+            {
+                "question": "What is indirect recursion?",
+                "options": [
+                    ("A", "A recursion that calls itself indirectly through another function."),
+                    ("B", "A recursion that does not have a base case."),
+                    ("C", "A recursion that is faster than direct recursion."),
+                    ("D", "A recursion that has only one recursive call.")
+                ],
+                "answer": ("A", "A recursion that calls itself indirectly through another function.")
+            },
+            {
+                "question": "Which of the following algorithms uses recursion?",
+                "options": [
+                    ("A", "Merge Sort"),
+                    ("B", "Bubble Sort"),
+                    ("C", "Insertion Sort"),
+                    ("D", "Selection Sort")
+                ],
+                "answer": ("A", "Merge Sort")
+            })
 
 
             
