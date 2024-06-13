@@ -213,6 +213,7 @@ const ChapterPage = () => {
   const [notes, setNotes] = useState([]);
   const [selectedSourceNotes, setSelectedSourceNotes] = useState('');
   const [flashcardSaved, setFlashcardSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const updateAccessTime = async () => {
@@ -331,6 +332,7 @@ const ChapterPage = () => {
 
   const handleSubmitQuestion = async () => {
     try {
+      setLoading(true);
       const res = await axios.post('http://localhost:5000/answer_question', {
         username: localStorage.getItem('username'),
         class: localStorage.getItem('currentCollection'),
@@ -339,6 +341,8 @@ const ChapterPage = () => {
       setResponse(res.data.response);
     } catch (error) {
       console.error('Error submitting question:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -454,7 +458,18 @@ const ChapterPage = () => {
                 placeholder="Enter your prompt here..."
                 style={styles.textarea}
               />
-              <button onClick={handleSubmitQuestion} style={styles.button}>Submit</button>
+
+              <button
+                  onClick={handleSubmitQuestion}
+                  disabled={loading || responseSaved} // Disable when loading or response saved
+                  style={{
+                    ...styles.button,
+                    ...(loading && { backgroundColor: '#ccc', cursor: 'not-allowed' }), // Change button style when loading
+                  }}
+                > {loading ? 'Generating...' : 'Submit'} {/* Conditionally render button text */}
+              </button>
+
+
               {response && (
                 <div>
                   <h2>Response:</h2>
