@@ -53,10 +53,12 @@ const QuizComponent = () => {
     return (
         <div>
             <Navbar/>
-            <h1 style={{color: 'gray', textAlign: 'center'}}>Practice Test</h1>
+            <h2 className="header" style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Practice Test</h2>
          
-            <button onClick={fetchQuestions}>Generate Questions</button>
-            {questions.length > 0 && (
+            <div className="centered-container">
+                <button onClick={fetchQuestions}>Generate Questions</button>
+            </div>
+                {questions.length > 0 && (
                 <div>
                     {questions.map((q, index) => (
                         <div key={index} style={{backgroundColor: showResults ? (userAnswers[index] && userAnswers[index].toLowerCase().includes(q.answer.toLowerCase()) ? '#78B38F' : '#B37879') : '#E8ECEF'}}>
