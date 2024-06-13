@@ -1500,94 +1500,42 @@ async def parse_questions():
     if not response:
         return jsonify({'error': 'No response provided'}), 400
     try:
-            question_pattern = re.compile(r"\d+\.\s\*\*Question\*\*:\s(.*?)\n((?:\s+-\s.*?\n)*?)\s+-\s\*\*Answer\*\*:\s(.*?)\n", re.DOTALL)
-            question_pattern1 = re.compile(r"(\d+)\. \*\*Question\*\*: (.+?)\n((?:\s+- [A-D]\) .+?\n)+)\n\[\d+\]\s+\*\*Answer\*\*: ([A-D]\)) (.+?)\n", re.MULTILINE)
-            question_pattern2 = r'\d+\.\s+\*\*Question\*\*: (.+?)\n\s+-\s+A\)\s(.+?)\n\s+-\s+B\)\s(.+?)\n\s+-\s+C\)\s(.+?)\n\s+-\s+D\)\s(.+?)\n\s+\*\*Answer\*\*: (.+?)\n\n'
-            question_pattern3 = re.compile(r'\d+\.\s+\*\*Question\*\*: (.*?)\n((?:\s+- [A-D]\) .+?\n)+)\*\*Answer\*\*: ([A-D]\)) (.+?)\n', re.MULTILINE | re.DOTALL)
-            question_pattern4 = re.compile(r'\d+\.\s+(.*?)\n((?:\s+- [A-D]\. .+?\n)+)\*\*Answer: ([A-D])\. (.+?)\*\*', re.DOTALL)
-            question_pattern5 = re.compile(r'\d+\.\s+(.*?)\n((?:\s+- [A-D]\) .+?\n)+)\*\*Answer: ([A-D])\) (.+?)\*\*', re.DOTALL)
+            # question_pattern = re.compile(r"\d+\.\s\*\*Question\*\*:\s(.*?)\n((?:\s+-\s.*?\n)*?)\s+-\s\*\*Answer\*\*:\s(.*?)\n", re.DOTALL)
+            # question_pattern1 = re.compile(r"(\d+)\. \*\*Question\*\*: (.+?)\n((?:\s+- [A-D]\) .+?\n)+)\n\[\d+\]\s+\*\*Answer\*\*: ([A-D]\)) (.+?)\n", re.MULTILINE)
+            # question_pattern2 = r'\d+\.\s+\*\*Question\*\*: (.+?)\n\s+-\s+A\)\s(.+?)\n\s+-\s+B\)\s(.+?)\n\s+-\s+C\)\s(.+?)\n\s+-\s+D\)\s(.+?)\n\s+\*\*Answer\*\*: (.+?)\n\n'
+            # question_pattern3 = re.compile(r'\d+\.\s+\*\*Question\*\*: (.*?)\n((?:\s+- [A-D]\) .+?\n)+)\*\*Answer\*\*: ([A-D]\)) (.+?)\n', re.MULTILINE | re.DOTALL)
+            # question_pattern4 = re.compile(r'\d+\.\s+(.*?)\n((?:\s+- [A-D]\. .+?\n)+)\*\*Answer: ([A-D])\. (.+?)\*\*', re.DOTALL)
+            # question_pattern5 = re.compile(r'\d+\.\s+(.*?)\n((?:\s+- [A-D]\) .+?\n)+)\*\*Answer: ([A-D])\) (.+?)\*\*', re.DOTALL)
+
+            question_pattern = re.compile(r"(\d+)\.\s*\*\*Question\*\*:\s*(.*?)\n\s*-\s*A\)\s*(.*?)\n\s*-\s*B\)\s*(.*?)\n\s*-\s*C\)\s*(.*?)\n\s*-\s*D\)\s*(.*?)\n\s*\*\*Answer\*\*:\s*(.*?)\n")
 
             matches = question_pattern.findall(response)
+            
+            # Log the intermediate matches
+            print(f"Matches: {matches}")
 
             qna_pairs = []
             for match in matches:
-                question = match[0].strip()
-                options = [option.strip() for option in match[1].strip().split("\n")]
-                answer = match[2].strip()
-                qna_pairs.append({"question": question, "options": options, "answer": answer})
+                question_number = match[0]
+                question_text = match[1].strip()
+                options = [
+                    {"option": "A", "text": match[2].strip()},
+                    {"option": "B", "text": match[3].strip()},
+                    {"option": "C", "text": match[4].strip()},
+                    {"option": "D", "text": match[5].strip()}
+                ]
+                answer = match[6].strip()
 
-            if(len(qna_pairs)==0):
-                matches = question_pattern1.findall(response)
+                # Log each question and its options
+                print(f"Question {question_number}: {question_text}")
+                print(f"Options: {options}")
+                print(f"Answer: {answer}")
 
-                for match in matches:
-                    question_text = match[1].strip()
-                    options = [option.strip() for option in match[2].strip().split("\n")]
-                    answer = match[4].strip()
-                    qna_pairs.append({"question": question_text, "options": options, "answer": answer})
-            if(len(qna_pairs)==0):
-                matches = re.findall(question_pattern2, response, re.DOTALL)
-
-                # Extract questions, options, and answers into separate lists
-                questions = [match[0] for match in matches]
-                options = [[match[i] for i in range(1, 5)] for match in matches]
-                answers = [match[5] for match in matches]
-
-                # Print the extracted questions, options, and answers
-                for i in range(len(questions)):
-                    print(f"Question {i+1}: {questions[i]}")
-                    print(f"Options: {options[i]}")
-                    print(f"Answer: {answers[i]}")
-                    print()
-            if(len(qna_pairs)==0):
-
-                matches = question_pattern3.findall(response)
-
-                for match in matches:
-                    question_text = match[0].strip()
-                    options = [option.strip() for option in re.findall(r'\s+- ([A-D])\) (.+?)\n', match[1])]
-                    correct_option = match[2].strip()
-                    correct_answer = match[3].strip()
-
-                    # Combine options with correct answers
-                    options_with_answers = [(option[0], option[1]) for option in options]
-
-                    # Append to qna_pairs list
-                    qna_pairs.append({
-                        "question": question_text,
-                        "options": options_with_answers,
-                        "answer": (correct_option, correct_answer)
-                    })
-            if(len(qna_pairs)==0):
-                matches = question_pattern4.findall(response)
-
-                for match in matches:
-                    question_text = match[0].strip()
-                    options = [(option[0], option[1].strip()) for option in re.findall(r'\s+- ([A-D])\. (.+?)\n', match[1])]
-                    correct_option = match[2]
-                    correct_answer = match[3].strip()
-
-                    # Append to qna_pairs list
-                    qna_pairs.append({
-                        "question": question_text,
-                        "options": options,
-                        "answer": (correct_option, correct_answer)
-                    })
-            if(len(qna_pairs)==0):
-
-                matches = question_pattern5.findall(response)
-
-                for match in matches:
-                    question_text = match[0].strip()
-                    options = [(option[0], option[1].strip()) for option in re.findall(r'\s+- ([A-D])\) (.+?)\n', match[1])]
-                    correct_option = match[2]
-                    correct_answer = match[3].strip()
-
-                    # Append to qna_pairs list
-                    qna_pairs.append({
-                        "question": question_text,
-                        "options": options,
-                        "answer": (correct_option, correct_answer)
-                    })
+                qna_pairs.append({
+                    "question": question_text,
+                    "options": options,
+                    "answer": answer
+                })
             if len(qna_pairs) == 0:
                 qna_pairs.append({
                     "question": "What is recursion in programming?",
@@ -1598,96 +1546,96 @@ async def parse_questions():
                         ("D", "A sorting algorithm.")
                     ],
                     "answer": ("B", "A way to solve problems by breaking them down into smaller instances.")
-                }, {
-                "question": "What is the base case in recursion?",
-                "options": [
-                    ("A", "The case where the function stops calling itself."),
-                    ("B", "The smallest instance of the problem that can be solved directly."),
-                    ("C", "A recursive function."),
-                    ("D", "An iterative solution.")
-                ],
-                "answer": ("B", "The smallest instance of the problem that can be solved directly.")
-            },
-            {
-                "question": "What happens if a recursive function does not have a base case?",
-                "options": [
-                    ("A", "The function will cause a stack overflow."),
-                    ("B", "The function will run forever."),
-                    ("C", "The function will return incorrect results."),
-                    ("D", "All of the above.")
-                ],
-                "answer": ("D", "All of the above.")
-            },
-            {
-                "question": "Which of the following data structures uses recursion inherently?",
-                "options": [
-                    ("A", "Array"),
-                    ("B", "Linked List"),
-                    ("C", "Queue"),
-                    ("D", "Binary Tree")
-                ],
-                "answer": ("D", "Binary Tree")
-            },
-            {
-                "question": "What is the time complexity of recursive Fibonacci function?",
-                "options": [
-                    ("A", "O(1)"),
-                    ("B", "O(n)"),
-                    ("C", "O(2^n)"),
-                    ("D", "O(log n)")
-                ],
-                "answer": ("C", "O(2^n)")
-            },
-            {
-                "question": "Which of the following problems can be solved using recursion?",
-                "options": [
-                    ("A", "Finding factorial of a number"),
-                    ("B", "Finding shortest path in a graph"),
-                    ("C", "Sorting an array"),
-                    ("D", "All of the above")
-                ],
-                "answer": ("D", "All of the above")
-            },
-            {
-                "question": "What is tail recursion?",
-                "options": [
-                    ("A", "A type of recursion that uses an explicit stack."),
-                    ("B", "A type of recursion where the recursive call is the last thing executed by the function."),
-                    ("C", "A type of recursion that involves multiple recursive calls."),
-                    ("D", "A type of recursion that is slower than iterative solutions.")
-                ],
-                "answer": ("B", "A type of recursion where the recursive call is the last thing executed by the function.")
-            },
-            {
-                "question": "Which of the following is NOT required for a recursive function?",
-                "options": [
-                    ("A", "Base case"),
-                    ("B", "Recursive case"),
-                    ("C", "Initialization"),
-                    ("D", "Iteration")
-                ],
-                "answer": ("D", "Iteration")
-            },
-            {
-                "question": "What is indirect recursion?",
-                "options": [
-                    ("A", "A recursion that calls itself indirectly through another function."),
-                    ("B", "A recursion that does not have a base case."),
-                    ("C", "A recursion that is faster than direct recursion."),
-                    ("D", "A recursion that has only one recursive call.")
-                ],
-                "answer": ("A", "A recursion that calls itself indirectly through another function.")
-            },
-            {
-                "question": "Which of the following algorithms uses recursion?",
-                "options": [
-                    ("A", "Merge Sort"),
-                    ("B", "Bubble Sort"),
-                    ("C", "Insertion Sort"),
-                    ("D", "Selection Sort")
-                ],
-                "answer": ("A", "Merge Sort")
-            })
+                    }, {
+                    "question": "What is the base case in recursion?",
+                    "options": [
+                        ("A", "The case where the function stops calling itself."),
+                        ("B", "The smallest instance of the problem that can be solved directly."),
+                        ("C", "A recursive function."),
+                        ("D", "An iterative solution.")
+                    ],
+                    "answer": ("B", "The smallest instance of the problem that can be solved directly.")
+                },
+                {
+                    "question": "What happens if a recursive function does not have a base case?",
+                    "options": [
+                        ("A", "The function will cause a stack overflow."),
+                        ("B", "The function will run forever."),
+                        ("C", "The function will return incorrect results."),
+                        ("D", "All of the above.")
+                    ],
+                    "answer": ("D", "All of the above.")
+                },
+                {
+                    "question": "Which of the following data structures uses recursion inherently?",
+                    "options": [
+                        ("A", "Array"),
+                        ("B", "Linked List"),
+                        ("C", "Queue"),
+                        ("D", "Binary Tree")
+                    ],
+                    "answer": ("D", "Binary Tree")
+                },
+                {
+                    "question": "What is the time complexity of recursive Fibonacci function?",
+                    "options": [
+                        ("A", "O(1)"),
+                        ("B", "O(n)"),
+                        ("C", "O(2^n)"),
+                        ("D", "O(log n)")
+                    ],
+                    "answer": ("C", "O(2^n)")
+                },
+                {
+                    "question": "Which of the following problems can be solved using recursion?",
+                    "options": [
+                        ("A", "Finding factorial of a number"),
+                        ("B", "Finding shortest path in a graph"),
+                        ("C", "Sorting an array"),
+                        ("D", "All of the above")
+                    ],
+                    "answer": ("D", "All of the above")
+                },
+                {
+                    "question": "What is tail recursion?",
+                    "options": [
+                        ("A", "A type of recursion that uses an explicit stack."),
+                        ("B", "A type of recursion where the recursive call is the last thing executed by the function."),
+                        ("C", "A type of recursion that involves multiple recursive calls."),
+                        ("D", "A type of recursion that is slower than iterative solutions.")
+                    ],
+                    "answer": ("B", "A type of recursion where the recursive call is the last thing executed by the function.")
+                },
+                {
+                    "question": "Which of the following is NOT required for a recursive function?",
+                    "options": [
+                        ("A", "Base case"),
+                        ("B", "Recursive case"),
+                        ("C", "Initialization"),
+                        ("D", "Iteration")
+                    ],
+                    "answer": ("D", "Iteration")
+                },
+                {
+                    "question": "What is indirect recursion?",
+                    "options": [
+                        ("A", "A recursion that calls itself indirectly through another function."),
+                        ("B", "A recursion that does not have a base case."),
+                        ("C", "A recursion that is faster than direct recursion."),
+                        ("D", "A recursion that has only one recursive call.")
+                    ],
+                    "answer": ("A", "A recursion that calls itself indirectly through another function.")
+                },
+                {
+                    "question": "Which of the following algorithms uses recursion?",
+                    "options": [
+                        ("A", "Merge Sort"),
+                        ("B", "Bubble Sort"),
+                        ("C", "Insertion Sort"),
+                        ("D", "Selection Sort")
+                    ],
+                    "answer": ("A", "Merge Sort")
+                })
 
 
             
