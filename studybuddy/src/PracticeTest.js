@@ -128,38 +128,42 @@ const QuizComponent = () => {
     return (
         <div>
             <Navbar />
+            
             <h2 className="header" style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Practice Test</h2>
-
+    
             <div className="centered-container">
-                <button onClick={() => setShowResults(false)}>Generate Questions</button>
+                <button onClick={() => setShowResults(false)} style={{ width: '15%', marginBottom: '3%' }}>Generate Questions</button>
             </div>
-
-            {questions.length > 0 && (
-                <div>
-                    {questions.map((q, index) => (
-                        <div key={index} style={{ backgroundColor: showResults ? (userAnswers[index] && userAnswers[index].toLowerCase() === q.answer.text.toLowerCase() ? '#78B38F' : '#B37879') : '#E8ECEF' }}>
-                            <p>{q.question}</p>
-                            {q.options && q.options.map((option, optionIndex) => (
-                                <div key={optionIndex} style={{ backgroundColor: showResults && userAnswers[index] && userAnswers[index].toLowerCase() === option.text.toLowerCase() && option.text.toLowerCase() === q.answer.text.toLowerCase() ? '#78B38F' : (showResults && userAnswers[index] && userAnswers[index].toLowerCase() === option.text.toLowerCase() ? '#B37879' : '#E8ECEF') }}>
-                                    <label>
-                                        <input
-                                            type="radio"
-                                            name={`question-${index}`}
-                                            value={option.text}
-                                            checked={userAnswers[index] === option.text}
-                                            onChange={(e) => handleAnswerChange(e, index)}
-                                        />
-                                        {option.text}
-                                    </label>
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-                    <button onClick={handleSubmit}>Submit</button>
-                </div>
-            )}
+    
+            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', margin: 'auto', maxWidth: '800px', borderRadius: '5px', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)', marginBottom: '3%' }}>
+                {questions.length > 0 && (
+                    <div>
+                        {questions.map((q, index) => (
+                            <div key={index} style={{ backgroundColor: showResults ? (userAnswers[index] && userAnswers[index].toLowerCase() === q.answer.text.toLowerCase() ? '#AFC8AD' : '#B37879') : '#F6F5F5', padding: '10px', margin: '10px 0', borderRadius: '5px' }}>
+                                <p>{q.question}</p>
+                                {q.options && q.options.map((option, optionIndex) => (
+                                    <div key={optionIndex} style={{ backgroundColor: showResults && userAnswers[index] && userAnswers[index].toLowerCase() === option.text.toLowerCase() && option.text.toLowerCase() === q.answer.text.toLowerCase() ? '#D8EFD3' : (showResults && userAnswers[index] && userAnswers[index].toLowerCase() === option.text.toLowerCase() ? '#FA7070' : '#F6F5F2'), padding: '5px', margin: '5px 0', borderRadius: '3px' }}>
+                                        <label>
+                                            <input
+                                                type="radio"
+                                                name={`question-${index}`}
+                                                value={option.text}
+                                                checked={userAnswers[index] === option.text}
+                                                onChange={(e) => handleAnswerChange(e, index)}
+                                                style={{ marginRight: '5px' }}
+                                            />
+                                            <span style={{ fontSize: '1rem', marginRight: '10px' }}>{option.text}</span>
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                        <button onClick={handleSubmit} style={{ marginTop: '10px', width: '15%' }}>Submit</button>
+                    </div>
+                )}
+            </div>
         </div>
     );
-};
+                };
 
 export default QuizComponent;
