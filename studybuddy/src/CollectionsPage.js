@@ -135,7 +135,7 @@ const Collections = () => {
   return (
     <div id="collections-main">
       <Navbar/>
-      <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Your Collections</h2>
+      <h2 style={{ textAlign: 'center', marginTop: '2%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Your Collections</h2>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <input
           type="text"
@@ -145,7 +145,7 @@ const Collections = () => {
           style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderColor: 'gray', borderRadius: '5px', margin: '0 auto' }}
         />
       </div>
-      <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '5%' }}>
+      <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '3.5%' }}>
         <button
           id="create-btn"
           onClick={openModal}

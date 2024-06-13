@@ -53,7 +53,7 @@ const QuizComponent = () => {
     return (
         <div>
             <Navbar/>
-            <h1>Practice Test</h1>
+            <h1 style={{color: 'gray', textAlign: 'center'}}>Practice Test</h1>
          
             <button onClick={fetchQuestions}>Generate Questions</button>
             {questions.length > 0 && (
