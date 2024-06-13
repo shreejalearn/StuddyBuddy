@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import './styles/flashcard.css';
 import Navbar from './Navbar';
 
 const FlashcardApp = () => {
@@ -8,6 +7,7 @@ const FlashcardApp = () => {
   const [answer, setAnswer] = useState('');
   const [suggestedFlashcards, setSuggestedFlashcards] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [flippedCards, setFlippedCards] = useState([]);
 
   useEffect(() => {
     async function fetchFlashcards() {
@@ -20,7 +20,6 @@ const FlashcardApp = () => {
         setFlashcards(data.flashcards);
       } catch (error) {
         console.error('Error fetching flashcards:', error.message);
-        // Optionally handle error here
       }
     }
 
@@ -84,7 +83,6 @@ const FlashcardApp = () => {
       console.log('Flashcard added successfully!');
     } catch (error) {
       console.error('Error adding flashcard:', error.message);
-      // Optionally handle error here
     }
   };
 
@@ -107,7 +105,6 @@ const FlashcardApp = () => {
         throw new Error('Failed to add flashcard');
       }
 
-      // Remove the suggested flashcard from the array
       const updatedSuggestions = [...suggestedFlashcards];
       updatedSuggestions.splice(index, 1);
       setSuggestedFlashcards(updatedSuggestions);
@@ -115,77 +112,206 @@ const FlashcardApp = () => {
       console.log('Flashcard added successfully!');
     } catch (error) {
       console.error('Error adding flashcard:', error.message);
-      // Optionally handle error here
     }
   };
 
-  const studyFlashcards = () => {
-    alert('Studying Flashcards!');
-    // Implement study logic here
+  const toggleFlip = (index) => {
+    setFlippedCards((prevFlippedCards) => {
+      const newFlippedCards = [...prevFlippedCards];
+      newFlippedCards[index] = !newFlippedCards[index];
+      return newFlippedCards;
+    });
   };
 
   return (
     <div>
       <Navbar />
 
-      <div className="container">
-        <h2 className="header">Flashcards</h2>
+      <div style={{ padding: '20px' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '3.5rem', color: 'gray' }}>Flashcards</h2>
 
         {showModal && (
-          <div className="modal">
-            <div className="modal-content">
-              <span className="close" onClick={() => setShowModal(false)}>&times;</span>
+          <div style={{
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+            <div style={{
+              backgroundColor: '#fff',
+              padding: '20px',
+              borderRadius: '5px',
+              boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+              position: 'relative'
+            }}>
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  cursor: 'pointer',
+                  fontSize: '20px',
+                }}
+                onClick={() => setShowModal(false)}
+              >&times;</span>
               <form onSubmit={(e) => { e.preventDefault(); addFlashcard(); }}>
                 <input
                   type="text"
                   placeholder="Enter question"
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
+                  style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
                 />
                 <input
                   type="text"
                   placeholder="Enter answer"
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
+                  style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
                 />
-                <button type="submit">Add Flashcard</button>
+                <button type="submit" style={{ padding: '10px 20px', border: 'none', borderRadius: '5px', backgroundColor: '#28a745', color: '#fff', cursor: 'pointer' }}>
+                  Add Flashcard
+                </button>
               </form>
             </div>
           </div>
         )}
 
-        <button className="add-button" onClick={() => setShowModal(true)}>
+        <button
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderRadius: '5px',
+            backgroundColor: '#007bff',
+            color: '#fff',
+            cursor: 'pointer',
+            marginBottom: '20px'
+          }}
+          onClick={() => setShowModal(true)}
+        >
           Add Flashcard
         </button>
 
-        <div className="flashcards-container">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
           {flashcards.map((flashcard, index) => (
-            <div key={index} className="flashcard">
-              <div className="card-inner">
-                <div className="card-front">
-                  <div className="question">{flashcard.question}</div>
+            <div key={index} style={{
+              width: '200px',
+              height: '200px',
+              perspective: '1000px'
+            }} onClick={() => toggleFlip(index)}>
+              <div style={{
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+                transformStyle: 'preserve-3d',
+                transition: 'transform 0.6s',
+                transform: flippedCards[index] ? 'rotateY(180deg)' : 'none'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  backfaceVisibility: 'hidden',
+                  backgroundColor: '#fff',
+                  border: '1px solid #ccc',
+                  borderRadius: '5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '10px',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ fontWeight: 'bold' }}>{flashcard.question}</div>
                 </div>
-                <div className="card-back">
-                  <div className="answer">{flashcard.answer}</div>
+                <div style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  backfaceVisibility: 'hidden',
+                  backgroundColor: '#fff',
+                  border: '1px solid #ccc',
+                  borderRadius: '5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '10px',
+                  boxSizing: 'border-box',
+                  transform: 'rotateY(180deg)'
+                }}>
+                  <div>{flashcard.answer}</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        <h2>Suggested Flashcards</h2>
-        <div className="suggested-flashcards-container">
+        <h2 style={{ textAlign: 'center', marginTop: '20px' }}>Suggested Flashcards</h2>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
           {suggestedFlashcards.map((flashcard, index) => (
-            <div key={index} className="flashcard">
-              <div className="card-inner">
-                <div className="card-front">
-                  <div className="question">{flashcard.question}</div>
+            <div key={index} style={{
+              width: '200px',
+              height: '200px',
+              perspective: '1000px'
+            }} onClick={() => toggleFlip(flashcards.length + index)}>
+              <div style={{
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+                transformStyle: 'preserve-3d',
+                transition: 'transform 0.6s',
+                transform: flippedCards[flashcards.length + index] ? 'rotateY(180deg)' : 'none'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  backfaceVisibility: 'hidden',
+                  backgroundColor: '#fff',
+                  border: '1px solid #ccc',
+                  borderRadius: '5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '10px',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ fontWeight: 'bold' }}>{flashcard.question}</div>
                 </div>
-                <div className="card-back">
-                  <div className="answer">{flashcard.answer}</div>
+                <div style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  backfaceVisibility: 'hidden',
+                  backgroundColor: '#fff',
+                  border: '1px solid #ccc',
+                  borderRadius: '5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '10px',
+                  boxSizing: 'border-box',
+                  transform: 'rotateY(180deg)'
+                }}>
+                  <div>{flashcard.answer}</div>
                 </div>
               </div>
-              <button className="add-suggested-button" onClick={() => addSuggestedFlashcard(flashcard.question, flashcard.answer, index)}>
+              <button
+                style={{
+                  marginTop: '10px',
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  backgroundColor: '#28a745',
+                  color: '#fff',
+                  cursor: 'pointer'
+                }}
+                onClick={() => addSuggestedFlashcard(flashcard.question, flashcard.answer, index)}
+              >
                 Add
               </button>
             </div>

@@ -93,7 +93,7 @@ const VideoPage = () => {
       <Navbar/>
       <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Video Page</h2>
       <div className="generate-button-container"> {}
-        <button onClick={() => setIsModalOpen(true)} disabled={loading}>
+        <button onClick={() => setIsModalOpen(true)} disabled={loading} style={{ marginBottom: '3%', width: '20%' }}>
           {loading ? 'Generating...' : 'Generate New Video'}
         </button>
       </div>
@@ -118,8 +118,8 @@ const VideoPage = () => {
         overlayClassName="modal-overlay"
       >
         <div className="modal-content">
-          <h2>Select Notes</h2>
-          <div className="notes-list">
+          <h2 style={{ marginBottom: '20px', color: '#99aab0' }}>Select Notes</h2>
+          <div className="notes-list" style={{ marginBottom: '20px' }}>
             {notes.map(note => (
               <div key={note.id} className="note-item">
                 <label>
@@ -133,7 +133,7 @@ const VideoPage = () => {
               </div>
             ))}
           </div>
-          <button onClick={handleGenerateVideo} disabled={loading}>
+          <button onClick={handleGenerateVideo} disabled={loading} style={{ marginRight: '10px' }}>
             {loading ? 'Generating...' : 'Generate Video'}
           </button>
           <button onClick={() => setIsModalOpen(false)}>Close</button>
