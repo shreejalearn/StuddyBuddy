@@ -135,11 +135,11 @@ const QuizComponent = () => {
                 <button onClick={() => setShowResults(false)} style={{ width: '15%', marginBottom: '3%' }}>Generate Questions</button>
             </div>
     
-            <div style={{ backgroundColor: '#FFFFFF', padding: '20px', margin: 'auto', maxWidth: '800px', borderRadius: '5px', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)', marginBottom: '3%' }}>
+            <div style={{ width: '90%', padding: '20px', margin: 'auto', maxWidth: '800px', borderRadius: '5px', boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)', marginBottom: '3%' }}>
                 {questions.length > 0 && (
                     <div>
                         {questions.map((q, index) => (
-                            <div key={index} style={{ backgroundColor: showResults ? (userAnswers[index] && userAnswers[index].toLowerCase() === q.answer.text.toLowerCase() ? '#AFC8AD' : '#B37879') : '#F6F5F5', padding: '10px', margin: '10px 0', borderRadius: '5px' }}>
+                            <div key={index} style={{ backgroundColor: showResults ? (userAnswers[index] && userAnswers[index].toLowerCase() === q.answer.text.toLowerCase() ? '#AFC8AD' : '#d4b8b8') : '#F6F5F5', padding: '10px', margin: '10px 0', borderRadius: '5px' }}>
                                 <p>{q.question}</p>
                                 {q.options && q.options.map((option, optionIndex) => (
                                     <div key={optionIndex} style={{ backgroundColor: showResults && userAnswers[index] && userAnswers[index].toLowerCase() === option.text.toLowerCase() && option.text.toLowerCase() === q.answer.text.toLowerCase() ? '#D8EFD3' : (showResults && userAnswers[index] && userAnswers[index].toLowerCase() === option.text.toLowerCase() ? '#FA7070' : '#F6F5F2'), padding: '5px', margin: '5px 0', borderRadius: '3px' }}>
