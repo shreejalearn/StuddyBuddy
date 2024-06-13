@@ -161,10 +161,10 @@ const Sections = () => {
     <div>      
       <Navbar/>
 
-    <div id="sections-main" style={{ padding: '20px' }}>
+    <div id="sections-main">
       <div className="header">
         <div className="flex">
-          <h2 style={{ textAlign: 'center', marginTop: '5%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%', marginRight: '10px' }}>
+          <h2 style={{ textAlign: 'center', color: '#99aab0', fontSize: '4rem', marginBottom: '1%', marginRight: '10px' }}>
             Sections in {collectionName}
           </h2>
         </div>
@@ -178,7 +178,7 @@ const Sections = () => {
           style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderRadius: '5px', margin: '0 auto' }}
         />
       </div>
-      <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '5%' }}>
+      <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '2%' }}>
         <button id="create-btn" onClick={openModal} style={{ 
             backgroundColor: 'rgba(136, 177, 184, 0.8)',
             border: 'none',
