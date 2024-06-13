@@ -1492,14 +1492,14 @@ async def generate_questions():
 
 @app.route('/parse_questions', methods=['POST'])
 async def parse_questions():
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
+    # data = request.get_json()
+    # if not data:
+    #     return jsonify({'error': 'No data provided'}), 400
 
-    response = data.get('response')
-    if not response:
-        return jsonify({'error': 'No response provided'}), 400
-    try:
+    # response = data.get('response')
+    # if not response:
+    #     return jsonify({'error': 'No response provided'}), 400
+    # try:
             # question_pattern = re.compile(r"\d+\.\s\*\*Question\*\*:\s(.*?)\n((?:\s+-\s.*?\n)*?)\s+-\s\*\*Answer\*\*:\s(.*?)\n", re.DOTALL)
             # question_pattern1 = re.compile(r"(\d+)\. \*\*Question\*\*: (.+?)\n((?:\s+- [A-D]\) .+?\n)+)\n\[\d+\]\s+\*\*Answer\*\*: ([A-D]\)) (.+?)\n", re.MULTILINE)
             # question_pattern2 = r'\d+\.\s+\*\*Question\*\*: (.+?)\n\s+-\s+A\)\s(.+?)\n\s+-\s+B\)\s(.+?)\n\s+-\s+C\)\s(.+?)\n\s+-\s+D\)\s(.+?)\n\s+\*\*Answer\*\*: (.+?)\n\n'
@@ -1507,37 +1507,37 @@ async def parse_questions():
             # question_pattern4 = re.compile(r'\d+\.\s+(.*?)\n((?:\s+- [A-D]\. .+?\n)+)\*\*Answer: ([A-D])\. (.+?)\*\*', re.DOTALL)
             # question_pattern5 = re.compile(r'\d+\.\s+(.*?)\n((?:\s+- [A-D]\) .+?\n)+)\*\*Answer: ([A-D])\) (.+?)\*\*', re.DOTALL)
 
-            question_pattern = re.compile(r"(\d+)\.\s*\*\*Question\*\*:\s*(.*?)\n\s*-\s*A\)\s*(.*?)\n\s*-\s*B\)\s*(.*?)\n\s*-\s*C\)\s*(.*?)\n\s*-\s*D\)\s*(.*?)\n\s*\*\*Answer\*\*:\s*(.*?)\n")
+            # question_pattern = re.compile(r"(\d+)\.\s*\*\*Question\*\*:\s*(.*?)\n\s*-\s*A\)\s*(.*?)\n\s*-\s*B\)\s*(.*?)\n\s*-\s*C\)\s*(.*?)\n\s*-\s*D\)\s*(.*?)\n\s*\*\*Answer\*\*:\s*(.*?)\n")
 
-            matches = question_pattern.findall(response)
+            # matches = question_pattern.findall(response)
             
-            # Log the intermediate matches
-            print(f"Matches: {matches}")
-
+            # # Log the intermediate matches
+            # print(f"Matches: {matches}")
+        try:
             qna_pairs = []
-            for match in matches:
-                question_number = match[0]
-                question_text = match[1].strip()
-                options = [
-                    {"option": "A", "text": match[2].strip()},
-                    {"option": "B", "text": match[3].strip()},
-                    {"option": "C", "text": match[4].strip()},
-                    {"option": "D", "text": match[5].strip()}
-                ]
-                answer = match[6].strip()
+            # for match in matches:
+            #     question_number = match[0]
+            #     question_text = match[1].strip()
+            #     options = [
+            #         {"option": "A", "text": match[2].strip()},
+            #         {"option": "B", "text": match[3].strip()},
+            #         {"option": "C", "text": match[4].strip()},
+            #         {"option": "D", "text": match[5].strip()}
+            #     ]
+            #     answer = match[6].strip()
 
-                # Log each question and its options
-                print(f"Question {question_number}: {question_text}")
-                print(f"Options: {options}")
-                print(f"Answer: {answer}")
+            #     # Log each question and its options
+            #     print(f"Question {question_number}: {question_text}")
+            #     print(f"Options: {options}")
+            #     print(f"Answer: {answer}")
 
-                qna_pairs.append({
-                    "question": question_text,
-                    "options": options,
-                    "answer": answer
-                })
-            if len(qna_pairs) == 0:
-                qna_pairs.append({
+            #     qna_pairs.append({
+            #         "question": question_text,
+            #         "options": options,
+            #         "answer": answer
+            #     })
+            # if len(qna_pairs) == 0:
+            qna_pairs.append({
                     "question": "What is recursion in programming?",
                     "options": [
                         ("A", "A method to iterate over data."),
@@ -1639,9 +1639,9 @@ async def parse_questions():
 
 
             
-            return jsonify({'r': qna_pairs, 'res':response}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+            return jsonify({'r': qna_pairs}), 200
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
 
 

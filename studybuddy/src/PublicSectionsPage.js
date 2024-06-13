@@ -260,4 +260,3 @@ Clone Section
 };
 
 export default HomePage;
-
