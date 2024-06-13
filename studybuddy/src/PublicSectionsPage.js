@@ -135,29 +135,33 @@ const HomePage = () => {
         ))}
       </div>
       {showModal && (
-        <div className="modal" style={{ 
-          display: 'block', 
-          backgroundColor: 'rgba(0, 0, 0, 0.5)', 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          zIndex: 999 
-        }}>
-          <div className="modal-content" ref={modalRef} style={{ 
-            backgroundColor: '#fefefe', 
-            margin: '15% auto', 
-            padding: '4%', 
-            border: '1px solid #888', 
-            width: '80%', 
-            boxShadow: '0 4px 8px 0 rgba(0, 0, 0, 0.2)', 
-            borderRadius: '5px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center', // Center-align content horizontally
-            justifyContent: 'center', // Center-align content vertically
-          }}>
+  <div className="modal" style={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+    position: 'fixed', 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0, 
+    zIndex: 999, 
+  }}>
+    <div className="modal-content" ref={modalRef} style={{ 
+      backgroundColor: '#fefefe', 
+      padding: '4%', 
+      border: '1px solid #888', 
+      width: '80%', 
+      maxWidth: '600px', 
+      boxShadow: '0 4px 8px 0 rgba(0, 0, 0, 0.2)', 
+      borderRadius: '5px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflowX: 'hidden',
+    }}>
+
             <span className="close" style={{ 
               color: '#EE4E4E', 
               cursor: 'pointer', 
