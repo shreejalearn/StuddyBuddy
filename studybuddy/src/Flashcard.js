@@ -801,13 +801,14 @@ const FlashcardApp = () => {
             alignItems: 'center',
             zIndex: '1000' // Ensuring modal is on top layer
           }}>
-            <div style={{
-              backgroundColor: '#fff',
-              padding: '20px',
-              borderRadius: '5px',
-              boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
-              position: 'relative'
-            }}>
+<div style={{
+  backgroundColor: '#fff',
+  padding: '20px',
+  borderRadius: '5px',
+  boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+  position: 'relative',
+  width: '600px' // Adjust the width as needed
+}}>
               <span
                 style={{
                   position: 'absolute',
@@ -824,18 +825,30 @@ const FlashcardApp = () => {
                   placeholder="Enter question"
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
+                  style={{ width: '90%', padding: '10px', marginBottom: '10px', borderRadius: '5px', border: '1px solid #ccc', marginTop: '30px' }}
                 />
                 <input
                   type="text"
                   placeholder="Enter answer"
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
-                  style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
+                  style={{ width: '90%', padding: '10px', marginBottom: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
                 />
-                <button type="submit" style={{ padding: '10px 20px', border: 'none', borderRadius: '5px', backgroundColor: '#92C7CF', color: '#fff', cursor: 'pointer' }}>
-                  Add Flashcard
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                  <button
+                    style={{
+                      padding: '10px 20px',
+                      border: 'none',
+                      borderRadius: '5px',
+                      backgroundColor: '#92C7CF',
+                      color: '#fff',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setShowModal(true)}
+                  >
+                    Add Flashcard
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -847,7 +860,7 @@ const FlashcardApp = () => {
               padding: '10px 20px',
               border: 'none',
               borderRadius: '5px',
-              backgroundColor: '#007bff',
+              backgroundColor: '#92C7CF',
               color: '#fff',
               cursor: 'pointer'
             }}
@@ -910,8 +923,8 @@ const FlashcardApp = () => {
           ))}
         </div>
 
-        <h2 style={{ textAlign: 'center', marginTop: '20px' }}>Suggested Flashcards</h2>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+        <h2 style={{ textAlign: 'center', marginTop: '20px'}}>Suggested Flashcards</h2>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', marginBottom: '5%' }}>
           {suggestedFlashcards.map((flashcard, index) => (
             <div key={index} style={{
               width: '200px',
