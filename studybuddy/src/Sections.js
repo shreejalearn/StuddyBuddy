@@ -169,15 +169,7 @@ const Sections = () => {
           </h2>
         </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search..."
-          style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderRadius: '5px', margin: '0 auto' }}
-        />
-      </div>
+     
       <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '2%' }}>
         <button id="create-btn" onClick={openModal} style={{ 
             backgroundColor: 'rgba(136, 177, 184, 0.8)',
@@ -205,6 +197,9 @@ const Sections = () => {
         }}>
           <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>New Review</span>
         </button>
+        </div>     
+         <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '2%' }}>
+
         {sections.map(section => (
           <div key={section.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', marginBottom: '10px' }}>
             <button

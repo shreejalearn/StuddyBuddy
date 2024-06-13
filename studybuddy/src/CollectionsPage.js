@@ -136,15 +136,7 @@ const Collections = () => {
     <div id="collections-main">
       <Navbar/>
       <h2 style={{ textAlign: 'center', marginTop: '2%', color: '#99aab0', fontSize: '4rem', marginBottom: '3%' }}>Your Collections</h2>
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search..."
-          style={{ padding: '0.5rem', width: '400px', color: 'gray', border: '1px solid gray', borderColor: 'gray', borderRadius: '5px', margin: '0 auto' }}
-        />
-      </div>
+      
       <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '3.5%' }}>
         <button
           id="create-btn"
@@ -163,8 +155,11 @@ const Collections = () => {
           onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
           onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
         >
-          <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>+</span>
+          <span id="plus-icon" style={{ transition: 'transform 0.3s' }}>New Collection</span>
         </button>
+        </div>      
+        <div id="category-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1%', flexWrap: 'wrap', marginTop: '3.5%' }}>
+
         {collections.map(collection => (
           <div key={collection.id} style={{ position: 'relative', display: 'flex', alignItems: 'stretch', marginBottom: '10px' }}>
             <button
