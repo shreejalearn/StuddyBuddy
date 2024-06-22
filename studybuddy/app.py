@@ -17,7 +17,7 @@ from sydney import SydneyClient
 from dotenv import load_dotenv
 import firebase_admin
 from transformers import pipeline
-
+import requests
 from firebase_admin import auth
 import googleapiclient.discovery
 from googleapiclient.discovery import build
@@ -94,6 +94,11 @@ async def generate_question(sentence, answer):
 
     question = decoded_outputs[0].replace("question:", "").strip()
     return question
+def check_profanity(text):
+    url = "https://www.purgomalum.com/service/containsprofanity"
+    params = {"text": text}
+    response = requests.get(url, params=params)
+    return response.text == 'true'
 
 async def calculate_embedding(doc):
     tokens = BTokenizer.from_pretrained('bert-base-uncased').tokenize(doc)
@@ -486,6 +491,8 @@ def create_review():
         collection_id = data.get('collection_id')
         section_ids = data.get('section_ids')
         name = data.get('name')
+        if(check_profanity(name)):
+            return jsonify({'error':'Profanity detected'}), 400
         username = data.get('username')
         if not collection_id or not section_ids or not name or not username:
             return jsonify({'error': 'Missing required parameters'}), 400
@@ -616,8 +623,9 @@ def answer_question():
     data = request.json  
     username = data.get('username')
     user_class = data.get('class')
-    question = data.get('data'
-                        )
+    question = data.get('data')
+    if(check_profanity(question)):
+            return jsonify({'error':'Profanity detected'}), 400
 
     if not username or not user_class:
         return jsonify({'error': 'Username or class not provided'})
@@ -688,6 +696,11 @@ def add_res_to_flashcards():
     answer = data.get('answer')
     collection_id = data.get('collection_id')
     section_id = data.get('section_id')
+    if(check_profanity(question)):
+            return jsonify({'error':'Profanity detected'}), 400
+    if(check_profanity(answer)):
+            return jsonify({'error':'Profanity detected'}), 400
+
     parser = PlaintextParser.from_string(answer, Tokenizer("english"))
     summarizer = LsaSummarizer()
     tldr = summarizer(parser.document, sentences_count=3)  
@@ -751,6 +764,10 @@ def addflashcard():
     section_id = request_data.get('sectionId')
     question = request_data.get('question')
     answer = request_data.get('answer')
+    if(check_profanity(question)):
+            return jsonify({'error':'Profanity detected'}), 400
+    if(check_profanity(answer)):
+            return jsonify({'error':'Profanity detected'}), 400
     if not collection_id or not section_id or not question or not answer:
         return jsonify({'error': 'Invalid request data. Make sure all fields are provided.'}), 400
 
@@ -781,6 +798,8 @@ def process_text():
     collection_id = request.form.get('collection_id')
     section_id = request.form.get('section_id')
     raw_text = request.form.get('raw_text')
+    if(check_profanity(raw_text)):
+            return jsonify({'error':'Profanity detected'}), 400
     parser = PlaintextParser.from_string(raw_text, Tokenizer("english"))
     summarizer = LsaSummarizer()
     tldr = summarizer(parser.document, sentences_count=1)  
@@ -830,6 +849,7 @@ def process_pdf():
     section_id = request.form.get('section_id')
     pdf_file = request.files.get('pdf_file')
 
+
     if not pdf_file:
         return jsonify({'error': 'No PDF file uploaded'}), 400
 
@@ -843,6 +863,8 @@ def process_pdf():
             text_content += page.extract_text()
             
 
+        if(check_profanity(text_content)):
+            return jsonify({'error':'Profanity detected'}), 400
         parser = PlaintextParser.from_string(text_content, Tokenizer("english"))
         summarizer = LsaSummarizer()
         tldr = summarizer(parser.document, sentences_count=1)  
@@ -927,6 +949,8 @@ def create_section():
     collection_id = data.get('collection_id')
     section_name = data.get('section_name')
     notes = data.get('notes', '')
+    if(check_profanity(section_name)):
+            return jsonify({'error':'Profanity detected'}), 400
 
     if not collection_id or not section_name:
         return jsonify({'error': 'Collection ID or Section name not provided'})
@@ -949,6 +973,8 @@ def ask_sydney_route():
         return jsonify({'error': 'Prompt not provided'})
 
     prompt = data['prompt']
+    if(check_profanity(prompt)):
+            return jsonify({'error':'Profanity detected'}), 400
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -1011,6 +1037,8 @@ def create_collection():
     collection_name = data.get('collection_name')
     notes = data.get('notes', '')
     username = data.get('username')
+    if(check_profanity(collection_name)):
+            return jsonify({'error':'Profanity detected'}), 400
 
     if not collection_name:
         return jsonify({'error': 'Collection name not provided'})
@@ -1078,7 +1106,8 @@ def upload_worksheet():
     image = Image.open(image_stream)
 
     recognized_text = pytesseract.image_to_string(image)
-    print(recognized_text)
+    if(check_profanity(recognized_text)):
+            return jsonify({'error':'Profanity detected'}), 400
     try:
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('worksheets')
         note_ref = notes_collection_ref.document()  
@@ -1109,7 +1138,9 @@ def recognize_handwriting():
     image = Image.open(image_stream)
 
     recognized_text = pytesseract.image_to_string(image)
-
+    if(check_profanity(recognized_text)):
+            return jsonify({'error':'Profanity detected'}), 400
+    
     try:
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
         note_ref = notes_collection_ref.document()  
@@ -1131,6 +1162,9 @@ def search_public_sections():
     search_term = request.args.get('search_term')
     name = request.args.get('name')
 
+    if(check_profanity(search_term)):
+            return jsonify({'error':'Profanity detected'}), 400
+    
     if not search_term:
         return jsonify({'error': 'Search term not provided'})
 
@@ -1812,6 +1846,9 @@ def clone_section():
                 return jsonify({'error': 'Username not provided'}), 400
 
             collection_name = data.get('collectionName')
+            if(check_profanity(collection_name)):
+                return jsonify({'error':'Profanity detected'}), 400
+    
             if not collection_name:
                 return jsonify({'error': 'Collection name not provided'}), 400
 
