@@ -46,13 +46,20 @@ from fastcore.all import *
 from gtts import gTTS
 from moviepy.editor import ImageSequenceClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips
 # from gensim.models import Word2Vec
-
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.probability import FreqDist
+from heapq import nlargest
 import sys
 import json
 
 VIDEO_DIRECTORY = os.path.join(os.getcwd(), './vids')
 
 load_dotenv()
+
+nltk.download('punkt')
+nltk.download('stopwords')
 
 bing_cookies_key = os.getenv('BING_COOKIES')
 transcript_key = os.getenv('TRANSCRIPT_API')
@@ -74,6 +81,30 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 ignore_warnings('ignore')
 
 qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
+
+def summarize_text(text, num_sentences=1):
+    sentences = sent_tokenize(text)
+    words = word_tokenize(text.lower())
+
+    stop_words = set(stopwords.words('english'))
+    words = [word for word in words if word not in stop_words and word.isalnum()]
+
+    freq = FreqDist(words)
+
+    sentence_scores = {}
+    for sentence in sentences:
+        for word in word_tokenize(sentence.lower()):
+            if word in freq:
+                if sentence not in sentence_scores:
+                    sentence_scores[sentence] = freq[word]
+                else:
+                    sentence_scores[sentence] += freq[word]
+
+    summary_sentences = nlargest(num_sentences, sentence_scores, key=sentence_scores.get)
+
+    summary = ' '.join(summary_sentences)
+
+    return summary
 
 async def generate_question(sentence, answer):
     text = f"context: {sentence} answer: {answer}"
@@ -701,11 +732,7 @@ def add_res_to_flashcards():
     if(check_profanity(answer)):
             return jsonify({'error':'Profanity detected'}), 400
 
-    parser = PlaintextParser.from_string(answer, Tokenizer("english"))
-    summarizer = LsaSummarizer()
-    tldr = summarizer(parser.document, sentences_count=3)  
-
-    tldr = " ".join(str(sentence) for sentence in tldr)
+    tldr = summarize_text(answer)
 
     if not collection_id or not section_id or not question or not answer:
         return jsonify({'error': 'Invalid request data. Make sure all fields are provided.'}), 400
@@ -800,11 +827,7 @@ def process_text():
     raw_text = request.form.get('raw_text')
     if(check_profanity(raw_text)):
             return jsonify({'error':'Profanity detected'}), 400
-    parser = PlaintextParser.from_string(raw_text, Tokenizer("english"))
-    summarizer = LsaSummarizer()
-    tldr = summarizer(parser.document, sentences_count=1)  
-
-    tldr = " ".join(str(sentence) for sentence in tldr)
+    tldr = summarize_text(raw_text)
 
 
     try:
@@ -865,12 +888,7 @@ def process_pdf():
 
         if(check_profanity(text_content)):
             return jsonify({'error':'Profanity detected'}), 400
-        parser = PlaintextParser.from_string(text_content, Tokenizer("english"))
-        summarizer = LsaSummarizer()
-        tldr = summarizer(parser.document, sentences_count=1)  
-
-        tldr = " ".join(str(sentence) for sentence in tldr)
-
+        tldr = summarize_text(text_content)
 
         
         # Save the text content to Firestore
@@ -898,11 +916,7 @@ def process_link():
         # Extract text content from the webpage
         text_content = ' '.join([p.text for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
 
-        parser = PlaintextParser.from_string(text_content, Tokenizer("english"))
-        summarizer = LsaSummarizer()
-        tldr = summarizer(parser.document, sentences_count=1)  
-
-        tldr = " ".join(str(sentence) for sentence in tldr)
+        tldr = summarize_text(text_content)
 
         # Save the text content to Firestore
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
@@ -1111,11 +1125,7 @@ def upload_worksheet():
     try:
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('worksheets')
         note_ref = notes_collection_ref.document()  
-        parser = PlaintextParser.from_string(recognized_text, Tokenizer("english"))
-        summarizer = LsaSummarizer()
-        tldr = summarizer(parser.document, sentences_count=1)  
-
-        tldr = " ".join(str(sentence) for sentence in tldr)
+        tldr = summarize_text(recognized_text)
 
         note_ref.set({'worksheet': recognized_text, 'tldr': tldr})
 
@@ -1144,11 +1154,7 @@ def recognize_handwriting():
     try:
         notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section')
         note_ref = notes_collection_ref.document()  
-        parser = PlaintextParser.from_string(recognized_text, Tokenizer("english"))
-        summarizer = LsaSummarizer()
-        tldr = summarizer(parser.document, sentences_count=1)  
-
-        tldr = " ".join(str(sentence) for sentence in tldr)
+        tldr = summarize_text(recognized_text)
 
 
         note_ref.set({'notes': recognized_text, 'tldr':("Notes: "+tldr)})
@@ -1194,10 +1200,7 @@ def save_response():
     if not collection_id or not section_id:
         return jsonify({'error': 'Collection ID or Section id not provided'})
 
-    parser = PlaintextParser.from_string(response, Tokenizer("english"))
-    summarizer = LsaSummarizer()
-    tldr = summarizer(parser.document, sentences_count=1)  
-    tldr = " ".join(str(sentence) for sentence in tldr)
+    tldr = summarize_text(response)
 
 
     responses = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('saved_responses').document()
@@ -1288,11 +1291,7 @@ def create_section_from_recommendation():
         # Extract text content from the webpage
         text_content = ' '.join([p.text for p in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])])
 
-        parser = PlaintextParser.from_string(text_content, Tokenizer("english"))
-        summarizer = LsaSummarizer()
-        tldr = summarizer(parser.document, sentences_count=1)  
-
-        tldr = " ".join(str(sentence) for sentence in tldr)
+        tldr = summarize_text(text_content)
 
         for source in section_data['sources']:
             new_note_ref = new_section_ref.collection('notes_in_section').document()
@@ -1509,11 +1508,8 @@ def add_to_notes():
 
         if response_doc.exists:
             response_data = response_doc.to_dict()
-            parser = PlaintextParser.from_string(response_data['data'], Tokenizer("english"))
-            summarizer = LsaSummarizer()
-            tldr = summarizer(parser.document, sentences_count=1)  
-
-            tldr = " ".join(str(sentence) for sentence in tldr)
+           
+            tldr = summarize_text(response_data['data'])
 
             print(tldr)
 
