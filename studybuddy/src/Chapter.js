@@ -214,7 +214,9 @@ const ChapterPage = () => {
   const [selectedSourceNotes, setSelectedSourceNotes] = useState('');
   const [flashcardSaved, setFlashcardSaved] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  const [worksheets, setWorksheets] = useState([]);
+  const [uploadedWorksheet, setUploadedWorksheet] = useState(null);
+  const [uploadWorksheetModalOpen, setUploadWorksheetModalOpen] = useState(false);
   useEffect(() => {
     const updateAccessTime = async () => {
       try {
@@ -229,7 +231,10 @@ const ChapterPage = () => {
 
     const fetchNotes = async () => {
       try {
+        console.log(collectionId);
+          console.log(chapterId);
         const response = await axios.get('http://localhost:5000/get_notes', {
+          
           params: {
             collection_id: collectionId,
             section_id: chapterId,
@@ -241,7 +246,22 @@ const ChapterPage = () => {
       }
     };
 
+    const fetchWorksheets = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/get_worksheets', {
+          params: {
+            collection_id: collectionId,
+            section_id: chapterId,
+          },
+        });
+        setWorksheets(response.data.worksheets);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+
     fetchNotes();
+    fetchWorksheets();
     updateAccessTime();
   }, [chapterId, collectionId]);
 
@@ -250,6 +270,22 @@ const ChapterPage = () => {
       prevState.includes(source) ? prevState.filter((s) => s !== source) : [...prevState, source]
     );
   };
+  const handleUploadWorksheet = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('worksheet', uploadedWorksheet);
+      formData.append('collection_id',collectionId);
+      formData.append('section_id', chapterId);
+
+      const response = await axios.post('http://localhost:5000/upload_worksheet', formData);
+      console.log(response);
+      setResponse(response.data.response);
+      closeWorksheetModal();
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    }
+  };
+
 
   const openUploadModal = () => {
     setUploadModalOpen(true);
@@ -257,6 +293,13 @@ const ChapterPage = () => {
 
   const closeUploadModal = () => {
     setUploadModalOpen(false);
+  };
+  const openWorksheetModal = () => {
+    setUploadWorksheetModalOpen(true);
+  };
+
+  const closeWorksheetModal = () => {
+    setUploadWorksheetModalOpen(false);
   };
 
   const handleUpload = async (event) => {
@@ -411,6 +454,30 @@ const ChapterPage = () => {
       console.error('Error deleting note:', error);
     }
   };
+  const handleWorksheetChange = (event) => {
+    setUploadedWorksheet(event.target.files[0]);
+  };
+
+  const handleDeleteWorksheet = async (noteId) => {
+    try {
+      await axios.delete('http://localhost:5000/delete_worksheet', {
+        params: {
+          collection_id: collectionId,
+          section_id: chapterId,
+          worksheet_id: noteId,
+        },
+      });
+      const updatedNotesResponse = await axios.get('http://localhost:5000/get_worksheets', {
+        params: {
+          collection_id: collectionId,
+          section_id: chapterId,
+        },
+      });
+      setWorksheets(updatedNotesResponse.data.worksheets);
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
+  };
 
   return (
     <div>
@@ -430,6 +497,17 @@ const ChapterPage = () => {
               <p>{note.tldr}</p>
               <button onClick={() => setSelectedSourceNotes(note.notes)} style={styles.button}>View Source</button>
               <FontAwesomeIcon icon={faTrash} style={styles.deleteIcon} onClick={() => handleDeleteNote(note.id)} />
+            </div>
+          ))}
+          <div style={styles.uploadSourceBtn}>
+            <button onClick={openWorksheetModal} style={styles.button}>Upload Worksheet</button>
+          </div>
+          <h3 style={styles.header}>Worksheets</h3>
+          {worksheets.map((worksheet) => (
+            <div key={worksheet.id} style={styles.notes}>
+              <p>{worksheet.tldr}</p>
+              <button onClick={() => setSelectedSourceNotes(worksheet.worksheet)} style={styles.button}>View Worksheet</button>
+              <FontAwesomeIcon icon={faTrash} style={styles.deleteIcon} onClick={() => handleDeleteWorksheet(worksheet.id)} />
             </div>
           ))}
           <div style={styles.toggleContainer}>
@@ -504,7 +582,7 @@ const ChapterPage = () => {
       {selectedSourceNotes && (
         <div style={styles.modal} onClick={() => setSelectedSourceNotes('')}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ textAlign: 'center', color: 'gray', fontSize: '2rem', marginBottom: '3%' }}>Full Source</h2>
+            <h2 style={{ textAlign: 'center', color: 'gray', fontSize: '2rem', marginBottom: '3%' }}>Full Contents</h2>
             <p>{selectedSourceNotes}</p>
           </div>
         </div>
@@ -535,6 +613,19 @@ const ChapterPage = () => {
                 ) : null}
               </div>
             )}
+            <div style={styles.sourceUploading}></div>
+          </div>
+        </div>
+      )}
+      {uploadWorksheetModalOpen && (
+        <div style={styles.modal} onClick={closeWorksheetModal}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2>Upload Worksheet</h2>
+            <div style={styles.uploadContainer}>
+              <input type="file" onChange={handleWorksheetChange} style={styles.input} />
+              <button onClick={handleUploadWorksheet} style={styles.button}>Upload</button>
+              {response && <p style={styles.response}>{response}</p>}
+            </div>
             <div style={styles.sourceUploading}></div>
           </div>
         </div>

@@ -558,6 +558,22 @@ def delete_note():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/delete_worksheet', methods=['DELETE'])
+def delete_worksheet():
+    collection_id = request.args.get('collection_id')
+    section_id = request.args.get('section_id')
+    note_id = request.args.get('worksheet_id')
+
+    if not collection_id or not section_id or not note_id:
+        return jsonify({'error': 'Collection ID, Section ID, or Worksheet ID not provided'}), 400
+
+    try:
+        note_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('worksheets').document(note_id)
+        note_ref.delete()
+        return jsonify({'message': 'Worksheet deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/ask_specific', methods=['POST'])
 async def ask_specific():
     collection_id = request.json.get('collection_id')
@@ -1025,6 +1041,58 @@ def get_collections():
         collections.append(collection_data)
 
     return jsonify({'collections': collections})
+
+
+@app.route('/get_worksheets', methods=['GET'])
+def get_worksheets():
+    section_id = request.args.get('section_id')
+
+    if not section_id:
+        return jsonify({'error': 'Section ID not provided'}), 400
+
+    try:
+        notes = []
+        collections = db.collection('collections').stream()
+        for collection in collections:
+            notes_docs = db.collection('collections').document(collection.id).collection('sections').document(section_id).collection('worksheets').stream()
+            for doc in notes_docs:
+                note_data = doc.to_dict()
+                note_data['id'] = doc.id
+                notes.append(note_data)
+        return jsonify({'worksheets': notes}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+@app.route('/upload_worksheet', methods=['POST'])
+def upload_worksheet():
+    if 'worksheet' not in request.files:
+        return jsonify({'error': 'No image uploaded'}), 400
+
+    collection_id = request.form.get('collection_id')
+    section_id = request.form.get('section_id')
+
+    if not collection_id or not section_id:
+        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+
+    image_file = request.files['worksheet']
+    image_stream = io.BytesIO(image_file.read())
+    image = Image.open(image_stream)
+
+    recognized_text = pytesseract.image_to_string(image)
+    print(recognized_text)
+    try:
+        notes_collection_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('worksheets')
+        note_ref = notes_collection_ref.document()  
+        parser = PlaintextParser.from_string(recognized_text, Tokenizer("english"))
+        summarizer = LsaSummarizer()
+        tldr = summarizer(parser.document, sentences_count=1)  
+
+        tldr = " ".join(str(sentence) for sentence in tldr)
+
+        note_ref.set({'worksheet': recognized_text, 'tldr': tldr})
+
+        return jsonify({'text': recognized_text, 'tldr': tldr, 'message': 'Text recognized and stored successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 @app.route('/recognize', methods=['POST'])
 def recognize_handwriting():
     if 'image' not in request.files:
