@@ -83,28 +83,38 @@ ignore_warnings('ignore')
 qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
 
 def summarize_text(text, num_sentences=1):
-    sentences = sent_tokenize(text)
-    words = word_tokenize(text.lower())
+    return generate_single_sentence_summary(text, max_length=50, min_length=30)
 
-    stop_words = set(stopwords.words('english'))
-    words = [word for word in words if word not in stop_words and word.isalnum()]
+def generate_single_sentence_summary(text, max_length=50, min_length=30):
+    # Load pre-trained T5 model and tokenizer
+    model_name = "t5-small"  # You can use "t5-base" for better quality but slower processing
+    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
 
-    freq = FreqDist(words)
+    # Prepare the text input
+    preprocess_text = text.strip().replace("\n", "")
+    t5_prepared_Text = "summarize: " + preprocess_text
 
-    sentence_scores = {}
-    for sentence in sentences:
-        for word in word_tokenize(sentence.lower()):
-            if word in freq:
-                if sentence not in sentence_scores:
-                    sentence_scores[sentence] = freq[word]
-                else:
-                    sentence_scores[sentence] += freq[word]
+    # Tokenize the input text
+    tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=512, truncation=True)
 
-    summary_sentences = nlargest(num_sentences, sentence_scores, key=sentence_scores.get)
+    # Generate summary
+    summary_ids = model.generate(
+        tokenized_text,
+        max_length=max_length,
+        min_length=min_length,
+        length_penalty=2.0,
+        num_beams=4,
+        early_stopping=True
+    )
 
-    summary = ' '.join(summary_sentences)
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
-    return summary
+    # Ensure the summary is a single sentence
+    summary_sentences = summary.split('. ')
+    single_sentence_summary = summary_sentences[0] if summary_sentences else summary
+
+    return single_sentence_summary
 
 async def generate_question(sentence, answer):
     text = f"context: {sentence} answer: {answer}"
