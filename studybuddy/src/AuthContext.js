@@ -4,8 +4,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [auth, setAuth] = useState({ token: false });
-
+  const [auth, setAuth] = useState(() => {
+    const storedToken = localStorage.getItem('authToken');
+    return { token: !!storedToken }; // Convert storedToken (string) to boolean
+  });
   useEffect(() => {
     const storedToken = localStorage.getItem('authToken');
     if (storedToken) {
