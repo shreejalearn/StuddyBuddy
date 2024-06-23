@@ -1,53 +1,4 @@
-// import React from 'react';
-// import ReactDOM from 'react-dom';
-// import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-// import './index.css';
-// import App from './App';
-// import FillerAuth from './FillerAuth';
-// import Fill from './Fill';
-
-// import AskQuestion from './AskQuestion';
-// import Home from './Home';
-// import CollectionsPage from './CollectionsPage';
-// import OpenedCollection from './OpenedCollection';
-// import UploadData from './uploadData';
-// import Sections from './Sections';
-// import Chapter from './Chapter';
-
-// // import Auth from './Signup';
-// import Login from './Login';
-// import Signup from './Signup';
-
-// import reportWebVitals from './reportWebVitals';
-
-// ReactDOM.render(
-//   <React.StrictMode>
-//     <Router>
-//       <Routes>
-//         <Route path="/" element={<FillerAuth />} />
-//         <Route path="/fill" element={<Fill />} />
-
-//         <Route path="/upload" element={<App />} />
-//         {/* <Route path="/auth" element={<Auth />} /> */}
-//         <Route path="/login" element={<Login />} />
-//         <Route path="/signup" element={<Signup />} />
-//         <Route path="/mygallery" element={<CollectionsPage />} />
-//         <Route path="/sections" element={<Sections />} />
-//         <Route path="/chapter" element={<Chapter />} />
-
-//         <Route path="/question" element={<AskQuestion />} />
-//         <Route path="/home" element={<Home />} />
-//       </Routes>
-//     </Router>
-//   </React.StrictMode>,
-//   document.getElementById('root')
-// );
-
-// reportWebVitals();
-
-
-
-
+// MainApp.js
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -63,7 +14,6 @@ import VideoPlayer from './VideoPlayer';
 import AskQuestion from './AskQuestion';
 import Home from './Home';
 import CollectionsPage from './CollectionsPage';
-import OpenedCollection from './OpenedCollection';
 import Sections from './Sections';
 import Chapter from './Chapter';
 import PracticeTest from './PracticeTest';
@@ -73,9 +23,9 @@ import Flashcard from './Flashcard';
 
 import Login from './Login';
 import Signup from './Signup';
-import PrivateRoutes from './PrivateRoutes';
-import { AuthProvider } from './AuthContext'; // Import AuthProvider
+import PrivateRoute from './PrivateRoute'; // Correct import path
 
+import { AuthProvider } from './AuthContext';
 import reportWebVitals from './reportWebVitals';
 
 function MainApp() {
@@ -83,7 +33,13 @@ function MainApp() {
     <AuthProvider>
       <Router>
         <Routes>
-          <Route element={<PrivateRoutes />}>
+          {/* Public Routes */}
+          <Route path="/" element={<FillerAuth />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+
+          {/* Private Routes */}
+          <Route element={<PrivateRoute />}>
             <Route path="/fill" element={<Fill />} />
             <Route path="/upload" element={<App />} />
             <Route path="/publicsections" element={<PublicSections />} />
@@ -98,17 +54,12 @@ function MainApp() {
             <Route path="/savedresponses" element={<SavedResponses />} />
             <Route path="/flashcards" element={<Flashcard />} />
             <Route path="/videoplayer/:videoPath" element={<VideoPlayer />} />
-
           </Route>
-          <Route path="/" element={<FillerAuth />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
         </Routes>
       </Router>
     </AuthProvider>
   );
 }
-
 ReactDOM.render(
   <React.StrictMode>
     <MainApp />
