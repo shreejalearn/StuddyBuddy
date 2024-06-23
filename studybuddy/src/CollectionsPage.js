@@ -19,8 +19,11 @@ const Collections = () => {
   const [draggedCollectionId, setDraggedCollectionId] = useState(null);
   const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
   const navigate = useNavigate();
+  const [suggestedSections, setSuggestedSections] = useState([]);
 
   useEffect(() => {
+    
+  
     const fetchCollections = async () => {
       try {
         const username = localStorage.getItem('userName');
@@ -212,7 +215,7 @@ const Collections = () => {
       >
         <FontAwesomeIcon icon={faTrash} />
       </div>
-
+      
       {isModalOpen && (
         <div className="modal">
           <div className="modal-content">

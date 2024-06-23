@@ -39,6 +39,7 @@ import requests
 from datetime import datetime
 from nltk.tokenize import sent_tokenize
 from sumy.summarizers.text_rank import TextRankSummarizer
+from transformers import pipeline, AutoModelForSequenceClassification, AutoTokenizer
 
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
@@ -53,7 +54,10 @@ from nltk.probability import FreqDist
 from heapq import nlargest
 import sys
 import json
-
+import wikipediaapi
+from collections import Counter
+import time
+import requests
 VIDEO_DIRECTORY = os.path.join(os.getcwd(), './vids')
 
 load_dotenv()
@@ -427,7 +431,74 @@ def generate_video_from_notes():
 
 
 
+def suggest_learning_path(explorations, max_suggestions=10, max_retries=3):
+    wiki_wiki = wikipediaapi.Wikipedia(
+        language='en',
+        extract_format=wikipediaapi.ExtractFormat.WIKI,
+        user_agent='studybuddy-app/1.0'
+    )
 
+    concept_counter = Counter()
+    learning_keywords = ['concept', 'theory', 'principle', 'method', 'technique', 'algorithm', 'framework', 'model', 'paradigm', 'approach']
+
+    for exploration in explorations:
+        for attempt in range(max_retries):
+            try:
+                page = wiki_wiki.page(exploration)
+                if page.exists():
+                    # Process sections
+                    for section in page.sections:
+                        if any(keyword in section.title.lower() for keyword in learning_keywords):
+                            concept_counter[section.title] += 2
+                    
+                    # Process links
+                    for link in page.links.values():
+                        if any(keyword in link.title.lower() for keyword in learning_keywords):
+                            concept_counter[link.title] += 1
+                break  # If successful, break the retry loop
+            except (requests.exceptions.RequestException, wikipediaapi.WikipediaException) as e:
+                if attempt < max_retries - 1:
+                    print(f"Error occurred: {e}. Retrying in 5 seconds...")
+                    time.sleep(5)
+                else:
+                    print(f"Failed to process '{exploration}' after {max_retries} attempts.")
+
+    # Ensure we have at least max_suggestions
+    while len(concept_counter) < max_suggestions:
+        concept_counter[f"Explore more about {explorations[len(concept_counter) % len(explorations)]}"] += 1
+
+    # Get top suggestions
+    suggested_concepts = [concept for concept, _ in concept_counter.most_common(max_suggestions)]
+
+    return suggested_concepts
+
+@app.route('/suggest_sections', methods=['GET'])
+def suggest_sections():
+    collection_id = request.args.get('collection_id')
+    if not collection_id:
+        return jsonify({'error': 'Collection ID not provided'})
+
+    suggestions = []
+
+    try:
+        # Assuming you have a 'sections' collection under each 'collection'
+        sections_ref = db.collection('collections').document(collection_id).collection('sections')
+        sections_docs = sections_ref.stream()
+
+        for doc in sections_docs:
+            # Assuming 'section_name' is a field in your section document
+            section_name = doc.to_dict().get('section_name', '')
+            suggestions.append({'name': section_name})
+
+        suggested_concepts = suggest_learning_path([section['name'] for section in suggestions], max_suggestions=5)
+
+        # Prepare the response in the correct format
+        suggested_sections = [{'name': concept} for concept in suggested_concepts]
+
+        return jsonify({'suggested_sections': suggested_sections})
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @app.route('/get_my_sections', methods=['GET'])
 def get_my_sections():
@@ -1050,6 +1121,41 @@ def get_notes():
         return jsonify({'notes': notes}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+def cosine_similarity(a, b):
+    return torch.nn.functional.cosine_similarity(a, b).item()
+model_name = "sentence-transformers/all-MiniLM-L6-v2"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+similarity_pipeline = pipeline("feature-extraction", model=model, tokenizer=tokenizer)
+
+@app.route('/compare_and_fetch_concepts', methods=['POST'])
+def compare_and_fetch_concepts():
+    data = request.json
+    notes = data['notes']
+    user_input = data['userInput']
+    
+    note_texts = [note['tldr'] + " " + note['notes'] for note in notes]
+    user_embedding = similarity_pipeline(user_input)
+    user_embedding = torch.tensor(user_embedding).mean(dim=1)
+
+    results = []
+    for note, note_text in zip(notes, note_texts):
+        note_embedding = similarity_pipeline(note_text)
+        note_embedding = torch.tensor(note_embedding).mean(dim=1)
+        similarity = cosine_similarity(user_embedding, note_embedding)
+        results.append({'note_id': note['id'], 'similarity': similarity})
+
+    results.sort(key=lambda x: x['similarity'], reverse=True)
+
+    concepts_mentioned = [note for note in results if note['similarity'] > 0.5]
+    concepts_missed = [note for note in results if note['similarity'] <= 0.5]
+
+    return jsonify({
+        'concepts_mentioned': concepts_mentioned,
+        'concepts_missed': concepts_missed
+    })
 
 @app.route('/create_collection', methods=['POST'])
 def create_collection():

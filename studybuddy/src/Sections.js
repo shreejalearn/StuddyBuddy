@@ -20,8 +20,23 @@ const Sections = () => {
   const [selectedSections, setSelectedSections] = useState([]);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const navigate = useNavigate();
+  const [suggestedSections, setSuggestedSections] = useState([]);
 
   useEffect(() => {
+    const fetchSuggestions = async () => {
+      try {
+        const username = localStorage.getItem('userName');
+        if (!username) {
+          throw new Error('Username not found in local storage');
+        }
+        const response = await axios.get(`http://localhost:5000/suggest_sections?collection_id=${localStorage.getItem("currentCollection")}`);
+        console.log('Suggested Sections response:', response.data); // Debug statement
+        setSuggestedSections(response.data.suggested_sections || []); // Ensure to handle undefined or missing data
+      } catch (error) {
+        console.error(error);
+        setError(error.message);
+      }
+    };
     const fetchSections = async () => {
       try {
         if (!collectionId) {
@@ -38,6 +53,7 @@ const Sections = () => {
     };
 
     fetchSections();
+    fetchSuggestions();
   }, [collectionId]);
 
   const handleCreateSection = async () => {
@@ -248,6 +264,17 @@ const Sections = () => {
       >
         <FontAwesomeIcon icon={faTrash} />
       </div>
+      {suggestedSections.length > 0 && (
+        <div>
+          <h3>Suggested Sections to Add:</h3>
+          <ul>
+            {suggestedSections.map(section => (
+              <li key={section.id}>{section.name}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
 
       {isReviewModalOpen && (
   <div className="modal">
