@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import Navbar from './Navbar';
+import { useNavigate } from 'react-router-dom';
 
 const Sections = () => {
   const collectionId = localStorage.getItem('currentCollection');
@@ -18,6 +19,7 @@ const Sections = () => {
   const collectionName = localStorage.getItem('collectionName');
   const [selectedSections, setSelectedSections] = useState([]);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchSections = async () => {
@@ -57,7 +59,7 @@ const Sections = () => {
   const handleSectionClick = (section) => {
     localStorage.setItem('currentSection', section.id);
     localStorage.setItem('currentSectionName', section.section_name);
-    window.location.href = "/chapter";
+    navigate('/chapter');
   };
 
   const openModal = () => {

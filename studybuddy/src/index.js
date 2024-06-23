@@ -23,7 +23,7 @@ import Flashcard from './Flashcard';
 
 import Login from './Login';
 import Signup from './Signup';
-import PrivateRoute from './PrivateRoute'; // Correct import path
+import PrivateRoute from './PrivateRoute';
 
 import { AuthProvider } from './AuthContext';
 import reportWebVitals from './reportWebVitals';
@@ -60,6 +60,7 @@ function MainApp() {
     </AuthProvider>
   );
 }
+
 ReactDOM.render(
   <React.StrictMode>
     <MainApp />

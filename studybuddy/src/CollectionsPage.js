@@ -4,8 +4,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import "./styles/loading.css";
 import Navbar from './Navbar';
+import { useAuth } from './AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 
 const Collections = () => {
+  const { auth } = useAuth();
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,6 +18,7 @@ const Collections = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draggedCollectionId, setDraggedCollectionId] = useState(null);
   const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCollections = async () => {
@@ -94,7 +99,8 @@ const Collections = () => {
   const handleOpenCollection = (collectionId, collectionName) => {
     localStorage.setItem('currentCollection', collectionId);
     localStorage.setItem('collectionName', collectionName);
-    window.location.href = "/sections";
+    console.log('Navigating to /sections with auth state:', auth);
+    navigate('/sections');
   };
 
   const openModal = () => {
