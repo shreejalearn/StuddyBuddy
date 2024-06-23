@@ -20,6 +20,7 @@ import PracticeTest from './PracticeTest';
 import HomePage from './HomePage';
 
 import Flashcard from './Flashcard';
+import RetentionTest from './RetentionTest';
 
 import Login from './Login';
 import Signup from './Signup';
@@ -46,6 +47,7 @@ function MainApp() {
             <Route path="/videos" element={<Videos />} />
             <Route path="/mygallery" element={<CollectionsPage />} />
             <Route path="/sections" element={<Sections />} />
+            <Route path="/retentiontest" element={<RetentionTest />} />
             <Route path="/chapter" element={<Chapter />} />
             <Route path="/question" element={<AskQuestion />} />
             <Route path="/home" element={<Home />} />

@@ -74,6 +74,9 @@ t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v
 t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
 sentence_model = SentenceTransformer('distilbert-base-nli-mean-tokens')
 nlp = spacy.load("en_core_web_sm")
+model_name = "t5-small"  # You can use "t5-base" for better quality but slower processing
+tokenizer = T5Tokenizer.from_pretrained(model_name)
+model = T5ForConditionalGeneration.from_pretrained(model_name)
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -86,11 +89,7 @@ def summarize_text(text, num_sentences=1):
     return generate_single_sentence_summary(text, max_length=50, min_length=30)
 
 def generate_single_sentence_summary(text, max_length=50, min_length=30):
-    # Load pre-trained T5 model and tokenizer
-    model_name = "t5-small"  # You can use "t5-base" for better quality but slower processing
-    tokenizer = T5Tokenizer.from_pretrained(model_name)
-    model = T5ForConditionalGeneration.from_pretrained(model_name)
-
+ 
     # Prepare the text input
     preprocess_text = text.strip().replace("\n", "")
     t5_prepared_Text = "summarize: " + preprocess_text
