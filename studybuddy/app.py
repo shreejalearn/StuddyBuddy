@@ -58,6 +58,13 @@ import wikipediaapi
 from collections import Counter
 import time
 import requests
+
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # Apply CORS to your Flask app
+
 VIDEO_DIRECTORY = os.path.join(os.getcwd(), './vids')
 
 load_dotenv()
@@ -268,20 +275,57 @@ def search_images(term, max_images=30):
     return [result['image'] for result in ddgs.images(keywords=term, max_results=max_images)]
 
 
+# def download_image(url, folder):
+#     filename = os.path.join(folder, os.path.basename(url))
+#     try:
+#         response = requests.get(url)
+#         response.raise_for_status()
+#         with open(filename, 'wb') as f:
+#             f.write(response.content)
+#         # Verify the image
+#         with Image.open(filename) as img:
+#             img.verify()
+#         return filename
+#     except Exception as e:
+#         print(f"Error downloading or verifying image {url}: {e}")
+#         return None
+
+
 def download_image(url, folder):
-    filename = os.path.join(folder, os.path.basename(url))
     try:
+        # Ensure target folder exists
+        os.makedirs(folder, exist_ok=True)
+
+        # Construct filename from URL
+        filename = os.path.join(folder, os.path.basename(url))
+
+        # Download image using requests
         response = requests.get(url)
         response.raise_for_status()
+
+        # Save image to file
         with open(filename, 'wb') as f:
             f.write(response.content)
-        # Verify the image
+
+        # Verify the image (optional)
         with Image.open(filename) as img:
             img.verify()
+
         return filename
+
+    except requests.exceptions.HTTPError as e:
+        if response.status_code == 403:
+            print(f"Access forbidden for image {url}: {e}")
+        else:
+            print(f"HTTP error occurred while downloading image {url}: {e}")
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading image {url}: {e}")
+
     except Exception as e:
-        print(f"Error downloading or verifying image {url}: {e}")
-        return None
+        print(f"Other error downloading image {url}: {e}")
+
+    return None
 
 def resize_images(image_paths, output_folder, target_size=(1280, 720)):
     resized_paths = []
@@ -402,7 +446,11 @@ def generate_video_from_notes():
             audio_clip = AudioFileClip(audio_path)
             audio_duration = audio_clip.duration
 
-            duration_per_image = audio_duration / len(images)
+            if len(images) > 0:
+                duration_per_image = audio_duration / len(images)
+            else:
+                # Handle the case where there are no images (perhaps raise an error or handle gracefully)
+                duration_per_image = 0  # or any other default value or error handling mechanism
             for i, image in enumerate(images):
                 image_path = os.path.join("resized_images", os.path.basename(image))
                 if os.path.exists(image_path):
