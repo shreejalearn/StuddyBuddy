@@ -8,6 +8,11 @@ import io
 import logging
 import os
 import asyncio
+import nltk
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.tag import pos_tag
+from nltk.corpus import wordnet
+import random
 import PyPDF2
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
@@ -17,6 +22,17 @@ from sydney import SydneyClient
 from dotenv import load_dotenv
 import firebase_admin
 from transformers import pipeline
+from typing import OrderedDict
+from sentence_transformers import SentenceTransformer
+from transformers import T5ForConditionalGeneration, T5Tokenizer, BertTokenizer, BertModel, AutoTokenizer
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import torch
+import spacy
+from transformers import BertTokenizer as BTokenizer, BertModel as BModel
+from warnings import filterwarnings as ignore_warnings
+from transformers import pipeline
+
 import requests
 from firebase_admin import auth
 import googleapiclient.discovery
@@ -40,6 +56,7 @@ from datetime import datetime
 from nltk.tokenize import sent_tokenize
 from sumy.summarizers.text_rank import TextRankSummarizer
 from transformers import pipeline, AutoModelForSequenceClassification, AutoTokenizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
@@ -64,6 +81,9 @@ load_dotenv()
 
 nltk.download('punkt')
 nltk.download('stopwords')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('wordnet')
+
 
 bing_cookies_key = os.getenv('BING_COOKIES')
 transcript_key = os.getenv('TRANSCRIPT_API')
@@ -472,6 +492,266 @@ def suggest_learning_path(explorations, max_suggestions=10, max_retries=3):
 
     return suggested_concepts
 
+
+def get_antonym(word):
+    antonyms = []
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            if lemma.antonyms():
+                antonyms.append(lemma.antonyms()[0].name())
+    return antonyms[0] if antonyms else None
+
+def generate_tf_questions(text, num_questions=10):
+    sentences = sent_tokenize(text)
+    questions = []
+
+    for sentence in sentences:
+        # Generate a true question
+        questions.append((f"True or False: {sentence}", True))
+
+        words = word_tokenize(sentence)
+        tagged = pos_tag(words)
+
+        # False question strategies
+        strategies = [
+            lambda: negate_verb(sentence, tagged),
+            lambda: replace_with_antonym(sentence, tagged),
+            lambda: change_quantity(sentence, tagged),
+        ]
+
+        false_question = None
+        while not false_question and strategies:
+            strategy = random.choice(strategies)
+            false_question = strategy()
+            strategies.remove(strategy)
+
+        if false_question:
+            questions.append((f"True or False: {false_question}", False))
+
+    random.shuffle(questions)
+    return questions[:num_questions]
+
+def negate_verb(sentence, tagged):
+    for i, (word, tag) in enumerate(tagged):
+        if tag.startswith('VB'):
+            if word.lower() in ['is', 'are', 'was', 'were']:
+                return sentence[:sentence.index(word)] + word + " not" + sentence[sentence.index(word)+len(word):]
+            elif word.lower() == 'have':
+                return sentence[:sentence.index(word)] + "do not have" + sentence[sentence.index(word)+len(word):]
+            else:
+                return sentence[:sentence.index(word)] + "does not " + word + sentence[sentence.index(word)+len(word):]
+    return None
+
+def replace_with_antonym(sentence, tagged):
+    for word, tag in tagged:
+        if tag.startswith('JJ') or tag.startswith('RB'):
+            antonym = get_antonym(word)
+            if antonym:
+                return sentence.replace(word, antonym)
+    return None
+
+def change_quantity(sentence, tagged):
+    quantity_words = {'all': 'some', 'every': 'some', 'always': 'sometimes', 'never': 'sometimes'}
+    for word, _ in tagged:
+        if word.lower() in quantity_words:
+            return sentence.replace(word, quantity_words[word.lower()])
+    return None
+
+
+def generate_tf(notes, num_questions):
+    questions = generate_tf_questions(notes, num_questions)
+
+    tf_questions = []
+
+    for question, answer in questions:
+        tf_questions.append({'question': question, 'answer': 'True' if answer else 'False'})
+
+    return tf_questions
+@app.route('/generate_tf_questions', methods=['POST'])
+def generate_tf_questions_endpoint():
+    try:
+        request_data = request.get_json()
+        section_id = request_data.get('section_id', '')
+
+        notes=note_getter(section_id)
+
+        num_questions = request_data.get('num_questions', 10)
+        
+        tf_questions = generate_tf(notes, num_questions)
+
+        return jsonify(tf_questions)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
+bert_tokenizer = BTokenizer.from_pretrained('bert-base-uncased')
+bert_model = BModel.from_pretrained("bert-base-uncased")
+sentence_model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+nlp = spacy.load("en_core_web_sm")
+
+def generate_question_answer(sentence, answer):
+    t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v1')
+    t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
+
+    text = "context: {} answer: {}".format(sentence, answer)
+    max_len = 256
+    encoding = t5_tokenizer.encode_plus(text, max_length=max_len, pad_to_max_length=False, truncation=True, return_tensors="pt")
+
+    input_ids, attention_mask = encoding["input_ids"], encoding["attention_mask"]
+
+    outputs = t5_model.generate(input_ids=input_ids,
+                                 attention_mask=attention_mask,
+                                 early_stopping=True,
+                                 num_beams=5,
+                                 num_return_sequences=1,
+                                 no_repeat_ngram_size=2,
+                                 max_length=300)
+
+    decoded_outputs = [t5_tokenizer.decode(ids, skip_special_tokens=True) for ids in outputs]
+
+    question = decoded_outputs[0].replace("question:", "")
+    question = question.strip()
+
+    answer_output = qa_pipeline(question=question, context=sentence)
+
+    return question, answer_output['answer']
+
+
+
+def generate_question(sentence, answer):
+  t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v1')
+  t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
+
+  text = "context: {} answer: {}".format(sentence,answer)
+  max_len = 256
+  encoding = t5_tokenizer.encode_plus(text,max_length=max_len, pad_to_max_length=False,truncation=True, return_tensors="pt")
+
+  input_ids, attention_mask = encoding["input_ids"], encoding["attention_mask"]
+
+  outputs = t5_model.generate(input_ids=input_ids,
+                                  attention_mask=attention_mask,
+                                  early_stopping=True,
+                                  num_beams=5,
+                                  num_return_sequences=1,
+                                  no_repeat_ngram_size=2,
+                                  max_length=300)
+
+  decoded_outputs = [t5_tokenizer.decode(ids,skip_special_tokens=True) for ids in outputs]
+
+  question = decoded_outputs[0].replace("question:","")
+  question = question.strip()
+  return question
+
+
+def calculate_embedding(doc):
+  bert_tokenizer = BTokenizer.from_pretrained('bert-base-uncased')
+  bert_model = BModel.from_pretrained("bert-base-uncased")
+  
+  tokens = bert_tokenizer.tokenize(doc)
+  token_ids = bert_tokenizer.convert_tokens_to_ids(tokens)
+  segment_ids = [1] * len(tokens)
+
+  torch_tokens = torch.tensor([token_ids])
+  torch_segments = torch.tensor([segment_ids])
+
+  return bert_model(torch_tokens, torch_segments)[-1].detach().numpy()
+
+def get_parts_of_speech(context):
+  doc = nlp(context)
+  pos_tags = [token.pos_ for token in doc]
+  return pos_tags, context.split()
+
+def get_sentences(context):
+  doc = nlp(context)
+  return list(doc.sents)
+
+def get_vectorizer(doc):
+  stop_words = "english"
+  n_gram_range = (1,1)
+  vectorizer = CountVectorizer(ngram_range = n_gram_range, stop_words = stop_words).fit([doc])
+  return vectorizer.get_feature_names_out()
+
+def get_keywords(context, module_type = 't'):
+  keywords = []
+  top_n = 5
+  for sentence in get_sentences(context):
+    key_words = get_vectorizer(str(sentence))
+    print(f'Vectors : {key_words}')
+    if module_type == 't':
+      sentence_embedding = calculate_embedding(str(sentence))
+      keyword_embedding = calculate_embedding(' '.join(key_words))
+    else:
+      sentence_embedding = sentence_model.encode([str(sentence)])
+      keyword_embedding = sentence_model.encode(key_words)
+    
+    distances = cosine_similarity(sentence_embedding, keyword_embedding)
+    print(distances)
+    keywords += [(key_words[index], str(sentence)) for index in distances.argsort()[0][-top_n:]]
+
+  return keywords
+
+
+@app.route('/generate_frq', methods=['POST'])
+def generate_frq():
+    try:
+        request_data = request.get_json()
+        section_id = request_data.get('section_id', '')
+        num_questions = int(request_data.get('num_questions',''))
+        notes=note_getter(section_id)
+        txt=notes
+        qa_pairs = []
+
+        for answer, context in get_keywords(txt, 'st'):
+            question, generated_answer = generate_question_answer(context, answer)
+            qa_pairs.append({'question': question, 'answer': generated_answer})
+            if len(qa_pairs) >= num_questions:
+                break  # Stop generating questions once the desired number is reached
+
+
+        return jsonify(qa_pairs)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def generate_combined_questions(num_tf, num_frq, notes):
+    tf_questions = generate_tf(notes, num_questions=num_tf)
+    frq_questions = generate_frq(notes)[:num_frq]  # Limit FRQ questions to num_frq
+
+    combined_questions = tf_questions + frq_questions
+
+    return combined_questions
+
+@app.route('/generate_questions', methods=['POST'])
+def generate_questions():
+    if request.is_json:
+        request_data = request.get_json()
+        print(f'Received request data: {request_data}')
+        num_tf = request_data.get('num_tf', 10)  # Default to 10 if not provided
+        num_frq = request_data.get('num_frq', 10)  # Default to 10 if not provided
+        notes = request_data.get('notes', '')
+        section_id = request_data.get('section_id', '')
+
+        notes = note_getter(section_id)
+
+        combined_questions = generate_combined_questions(num_tf, num_frq, notes)
+
+        return jsonify({'questions': combined_questions})
+    else:
+        return jsonify({'error': 'Request must be JSON'}), 415
+def note_getter(section_id):
+    notes = []
+    try:
+        # Query collections and fetch notes for the given section_id
+        collections = db.collection('collections').stream()
+        for collection in collections:
+            notes_docs = db.collection('collections').document(collection.id).collection('sections').document(section_id).collection('notes_in_section').stream()
+            for doc in notes_docs:
+                note_data = doc.to_dict()
+                notes.append(note_data.get('notes', ''))  # Ensure 'notes' field is correctly fetched
+    except Exception as e:
+        print(f"Error fetching notes: {e}")
+    concatenated_notes = ' '.join(notes)
+    return concatenated_notes
 @app.route('/suggest_sections', methods=['GET'])
 def suggest_sections():
     collection_id = request.args.get('collection_id')
@@ -1122,9 +1402,6 @@ def get_notes():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-def cosine_similarity(a, b):
-    return torch.nn.functional.cosine_similarity(a, b).item()
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSequenceClassification.from_pretrained(model_name)
@@ -1659,49 +1936,49 @@ def get_all_public_sections():
 
     return jsonify({'sections': public_sections})
 
-@app.route('/generate_questions', methods=['POST'])
-async def generate_questions():
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
+# @app.route('/generate_questions', methods=['POST'])
+# async def generate_questions():
+#     data = request.get_json()
+#     if not data:
+#         return jsonify({'error': 'No data provided'}), 400
 
-    collection_id = data.get('collection_id')
-    section_id = data.get('section_id')
-    num_questions = data.get('num_questions')
+#     collection_id = data.get('collection_id')
+#     section_id = data.get('section_id')
+#     num_questions = data.get('num_questions')
 
-    if not num_questions:
-        return jsonify({'error': 'Number of questions not provided'}), 400
+#     if not num_questions:
+#         return jsonify({'error': 'Number of questions not provided'}), 400
 
-    if not collection_id or not section_id:
-        return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
+#     if not collection_id or not section_id:
+#         return jsonify({'error': 'Collection ID or Section ID not provided'}), 400
 
-    try:
-        notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
-        all_text = ''
-        for doc in notes_docs:
-            note_data = doc.to_dict().get('notes', '')
-            all_text += note_data + ' '
+#     try:
+#         notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('notes_in_section').stream()
+#         all_text = ''
+#         for doc in notes_docs:
+#             note_data = doc.to_dict().get('notes', '')
+#             all_text += note_data + ' '
 
-        if not all_text:
-            return jsonify({'error': 'No notes found in the specified section'}), 404
+#         if not all_text:
+#             return jsonify({'error': 'No notes found in the specified section'}), 404
 
-        async with SydneyClient() as sydney:
-            question = f'''
-            Task: Generate 10 practice test questions based on the following notes. The question should cover the main topics. Ensure the question is of difficulty difficulty and is question_type.
+#         async with SydneyClient() as sydney:
+#             question = f'''
+#             Task: Generate 10 practice test questions based on the following notes. The question should cover the main topics. Ensure the question is of difficulty difficulty and is question_type.
 
-            Notes:
-            {all_text}
+#             Notes:
+#             {all_text}
 
-            Question Format: Multiple Choice
-            Question: [Your question here]
-            Options: [Option 1, Option 2, Option 3, Option 4]
-            Answer: [Correct answer]
-            '''
-            response = await sydney.ask(question, citations=True)
-            return jsonify({'response': response}), 200
+#             Question Format: Multiple Choice
+#             Question: [Your question here]
+#             Options: [Option 1, Option 2, Option 3, Option 4]
+#             Answer: [Correct answer]
+#             '''
+#             response = await sydney.ask(question, citations=True)
+#             return jsonify({'response': response}), 200
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
 
 @app.route('/parse_questions', methods=['POST'])
 async def parse_questions():
