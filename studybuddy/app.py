@@ -1382,6 +1382,44 @@ def get_flashcards():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/get_flashcards_frq', methods=['POST'])
+def get_flashcards_frq():
+    data = request.get_json()
+    section_id = data.get('section_id')
+    collection_id = data.get('collection_id')
+    num_questions = data.get('num_questions')
+    if not section_id:
+        return jsonify({'error': 'Section ID not provided'}), 400
+
+    if not collection_id:
+        return jsonify({'error': 'Collection ID not provided'}), 400
+    
+    num_questions = int(num_questions)
+
+    try:
+        notes = []
+        notes_docs = db.collection('collections').document(collection_id).collection('sections').document(section_id).collection('flashcards').stream()
+        for doc in notes_docs:
+            note_data = doc.to_dict()
+            note_data['id'] = doc.id
+            notes.append(note_data)
+
+        if len(notes) == 0:
+            return jsonify({'error': 'No flashcards found'}), 404
+
+        flashcards = [{'question': note['question'], 'answer': note['answer']} for note in notes]
+
+        if num_questions > len(flashcards):
+            num_questions = len(flashcards)
+
+        random_flashcards = random.sample(flashcards, num_questions)
+
+        return jsonify({'flashcards': random_flashcards}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
 @app.route('/get_notes', methods=['GET'])
 def get_notes():
     section_id = request.args.get('section_id')

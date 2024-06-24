@@ -48,7 +48,8 @@ const QuizComponent = () => {
                 const flashcardResponse = await axios.post(
                     `http://localhost:5000/get_flashcards_frq`, 
                     {
-                        section_id: sectionId,
+                        collection_id: localStorage.getItem('currentCollection'),
+                        section_id: localStorage.getItem('currentSection'),
                         num_questions: numFlashcardQuestions
                     }, 
                     {
@@ -57,7 +58,8 @@ const QuizComponent = () => {
                         }
                     }
                 );
-                setQuestions(flashcardResponse.data.map(q => ({ ...q, type: 'frq' })));
+                // Update this part to correctly access the flashcards array
+                setQuestions(flashcardResponse.data.flashcards.map(q => ({ ...q, type: 'frq' })));
             }
         } catch (error) {
             console.error('Error fetching questions:', error);
@@ -98,6 +100,7 @@ const QuizComponent = () => {
             return userAnswer.toLowerCase().includes(correctAnswer.toLowerCase());
         }
     };
+
     return (
         <div>
             <Navbar />
