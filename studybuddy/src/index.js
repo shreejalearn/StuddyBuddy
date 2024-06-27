@@ -38,6 +38,7 @@ function MainApp() {
           <Route path="/" element={<FillerAuth />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/askquestion" element={<AskQuestion />} />
 
           {/* Private Routes */}
           <Route element={<PrivateRoute />}>

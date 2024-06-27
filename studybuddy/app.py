@@ -78,6 +78,32 @@ import requests
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+import os
+
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain.chains import ConversationalRetrievalChain
+from langchain_community.embeddings import HuggingFaceEmbeddings 
+from langchain_community.llms import HuggingFacePipeline
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationBufferMemory
+from langchain_community.llms import HuggingFaceEndpoint
+
+from pathlib import Path
+import chromadb
+from unidecode import unidecode
+
+from transformers import AutoTokenizer
+import transformers
+import torch
+import tqdm 
+import accelerate
+import re
+
+import os
+
+
 
 app = Flask(__name__)
 CORS(app)  # Apply CORS to your Flask app
@@ -100,6 +126,8 @@ if bing_cookies_key is None:
     exit(1)
 
 os.environ["BING_COOKIES"] = bing_cookies_key
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = "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"
+
 qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
 t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v1')
 t5_tokenizer = AutoTokenizer.from_pretrained('ramsrigouthamg/t5_squad_v1')
@@ -145,6 +173,203 @@ def generate_single_sentence_summary(text, max_length=50, min_length=30):
     single_sentence_summary = summary_sentences[0] if summary_sentences else summary
 
     return single_sentence_summary
+
+list_llm = ["mistralai/Mistral-7B-Instruct-v0.2", "mistralai/Mixtral-8x7B-Instruct-v0.1", "mistralai/Mistral-7B-Instruct-v0.1", \
+    "google/gemma-7b-it","google/gemma-2b-it", \
+    "HuggingFaceH4/zephyr-7b-beta", "HuggingFaceH4/zephyr-7b-gemma-v0.1", \
+    "meta-llama/Llama-2-7b-chat-hf", "microsoft/phi-2", \
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0", "mosaicml/mpt-7b-instruct", "tiiuae/falcon-7b-instruct", \
+    "google/flan-t5-xxl"
+]
+
+# Endpoint for uploading PDF documents
+@app.route('/upload', methods=['POST'])
+def upload_documents():
+    uploaded_files = []
+    for file in request.files.getlist('file'):
+        filename = (file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        uploaded_files.append(filename)
+    return jsonify({"uploaded_files": uploaded_files})
+
+# Function to load PDF document and create doc splits
+def load_doc(list_file_path, chunk_size, chunk_overlap):
+    loaders = [PyPDFLoader(x) for x in list_file_path]
+    pages = []
+    for loader in loaders:
+        pages.extend(loader.load())
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size = chunk_size, 
+        chunk_overlap = chunk_overlap)
+    doc_splits = text_splitter.split_documents(pages)
+    return doc_splits
+
+# Endpoint for initializing vector database
+@app.route('/initialize_db', methods=['POST'])
+def initialize_database():
+    data = request.get_json()
+    list_file_path = data.get('list_file_path', [])
+    chunk_size = data.get('chunk_size', 600)
+    chunk_overlap = data.get('chunk_overlap', 50)
+
+    collection_name = create_collection_name(list_file_path[0])
+    doc_splits = load_doc(list_file_path, chunk_size, chunk_overlap)
+    vector_db = create_db(doc_splits, collection_name)
+
+    return jsonify({"status": "Database initialized successfully"})
+def create_collection_name(filepath):
+    # Extract filename without extension
+    collection_name = Path(filepath).stem
+    # Fix potential issues from naming convention
+    ## Remove space
+    collection_name = collection_name.replace(" ","-") 
+    ## ASCII transliterations of Unicode text
+    collection_name = unidecode(collection_name)
+    ## Remove special characters
+    #collection_name = re.findall("[\dA-Za-z]*", collection_name)[0]
+    collection_name = re.sub('[^A-Za-z0-9]+', '-', collection_name)
+    ## Limit length to 50 characters
+    collection_name = collection_name[:50]
+    ## Minimum length of 3 characters
+    if len(collection_name) < 3:
+        collection_name = collection_name + 'xyz'
+    ## Enforce start and end as alphanumeric character
+    if not collection_name[0].isalnum():
+        collection_name = 'A' + collection_name[1:]
+    if not collection_name[-1].isalnum():
+        collection_name = collection_name[:-1] + 'Z'
+    print('Filepath: ', filepath)
+    print('Collection name: ', collection_name)
+    return collection_name
+def create_db(splits, collection_name):
+    embedding = HuggingFaceEmbeddings()
+    new_client = chromadb.EphemeralClient()
+    vectordb = Chroma.from_documents(
+        documents=splits,
+        embedding=embedding,
+        client=new_client,
+        collection_name=collection_name,
+        # persist_directory=default_persist_directory
+    )
+    return vectordb
+
+# Function to initialize langchain LLM chain
+def initialize_llmchain(llm_model, temperature, max_tokens, top_k, vector_db):
+    if llm_model == "mistralai/Mixtral-8x7B-Instruct-v0.1":
+        llm = HuggingFaceEndpoint(
+            repo_id=llm_model, 
+            temperature = temperature,
+            max_new_tokens = max_tokens,
+            top_k = top_k,
+            load_in_8bit = True,
+        )
+    elif llm_model in ["HuggingFaceH4/zephyr-7b-gemma-v0.1","mosaicml/mpt-7b-instruct"]:
+        raise gr.Error("LLM model is too large to be loaded automatically on free inference endpoint")
+    elif llm_model == "microsoft/phi-2":
+        llm = HuggingFaceEndpoint(
+            repo_id=llm_model, 
+            temperature = temperature,
+            max_new_tokens = max_tokens,
+            top_k = top_k,
+            trust_remote_code = True,
+            torch_dtype = "auto",
+        )
+    elif llm_model == "TinyLlama/TinyLlama-1.1B-Chat-v1.0":
+        llm = HuggingFaceEndpoint(
+            repo_id=llm_model, 
+            temperature = temperature,
+            max_new_tokens = 250,
+            top_k = top_k,
+        )
+    elif llm_model == "meta-llama/Llama-2-7b-chat-hf":
+        raise gr.Error("Llama-2-7b-chat-hf model requires a Pro subscription...")
+    else:
+        llm = HuggingFaceEndpoint(
+            repo_id=llm_model, 
+            temperature = temperature,
+            max_new_tokens = max_tokens,
+            top_k = top_k,
+        )
+    
+    memory = ConversationBufferMemory(
+        memory_key="chat_history",
+        output_key='answer',
+        return_messages=True
+    )
+
+    retriever = vector_db.as_retriever()
+    
+    qa_chain = ConversationalRetrievalChain.from_llm(
+        llm,
+        retriever=retriever,
+        chain_type="stuff", 
+        memory=memory,
+        return_source_documents=True,
+        verbose=False,
+    )
+
+    return qa_chain
+
+# Endpoint for initializing QA chain
+@app.route('/initialize_qa', methods=['POST'])
+def initialize_qa_chain():
+    data = request.get_json()
+    llm_option = data.get('llm_option', 0)
+    llm_temperature = data.get('llm_temperature', 0.7)
+    max_tokens = data.get('max_tokens', 1024)
+    top_k = data.get('top_k', 3)
+    vector_db = data.get('vector_db', None)
+
+    llm_model = list_llm[llm_option]
+    qa_chain = initialize_llmchain(llm_model, llm_temperature, max_tokens, top_k, vector_db)
+
+    return jsonify({"status": "QA chain initialized successfully"})
+def format_chat_history(message, chat_history):
+    formatted_chat_history = []
+    for user_message, bot_message in chat_history:
+        formatted_chat_history.append(f"User: {user_message}")
+        formatted_chat_history.append(f"Assistant: {bot_message}")
+    return formatted_chat_history
+    
+# Endpoint for conducting conversation
+@app.route('/conversation', methods=['POST'])
+def conduct_conversation():
+    data = request.get_json()
+    qa_chain = data.get('qa_chain', None)
+    message = data.get('message', '')
+    history = data.get('history', [])
+
+    formatted_chat_history = format_chat_history(message, history)
+    response = qa_chain({"question": message, "chat_history": formatted_chat_history})
+    
+    response_answer = response["answer"]
+    if response_answer.find("Helpful Answer:") != -1:
+        response_answer = response_answer.split("Helpful Answer:")[-1]
+
+    response_sources = response["source_documents"]
+    response_source1 = response_sources[0].page_content.strip()
+    response_source2 = response_sources[1].page_content.strip()
+    response_source3 = response_sources[2].page_content.strip()
+
+    response_source1_page = response_sources[0].metadata["page"] + 1
+    response_source2_page = response_sources[1].metadata["page"] + 1
+    response_source3_page = response_sources[2].metadata["page"] + 1
+
+    new_history = history + [(message, response_answer)]
+
+    return jsonify({
+        "qa_chain": qa_chain,
+        "new_history": new_history,
+        "response_source1": response_source1,
+        "response_source1_page": response_source1_page,
+        "response_source2": response_source2,
+        "response_source2_page": response_source2_page,
+        "response_source3": response_source3,
+        "response_source3_page": response_source3_page
+    })
+
+
+
 
 async def generate_question(sentence, answer):
     text = f"context: {sentence} answer: {answer}"
