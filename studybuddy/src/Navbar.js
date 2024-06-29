@@ -40,8 +40,12 @@ const Navbar = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     <button onClick={() => navigate('/mygallery')}>Your Collections</button>
+                    <button onClick={() => navigate('/stats')}>Stats</button>
+
                     <button onClick={handleLogout}>Logout</button>
+
                 </div>
+                
             </nav>
         </div>
     );

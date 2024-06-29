@@ -75,33 +75,29 @@ import wikipediaapi
 from collections import Counter
 import time
 import requests
-
-from flask import Flask, jsonify, request
-from flask_cors import CORS
 import os
-
-from langchain_community.document_loaders import PyPDFLoader
+import re
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings 
-from langchain_community.llms import HuggingFacePipeline
-from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain_community.llms import HuggingFaceEndpoint
-
-from pathlib import Path
 import chromadb
 from unidecode import unidecode
 
-from transformers import AutoTokenizer
-import transformers
-import torch
-import tqdm 
-import accelerate
-import re
+# from pathlib import Path
+# import chromadb
+# from unidecode import unidecode
 
-import os
+# from transformers import AutoTokenizer
+# import transformers
+# import torch
+# import tqdm 
+# import accelerate
+# import re
+
+# import os
 
 
 
@@ -126,7 +122,20 @@ if bing_cookies_key is None:
     exit(1)
 
 os.environ["BING_COOKIES"] = bing_cookies_key
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = "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"
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = os.getenv('HUGGINGFACE')
+
+app = Flask(__name__)
+CORS(app)
+logging.basicConfig(level=logging.DEBUG)
+
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate("serviceKey.json")
+firebase_admin.initialize_app(cred)
+
+# Initialize Firestore client
+db = firestore.client()
 
 qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
 t5_model = T5ForConditionalGeneration.from_pretrained('ramsrigouthamg/t5_squad_v1')
@@ -144,8 +153,16 @@ ignore_warnings('ignore')
 
 qa_pipeline = pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
 
-def summarize_text(text, num_sentences=1):
-    return generate_single_sentence_summary(text, max_length=50, min_length=30)
+# def summarize_text(text, num_sentences=1):
+#     return generate_single_sentence_summary(text, max_length=50, min_length=30)
+
+def summarize_text(text, max_length=50, min_length=30):
+    try:
+        summarizer = pipeline('summarization')
+        summary = summarizer(text, max_length=max_length, min_length=min_length, do_sample=False)[0]['summary_text']
+        return summary
+    except:
+        return "tldr"
 
 def generate_single_sentence_summary(text, max_length=50, min_length=30):
  
@@ -181,67 +198,16 @@ list_llm = ["mistralai/Mistral-7B-Instruct-v0.2", "mistralai/Mixtral-8x7B-Instru
     "TinyLlama/TinyLlama-1.1B-Chat-v1.0", "mosaicml/mpt-7b-instruct", "tiiuae/falcon-7b-instruct", \
     "google/flan-t5-xxl"
 ]
+default_llm_index = 5
 
-# Endpoint for uploading PDF documents
-@app.route('/upload', methods=['POST'])
-def upload_documents():
-    uploaded_files = []
-    for file in request.files.getlist('file'):
-        filename = (file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        uploaded_files.append(filename)
-    return jsonify({"uploaded_files": uploaded_files})
-
-# Function to load PDF document and create doc splits
-def load_doc(list_file_path, chunk_size, chunk_overlap):
-    loaders = [PyPDFLoader(x) for x in list_file_path]
-    pages = []
-    for loader in loaders:
-        pages.extend(loader.load())
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size = chunk_size, 
-        chunk_overlap = chunk_overlap)
-    doc_splits = text_splitter.split_documents(pages)
+# Load raw text and create document splits
+async def load_doc(text, chunk_size, chunk_overlap):
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    doc_splits = text_splitter.create_documents([text])
     return doc_splits
 
-# Endpoint for initializing vector database
-@app.route('/initialize_db', methods=['POST'])
-def initialize_database():
-    data = request.get_json()
-    list_file_path = data.get('list_file_path', [])
-    chunk_size = data.get('chunk_size', 600)
-    chunk_overlap = data.get('chunk_overlap', 50)
-
-    collection_name = create_collection_name(list_file_path[0])
-    doc_splits = load_doc(list_file_path, chunk_size, chunk_overlap)
-    vector_db = create_db(doc_splits, collection_name)
-
-    return jsonify({"status": "Database initialized successfully"})
-def create_collection_name(filepath):
-    # Extract filename without extension
-    collection_name = Path(filepath).stem
-    # Fix potential issues from naming convention
-    ## Remove space
-    collection_name = collection_name.replace(" ","-") 
-    ## ASCII transliterations of Unicode text
-    collection_name = unidecode(collection_name)
-    ## Remove special characters
-    #collection_name = re.findall("[\dA-Za-z]*", collection_name)[0]
-    collection_name = re.sub('[^A-Za-z0-9]+', '-', collection_name)
-    ## Limit length to 50 characters
-    collection_name = collection_name[:50]
-    ## Minimum length of 3 characters
-    if len(collection_name) < 3:
-        collection_name = collection_name + 'xyz'
-    ## Enforce start and end as alphanumeric character
-    if not collection_name[0].isalnum():
-        collection_name = 'A' + collection_name[1:]
-    if not collection_name[-1].isalnum():
-        collection_name = collection_name[:-1] + 'Z'
-    print('Filepath: ', filepath)
-    print('Collection name: ', collection_name)
-    return collection_name
-def create_db(splits, collection_name):
+# Create vector database
+async def create_db(splits, collection_name):
     embedding = HuggingFaceEmbeddings()
     new_client = chromadb.EphemeralClient()
     vectordb = Chroma.from_documents(
@@ -249,124 +215,270 @@ def create_db(splits, collection_name):
         embedding=embedding,
         client=new_client,
         collection_name=collection_name,
-        # persist_directory=default_persist_directory
     )
     return vectordb
 
-# Function to initialize langchain LLM chain
-def initialize_llmchain(llm_model, temperature, max_tokens, top_k, vector_db):
+# Generate collection name for vector database
+def create_collection_name(text):
+    # collection_name = unidecode(text[:50]).replace(" ","-")
+    # collection_name = re.sub('[^A-Za-z0-9]+', '-', collection_name)
+    return "collection_name"
+
+# Initialize LLM chain
+async def initialize_llmchain(llm_model, temperature, max_tokens, top_k, vector_db):
     if llm_model == "mistralai/Mixtral-8x7B-Instruct-v0.1":
-        llm = HuggingFaceEndpoint(
-            repo_id=llm_model, 
-            temperature = temperature,
-            max_new_tokens = max_tokens,
-            top_k = top_k,
-            load_in_8bit = True,
-        )
-    elif llm_model in ["HuggingFaceH4/zephyr-7b-gemma-v0.1","mosaicml/mpt-7b-instruct"]:
-        raise gr.Error("LLM model is too large to be loaded automatically on free inference endpoint")
+        llm = HuggingFaceEndpoint(repo_id=llm_model, temperature=temperature, max_new_tokens=max_tokens, top_k=top_k, load_in_8bit=True)
+    elif llm_model in ["HuggingFaceH4/zephyr-7b-gemma-v0.1", "mosaicml/mpt-7b-instruct"]:
+        raise Exception("LLM model is too large to be loaded automatically on free inference endpoint")
     elif llm_model == "microsoft/phi-2":
-        llm = HuggingFaceEndpoint(
-            repo_id=llm_model, 
-            temperature = temperature,
-            max_new_tokens = max_tokens,
-            top_k = top_k,
-            trust_remote_code = True,
-            torch_dtype = "auto",
-        )
+        llm = HuggingFaceEndpoint(repo_id=llm_model, temperature=temperature, max_new_tokens=max_tokens, top_k=top_k, trust_remote_code=True, torch_dtype="auto")
     elif llm_model == "TinyLlama/TinyLlama-1.1B-Chat-v1.0":
-        llm = HuggingFaceEndpoint(
-            repo_id=llm_model, 
-            temperature = temperature,
-            max_new_tokens = 250,
-            top_k = top_k,
-        )
+        llm = HuggingFaceEndpoint(repo_id=llm_model, temperature=temperature, max_new_tokens=250, top_k=top_k)
     elif llm_model == "meta-llama/Llama-2-7b-chat-hf":
-        raise gr.Error("Llama-2-7b-chat-hf model requires a Pro subscription...")
+        raise Exception("Llama-2-7b-chat-hf model requires a Pro subscription")
     else:
-        llm = HuggingFaceEndpoint(
-            repo_id=llm_model, 
-            temperature = temperature,
-            max_new_tokens = max_tokens,
-            top_k = top_k,
-        )
+        llm = HuggingFaceEndpoint(repo_id=llm_model, temperature=temperature, max_new_tokens=max_tokens, top_k=top_k)
     
-    memory = ConversationBufferMemory(
-        memory_key="chat_history",
-        output_key='answer',
-        return_messages=True
-    )
-
+    memory = ConversationBufferMemory(memory_key="chat_history", output_key='answer', return_messages=True)
     retriever = vector_db.as_retriever()
+    qa_chain = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, chain_type="stuff", memory=memory, return_source_documents=True, verbose=False)
     
-    qa_chain = ConversationalRetrievalChain.from_llm(
-        llm,
-        retriever=retriever,
-        chain_type="stuff", 
-        memory=memory,
-        return_source_documents=True,
-        verbose=False,
-    )
-
     return qa_chain
 
-# Endpoint for initializing QA chain
-@app.route('/initialize_qa', methods=['POST'])
-def initialize_qa_chain():
-    data = request.get_json()
-    llm_option = data.get('llm_option', 0)
-    llm_temperature = data.get('llm_temperature', 0.7)
-    max_tokens = data.get('max_tokens', 1024)
-    top_k = data.get('top_k', 3)
-    vector_db = data.get('vector_db', None)
+# Initialize database
+async def initialize_database(text, chunk_size=500, chunk_overlap=30):
+    collection_name = create_collection_name(text)  # This is now synchronous
+    doc_splits = await load_doc(text, chunk_size, chunk_overlap)
+    vector_db = await create_db(doc_splits, collection_name)
+    return vector_db, collection_name
 
-    llm_model = list_llm[llm_option]
-    qa_chain = initialize_llmchain(llm_model, llm_temperature, max_tokens, top_k, vector_db)
-
-    return jsonify({"status": "QA chain initialized successfully"})
-def format_chat_history(message, chat_history):
+# Format chat history for display
+async def format_chat_history(chat_history):
     formatted_chat_history = []
     for user_message, bot_message in chat_history:
         formatted_chat_history.append(f"User: {user_message}")
         formatted_chat_history.append(f"Assistant: {bot_message}")
     return formatted_chat_history
-    
-# Endpoint for conducting conversation
-@app.route('/conversation', methods=['POST'])
-def conduct_conversation():
-    data = request.get_json()
-    qa_chain = data.get('qa_chain', None)
-    message = data.get('message', '')
-    history = data.get('history', [])
 
-    formatted_chat_history = format_chat_history(message, history)
+# Chat function
+async def chat(qa_chain, message, chat_history):
+    formatted_chat_history = await format_chat_history(chat_history)
     response = qa_chain({"question": message, "chat_history": formatted_chat_history})
-    
     response_answer = response["answer"]
-    if response_answer.find("Helpful Answer:") != -1:
+    if "Helpful Answer:" in response_answer:
         response_answer = response_answer.split("Helpful Answer:")[-1]
+    return response_answer
 
-    response_sources = response["source_documents"]
-    response_source1 = response_sources[0].page_content.strip()
-    response_source2 = response_sources[1].page_content.strip()
-    response_source3 = response_sources[2].page_content.strip()
+# Main method to initialize and chat
+async def chatbot(text, q):
+    vector_db, collection_name = await initialize_database(text)
+    llm_model = list_llm[default_llm_index]
+    temperature = 0.3
+    max_tokens = 512
+    top_k = 20
+    qa_chain = await initialize_llmchain(llm_model, temperature, max_tokens, top_k, vector_db)
 
-    response_source1_page = response_sources[0].metadata["page"] + 1
-    response_source2_page = response_sources[1].metadata["page"] + 1
-    response_source3_page = response_sources[2].metadata["page"] + 1
+    chat_history = []
+    print("Chatbot initialized. Start chatting (type 'exit' to quit):")
+    message = q 
+    response = await chat(qa_chain, message, chat_history)
+    return (f"{response}")
+@app.route('/conversation', methods=['POST'])
+async def conduct_conversation():
+    data = request.get_json()
+    collection_id = data.get('collection_id', '')
+    section_id = data.get('section_id', '')
+    notes_li =  get_notess(collection_id, section_id)
+    notes = ' '.join(notes_li)
 
-    new_history = history + [(message, response_answer)]
+    question  = data.get('question', '')
+    response  = await chatbot(notes, question)
+    return jsonify({'response': response})
+# # Endpoint for uploading PDF documents
+# @app.route('/upload', methods=['POST'])
+# def upload_documents():
+#     uploaded_files = []
+#     for file in request.files.getlist('file'):
+#         filename = (file.filename)
+#         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+#         uploaded_files.append(filename)
+#     return jsonify({"uploaded_files": uploaded_files})
 
-    return jsonify({
-        "qa_chain": qa_chain,
-        "new_history": new_history,
-        "response_source1": response_source1,
-        "response_source1_page": response_source1_page,
-        "response_source2": response_source2,
-        "response_source2_page": response_source2_page,
-        "response_source3": response_source3,
-        "response_source3_page": response_source3_page
-    })
+# # Function to load PDF document and create doc splits
+# def load_doc(list_file_path, chunk_size, chunk_overlap):
+#     loaders = [PyPDFLoader(x) for x in list_file_path]
+#     pages = []
+#     for loader in loaders:
+#         pages.extend(loader.load())
+#     text_splitter = RecursiveCharacterTextSplitter(
+#         chunk_size = chunk_size, 
+#         chunk_overlap = chunk_overlap)
+#     doc_splits = text_splitter.split_documents(pages)
+#     return doc_splits
+
+# # Endpoint for initializing vector database
+# @app.route('/initialize_db', methods=['POST'])
+# def initialize_database():
+#     data = request.get_json()
+#     list_file_path = data.get('list_file_path', [])
+#     chunk_size = data.get('chunk_size', 600)
+#     chunk_overlap = data.get('chunk_overlap', 50)
+
+#     collection_name = create_collection_name(list_file_path[0])
+#     doc_splits = load_doc(list_file_path, chunk_size, chunk_overlap)
+#     vector_db = create_db(doc_splits, collection_name)
+
+#     return jsonify({"status": "Database initialized successfully"})
+# def create_collection_name(filepath):
+#     # Extract filename without extension
+#     collection_name = Path(filepath).stem
+#     # Fix potential issues from naming convention
+#     ## Remove space
+#     collection_name = collection_name.replace(" ","-") 
+#     ## ASCII transliterations of Unicode text
+#     collection_name = unidecode(collection_name)
+#     ## Remove special characters
+#     #collection_name = re.findall("[\dA-Za-z]*", collection_name)[0]
+#     collection_name = re.sub('[^A-Za-z0-9]+', '-', collection_name)
+#     ## Limit length to 50 characters
+#     collection_name = collection_name[:50]
+#     ## Minimum length of 3 characters
+#     if len(collection_name) < 3:
+#         collection_name = collection_name + 'xyz'
+#     ## Enforce start and end as alphanumeric character
+#     if not collection_name[0].isalnum():
+#         collection_name = 'A' + collection_name[1:]
+#     if not collection_name[-1].isalnum():
+#         collection_name = collection_name[:-1] + 'Z'
+#     print('Filepath: ', filepath)
+#     print('Collection name: ', collection_name)
+#     return collection_name
+# def create_db(splits, collection_name):
+#     embedding = HuggingFaceEmbeddings()
+#     new_client = chromadb.EphemeralClient()
+#     vectordb = Chroma.from_documents(
+#         documents=splits,
+#         embedding=embedding,
+#         client=new_client,
+#         collection_name=collection_name,
+#         # persist_directory=default_persist_directory
+#     )
+#     return vectordb
+
+# # Function to initialize langchain LLM chain
+# def initialize_llmchain(llm_model, temperature, max_tokens, top_k, vector_db):
+#     if llm_model == "mistralai/Mixtral-8x7B-Instruct-v0.1":
+#         llm = HuggingFaceEndpoint(
+#             repo_id=llm_model, 
+#             temperature = temperature,
+#             max_new_tokens = max_tokens,
+#             top_k = top_k,
+#             load_in_8bit = True,
+#         )
+#     elif llm_model in ["HuggingFaceH4/zephyr-7b-gemma-v0.1","mosaicml/mpt-7b-instruct"]:
+#         raise gr.Error("LLM model is too large to be loaded automatically on free inference endpoint")
+#     elif llm_model == "microsoft/phi-2":
+#         llm = HuggingFaceEndpoint(
+#             repo_id=llm_model, 
+#             temperature = temperature,
+#             max_new_tokens = max_tokens,
+#             top_k = top_k,
+#             trust_remote_code = True,
+#             torch_dtype = "auto",
+#         )
+#     elif llm_model == "TinyLlama/TinyLlama-1.1B-Chat-v1.0":
+#         llm = HuggingFaceEndpoint(
+#             repo_id=llm_model, 
+#             temperature = temperature,
+#             max_new_tokens = 250,
+#             top_k = top_k,
+#         )
+#     elif llm_model == "meta-llama/Llama-2-7b-chat-hf":
+#         raise gr.Error("Llama-2-7b-chat-hf model requires a Pro subscription...")
+#     else:
+#         llm = HuggingFaceEndpoint(
+#             repo_id=llm_model, 
+#             temperature = temperature,
+#             max_new_tokens = max_tokens,
+#             top_k = top_k,
+#         )
+    
+#     memory = ConversationBufferMemory(
+#         memory_key="chat_history",
+#         output_key='answer',
+#         return_messages=True
+#     )
+
+#     retriever = vector_db.as_retriever()
+    
+#     qa_chain = ConversationalRetrievalChain.from_llm(
+#         llm,
+#         retriever=retriever,
+#         chain_type="stuff", 
+#         memory=memory,
+#         return_source_documents=True,
+#         verbose=False,
+#     )
+
+#     return qa_chain
+
+# # Endpoint for initializing QA chain
+# @app.route('/initialize_qa', methods=['POST'])
+# def initialize_qa_chain():
+#     data = request.get_json()
+#     llm_option = data.get('llm_option', 0)
+#     llm_temperature = data.get('llm_temperature', 0.7)
+#     max_tokens = data.get('max_tokens', 1024)
+#     top_k = data.get('top_k', 3)
+#     vector_db = data.get('vector_db', None)
+
+#     llm_model = list_llm[llm_option]
+#     qa_chain = initialize_llmchain(llm_model, llm_temperature, max_tokens, top_k, vector_db)
+
+#     return jsonify({"status": "QA chain initialized successfully"})
+# def format_chat_history(message, chat_history):
+#     formatted_chat_history = []
+#     for user_message, bot_message in chat_history:
+#         formatted_chat_history.append(f"User: {user_message}")
+#         formatted_chat_history.append(f"Assistant: {bot_message}")
+#     return formatted_chat_history
+    
+# # Endpoint for conducting conversation
+# @app.route('/conversation', methods=['POST'])
+# def conduct_conversation():
+#     data = request.get_json()
+#     qa_chain = data.get('qa_chain', None)
+#     message = data.get('message', '')
+#     history = data.get('history', [])
+
+#     formatted_chat_history = format_chat_history(message, history)
+#     response = qa_chain({"question": message, "chat_history": formatted_chat_history})
+    
+#     response_answer = response["answer"]
+#     if response_answer.find("Helpful Answer:") != -1:
+#         response_answer = response_answer.split("Helpful Answer:")[-1]
+
+#     response_sources = response["source_documents"]
+#     response_source1 = response_sources[0].page_content.strip()
+#     response_source2 = response_sources[1].page_content.strip()
+#     response_source3 = response_sources[2].page_content.strip()
+
+#     response_source1_page = response_sources[0].metadata["page"] + 1
+#     response_source2_page = response_sources[1].metadata["page"] + 1
+#     response_source3_page = response_sources[2].metadata["page"] + 1
+
+#     new_history = history + [(message, response_answer)]
+
+#     return jsonify({
+#         "qa_chain": qa_chain,
+#         "new_history": new_history,
+#         "response_source1": response_source1,
+#         "response_source1_page": response_source1_page,
+#         "response_source2": response_source2,
+#         "response_source2_page": response_source2_page,
+#         "response_source3": response_source3,
+#         "response_source3_page": response_source3_page
+#     })
 
 
 
@@ -458,18 +570,6 @@ async def ask_sydney_with_retry(question, max_retries=3):
             retries += 1
     raise Exception("Exceeded maximum number of retries")
 
-app = Flask(__name__)
-CORS(app)
-logging.basicConfig(level=logging.DEBUG)
-
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
-# Initialize Firebase Admin SDK
-cred = credentials.Certificate("serviceKey.json")
-firebase_admin.initialize_app(cred)
-
-# Initialize Firestore client
-db = firestore.client()
 
 @app.route('/videos/<path:filename>')
 def serve_video(filename):
@@ -519,7 +619,26 @@ def search_images(term, max_images=30):
     ddgs = DDGS()
     return [result['image'] for result in ddgs.images(keywords=term, max_results=max_images)]
 
+@app.route('/time_spent', methods=['POST'])
+def time_spent():
+    data = request.get_json()
+    collection_id = data.get('collection_id')
+    section_id = data.get('section_id')
+    total_time_spent = data.get('total_time_spent')
+    if not collection_id or not section_id or not total_time_spent:
+        return jsonify({'error': 'Missing required parameters'}), 400
+    try:
+        section_ref = db.collection('collections').document(collection_id).collection('sections').document(section_id)
 
+        section_data = section_ref.get().to_dict()
+        current_total_time = section_data.get('total_time', 0)
+
+        new_total_time = current_total_time + total_time_spent
+
+        section_ref.update({'total_time': new_total_time})
+        return jsonify({'message': 'Access time updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 # def download_image(url, folder):
 #     filename = os.path.join(folder, os.path.basename(url))
 #     try:
@@ -1607,7 +1726,8 @@ def create_section():
     sections_ref.set({
         'section_name': section_name,
         'notes': notes,
-        'visibility': 'public'
+        'visibility': 'public',
+        'total_time': 0
     })
 
     return jsonify({'message': 'Section created successfully'})
@@ -1653,8 +1773,78 @@ def get_flashcards():
         return jsonify({'flashcards': notes}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+@app.route('/top-sections', methods=['GET'])
+def get_top_sections():
+    username = request.args.get('username')
 
+    try:
+        sections = {}
+        # Query sections created by the logged-in user
+        collections_ref = db.collection('collections').where('username', '==', username)
+        
+        # Iterate over each document in the collections_ref query results
+        for collection_doc in collections_ref.stream():
+            collection_id = collection_doc.id
+            sections_ref = db.collection('collections').document(collection_id).collection('sections').stream()
+            
+            for doc in sections_ref:
+                section_data = doc.to_dict()
+                section_name = section_data.get('section_name', '')
+                section_time = section_data.get('total_time', 0)
+                
+                if section_name in sections:
+                    sections[section_name]['total_time'] += section_time
+                else:
+                    sections[section_name] = {
+                        'section_name': section_name,
+                        'total_time': section_time
+                    }
 
+        # Sort the sections by total_time in descending order
+        top_sections = sorted(sections.values(), key=lambda x: x['total_time'], reverse=True)
+
+        return jsonify({'top_sections': top_sections}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+@app.route('/top-collections', methods=['GET'])
+def get_top_collections():
+    username = request.args.get('username')
+
+    try:
+        collections = {}
+        # Query collections created by the logged-in user
+        collections_ref = db.collection('collections').where('username', '==', username)
+        
+        # Iterate over each document in the collections_ref query results
+        for collection_doc in collections_ref.stream():
+            collection_id = collection_doc.id
+            collection_data = collection_doc.to_dict()
+            collection_name = collection_data.get('data', {}).get('title', '')
+            
+            # Query sections for the current collection
+            sections_ref = db.collection('collections').document(collection_id).collection('sections').stream()
+            
+            # Calculate the total time for the current collection
+            total_time = 0
+            for section_doc in sections_ref:
+                section_data = section_doc.to_dict()
+                total_time += section_data.get('total_time', 0)
+            
+            if collection_name in collections:
+                collections[collection_name]['total_time'] += total_time
+            else:
+                collections[collection_name] = {
+                    'collection_name': collection_name,
+                    'total_time': total_time
+                }
+
+        top_collections = sorted(collections.values(), key=lambda x: x['total_time'], reverse=True)
+
+        return jsonify({'top_collections': top_collections}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 @app.route('/get_flashcards_frq', methods=['POST'])
 def get_flashcards_frq():
     data = request.get_json()

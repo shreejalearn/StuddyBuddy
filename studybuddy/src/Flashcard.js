@@ -657,6 +657,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
+import axios from 'axios';
 
 const FlashcardApp = () => {
   const [flashcards, setFlashcards] = useState([]);
@@ -665,8 +666,17 @@ const FlashcardApp = () => {
   const [suggestedFlashcards, setSuggestedFlashcards] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [flippedCards, setFlippedCards] = useState([]);
-
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
+  const [totalTimeSpent, setTotalTimeSpent] = useState(0);
+  const chapterId = localStorage.getItem('currentSection');
+  const collName = localStorage.getItem('collectionName');
+  const chapterName = localStorage.getItem('currentSectionName');
+  const collectionId = localStorage.getItem('currentCollection');
+  
   useEffect(() => {
+    let startTime = null;
+    let endTime = null;
     async function fetchFlashcards() {
       try {
         const response = await fetch(`http://localhost:5000/get_flashcards?collection_id=${localStorage.getItem('currentCollection')}&section_id=${localStorage.getItem('currentSection')}`);
@@ -705,9 +715,52 @@ const FlashcardApp = () => {
       }
     };
     
+    const handleBeforeUnload = () => {
+      endTime = new Date().getTime();
+      if (startTime && endTime) {
+        const timeSpent = endTime - startTime;
+        setTotalTimeSpent(timeSpent); // Update state for display or debugging purposes
+        try {
+          axios.post('http://localhost:5000/time_spent', {
+            collection_id: collectionId,
+            section_id: chapterId,
+            total_time_spent: timeSpent,
+          });
+        } catch (error) {
+          console.error('Error updating time spent:', error);
+        }
+      }
+    };
+  
+    const handleUnload = () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+      endTime = new Date().getTime();
+      if (startTime && endTime) {
+        const timeSpent = endTime - startTime;
+        try {
+          axios.post('http://localhost:5000/time_spent', {
+            collection_id: collectionId,
+            section_id: chapterId,
+            total_time_spent: timeSpent,
+          });
+        } catch (error) {
+          console.error('Error updating time spent:', error);
+        }
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+  
+    startTime = new Date().getTime();
+    
+    
     fetchFlashcards();
     suggestFlashcards();
-  }, []);
+    return () => {
+      handleBeforeUnload();
+    };
+  }, [chapterId, collectionId]);
 
   const addFlashcard = async () => {
     if (question.trim() === '' || answer.trim() === '') {

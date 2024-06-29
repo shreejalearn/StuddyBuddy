@@ -274,6 +274,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from './assets/logo (2).png';
 import axios from 'axios';
 import './styles/homepage.css';
+import Navbar from './Navbar';
 
 const CreateSectionModal = ({ recommendation, onClose }) => {
   const [sectionName, setSectionName] = useState('');
@@ -482,23 +483,7 @@ const HomePage = () => {
 
   return (
     <div>
-      <nav>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src={Logo} alt="Logo" />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'center', borderRadius: '7px' }}>
-          <input 
-            type="text" 
-            placeholder="Search public sets..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={handleKeyPress} 
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button onClick={() => navigate('/mygallery')}>Your Collections</button>
-        </div>
-      </nav>
+      <Navbar></Navbar>
       <div className="main">
         <h1>Study Buddy</h1>
         {loading ? (

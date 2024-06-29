@@ -25,6 +25,7 @@ import RetentionTest from './RetentionTest';
 import Login from './Login';
 import Signup from './Signup';
 import PrivateRoute from './PrivateRoute';
+import Stats from './Stats';
 
 import { AuthProvider } from './AuthContext';
 import reportWebVitals from './reportWebVitals';
@@ -46,6 +47,7 @@ function MainApp() {
             <Route path="/upload" element={<App />} />
             <Route path="/publicsections" element={<PublicSections />} />
             <Route path="/videos" element={<Videos />} />
+            <Route path="/stats" element={<Stats />} />
             <Route path="/mygallery" element={<CollectionsPage />} />
             <Route path="/sections" element={<Sections />} />
             <Route path="/retentiontest" element={<RetentionTest />} />

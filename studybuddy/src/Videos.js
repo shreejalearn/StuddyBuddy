@@ -15,8 +15,14 @@ const VideoPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedNotes, setSelectedNotes] = useState([]);
   const [askSpecificResponse, setAskSpecificResponse] = useState(null);
-
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
+  const [totalTimeSpent, setTotalTimeSpent] = useState(0);
+  
   useEffect(() => {
+    let startTime = null;
+    let endTime = null;
+  
     const fetchVideoPaths = async () => {
       try {
         const response = await axios.get('http://localhost:5000/get_video_paths', {
@@ -44,9 +50,53 @@ const VideoPage = () => {
         console.error('Error fetching notes:', error);
       }
     };
+    
+    const handleBeforeUnload = () => {
+      endTime = new Date().getTime();
+      if (startTime && endTime) {
+        const timeSpent = endTime - startTime;
+        setTotalTimeSpent(timeSpent); // Update state for display or debugging purposes
+        try {
+          axios.post('http://localhost:5000/time_spent', {
+            collection_id: collectionId,
+            section_id: sectionId,
+            total_time_spent: timeSpent,
+          });
+        } catch (error) {
+          console.error('Error updating time spent:', error);
+        }
+      }
+    };
+  
+    const handleUnload = () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+      endTime = new Date().getTime();
+      if (startTime && endTime) {
+        const timeSpent = endTime - startTime;
+        try {
+          axios.post('http://localhost:5000/time_spent', {
+            collection_id: collectionId,
+            section_id: sectionId,
+            total_time_spent: timeSpent,
+          });
+        } catch (error) {
+          console.error('Error updating time spent:', error);
+        }
+      }
+    };
+  
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+  
+    startTime = new Date().getTime();
+    
 
     fetchVideoPaths();
     fetchNotes();
+    return () => {
+      handleBeforeUnload();
+    };
   }, [collectionId, sectionId]);
 
   const handleGenerateVideo = async () => {

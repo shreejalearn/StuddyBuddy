@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import axios from 'axios';
 
 const QuizComponent = () => {
+    const chapterId = localStorage.getItem('currentSection');
+    const collName = localStorage.getItem('collectionName');
+    const chapterName = localStorage.getItem('currentSectionName');
+    const collectionId = localStorage.getItem('currentCollection');
+    
     const [userAnswers, setUserAnswers] = useState({});
     const [correctAnswers, setCorrectAnswers] = useState({});
     const [showResults, setShowResults] = useState(false);
@@ -11,7 +16,59 @@ const QuizComponent = () => {
     const [numFRQQuestions, setNumFRQQuestions] = useState(5);
     const [questionSource, setQuestionSource] = useState(''); // 'ai' or 'flashcards'
     const [numFlashcardQuestions, setNumFlashcardQuestions] = useState(5);
-
+    const [startTime, setStartTime] = useState(null);
+    const [endTime, setEndTime] = useState(null);
+    const [totalTimeSpent, setTotalTimeSpent] = useState(0);
+    useEffect(() => {
+        let startTime = null;
+        let endTime = null;
+      
+      
+        const handleBeforeUnload = () => {
+          endTime = new Date().getTime();
+          if (startTime && endTime) {
+            const timeSpent = endTime - startTime;
+            setTotalTimeSpent(timeSpent); // Update state for display or debugging purposes
+            try {
+              axios.post('http://localhost:5000/time_spent', {
+                collection_id: collectionId,
+                section_id: chapterId,
+                total_time_spent: timeSpent,
+              });
+            } catch (error) {
+              console.error('Error updating time spent:', error);
+            }
+          }
+        };
+      
+        const handleUnload = () => {
+          window.removeEventListener('beforeunload', handleBeforeUnload);
+          window.removeEventListener('unload', handleUnload);
+          endTime = new Date().getTime();
+          if (startTime && endTime) {
+            const timeSpent = endTime - startTime;
+            try {
+              axios.post('http://localhost:5000/time_spent', {
+                collection_id: collectionId,
+                section_id: chapterId,
+                total_time_spent: timeSpent,
+              });
+            } catch (error) {
+              console.error('Error updating time spent:', error);
+            }
+          }
+        };
+      
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('unload', handleUnload);
+      
+        startTime = new Date().getTime();
+      
+        return () => {
+          handleBeforeUnload();
+        };
+      }, [chapterId, collectionId]);
+      
     const fetchQuestions = async () => {
         try {
             const sectionId = localStorage.getItem('currentSection');

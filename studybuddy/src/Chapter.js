@@ -217,18 +217,12 @@ const ChapterPage = () => {
   const [worksheets, setWorksheets] = useState([]);
   const [uploadedWorksheet, setUploadedWorksheet] = useState(null);
   const [uploadWorksheetModalOpen, setUploadWorksheetModalOpen] = useState(false);
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
+  const [totalTimeSpent, setTotalTimeSpent] = useState(0);
   useEffect(() => {
-    const updateAccessTime = async () => {
-      try {
-        await axios.post('http://localhost:5000/update_access_time', {
-          collection_id: collectionId,
-          section_id: chapterId,
-        });
-      } catch (error) {
-        console.error('Error updating access time:', error);
-      }
-    };
-
+    let startTime = null;
+    let endTime = null;
     const fetchNotes = async () => {
       try {
         console.log(collectionId);
@@ -245,26 +239,63 @@ const ChapterPage = () => {
         console.error('Error:', error);
       }
     };
-
-    const fetchWorksheets = async () => {
+    const updateAccessTime = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/get_worksheets', {
-          params: {
-            collection_id: collectionId,
-            section_id: chapterId,
-          },
+        await axios.post('http://localhost:5000/update_access_time', {
+          collection_id: collectionId,
+          section_id: chapterId,
         });
-        setWorksheets(response.data.worksheets);
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error updating access time:', error);
       }
     };
-
+  
+    const handleBeforeUnload = () => {
+      endTime = new Date().getTime();
+      if (startTime && endTime) {
+        const timeSpent = endTime - startTime;
+        setTotalTimeSpent(timeSpent); // Update state for display or debugging purposes
+        try {
+          axios.post('http://localhost:5000/time_spent', {
+            collection_id: collectionId,
+            section_id: chapterId,
+            total_time_spent: timeSpent,
+          });
+        } catch (error) {
+          console.error('Error updating time spent:', error);
+        }
+      }
+    };
+  
+    const handleUnload = () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+      endTime = new Date().getTime();
+      if (startTime && endTime) {
+        const timeSpent = endTime - startTime;
+        try {
+          axios.post('http://localhost:5000/time_spent', {
+            collection_id: collectionId,
+            section_id: chapterId,
+            total_time_spent: timeSpent,
+          });
+        } catch (error) {
+          console.error('Error updating time spent:', error);
+        }
+      }
+    };
     fetchNotes();
-    fetchWorksheets();
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+  
+    startTime = new Date().getTime();
     updateAccessTime();
+  
+    return () => {
+      handleBeforeUnload();
+    };
   }, [chapterId, collectionId]);
-
+  
   const handleSourceChange = (source) => {
     setSelectedSource((prevState) =>
       prevState.includes(source) ? prevState.filter((s) => s !== source) : [...prevState, source]
@@ -376,11 +407,35 @@ const ChapterPage = () => {
   const handleSubmitQuestion = async () => {
     try {
       setLoading(true);
-      const res = await axios.post('http://localhost:5000/answer_question', {
-        username: localStorage.getItem('username'),
-        class: localStorage.getItem('currentCollection'),
-        data: prompt,
-      });
+      // const res = await axios.post('http://localhost:5000/answer_question', {
+      //   username: localStorage.getItem('username'),
+      //   class: localStorage.getItem('currentCollection'),
+      //   data: prompt,
+      // });
+      // const data = {
+      //   collection_id: collectionId,
+      //   section_id: chapterId,
+      //   question: prompt
+      // };
+
+      // const config = {
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   }
+      // };
+
+      const res = await axios.post('http://localhost:5000/conversation', 
+        {
+          collection_id: collectionId,
+          section_id: chapterId,
+          question: prompt
+        }, 
+        {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }
+      );
       setResponse(res.data.response);
     } catch (error) {
       console.error('Error submitting question:', error);

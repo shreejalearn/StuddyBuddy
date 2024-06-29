@@ -421,8 +421,12 @@ const SavedResponsesPage = () => {
   const [savedResponses, setSavedResponses] = useState([]);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [currentResponse, setCurrentResponse] = useState(null);
-
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
+  const [totalTimeSpent, setTotalTimeSpent] = useState(0);
   useEffect(() => {
+    let startTime = null;
+    let endTime = null;
     const fetchSavedResponses = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/get_saved_responses?collection_id=${collectionId}&section_id=${chapterId}`);
@@ -439,9 +443,51 @@ const SavedResponsesPage = () => {
           console.error('Error message:', error.message);
         }
       }
+      
     };
-
+    
+    const handleBeforeUnload = () => {
+      endTime = new Date().getTime();
+      if (startTime && endTime) {
+        const timeSpent = endTime - startTime;
+        setTotalTimeSpent(timeSpent); // Update state for display or debugging purposes
+        try {
+          axios.post('http://localhost:5000/time_spent', {
+            collection_id: collectionId,
+            section_id: chapterId,
+            total_time_spent: timeSpent,
+          });
+        } catch (error) {
+          console.error('Error updating time spent:', error);
+        }
+      }
+    };
+  
+    const handleUnload = () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+      endTime = new Date().getTime();
+      if (startTime && endTime) {
+        const timeSpent = endTime - startTime;
+        try {
+          axios.post('http://localhost:5000/time_spent', {
+            collection_id: collectionId,
+            section_id: chapterId,
+            total_time_spent: timeSpent,
+          });
+        } catch (error) {
+          console.error('Error updating time spent:', error);
+        }
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+  
+    startTime = new Date().getTime();
     fetchSavedResponses();
+    return () => {
+      handleBeforeUnload();
+    };
   }, [chapterId, collectionId]);
 
   const openModal = (response) => {
